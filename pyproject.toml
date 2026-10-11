@@ -1,0 +1,9 @@
+[project]
+name = "media-monitoring-v2"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.15"
+dependencies = [
+    "curl-cffi>=0.16.3",
+]
