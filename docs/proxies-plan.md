@@ -1,7 +1,7 @@
 # Proxies
 
-Status: in use since October 2026. Still to build: keeping the pool fresh continuously, as part
-of the monitoring program ([monitoring-plan.md](monitoring-plan.md)).
+Status: in use since October 2026. Each monitoring round starts by getting fresh proxies
+([monitoring-plan.md](monitoring-plan.md)).
 
 ## Why we need proxies
 
@@ -36,8 +36,8 @@ in the git history).
   slow down per address. The occasional random refusal is simply retried elsewhere.
 - **Our server is the limit,** not YouTube or the proxies. Fetching details for all 55,859
   channels takes about 6 seconds.
-- **Proxies wear out under heavy use,** so a program that runs continuously must keep testing
-  and refreshing them.
+- **Proxies wear out under heavy use,** which is why every monitoring round starts with a
+  fresh test.
 
 ## Risks
 
