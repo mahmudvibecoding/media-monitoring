@@ -24,6 +24,7 @@ from collections import Counter, deque
 API = "https://www.youtube.com/youtubei/v1/"  # InnerTube: the API behind YouTube's own website
 CONTEXT = {"client": {"clientName": "WEB", "clientVersion": "2.20251001.01.00", "hl": "en", "gl": "US"}}
 PROXY_FILE = "vpn_proxies.txt"  # from singbox_runner.py: one line per local proxy, "proxy link"
+PLAIN_PROXY_FILE = "plain_proxies.txt"  # from plain_proxies.py: free HTTP and SOCKS4 proxies, for pages and comments
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
 TIMEOUT = 5  # seconds; a proxy that hasn't answered by then has failed
 HEDGE_AFTER = 1  # seconds without an answer before a request through an untested proxy (or any, when draining)
@@ -32,6 +33,9 @@ ATTEMPTS = 5  # requests per answer at most, not counting failures of proxies th
 # Seconds a proxy rests when its slots fall to zero: a proxy that has answered in this run comes back sooner, while
 # one that never has (most of them are dead) is tried less often
 REST, REST_IF_NEVER_ANSWERED = 30, 60
+# YouTube blocks an address from video pages and comments (its next endpoint) for a while after heavy use, so the
+# scripts that ask for those let every failed proxy rest this long instead, and then try it again
+LONG_REST = 900
 # YouTube returns a random 403/429 now and then; that alone changes nothing. Only a real storm (8 blocks
 # among a proxy's last 10 answers) pauses that proxy for 30 seconds; then it continues at full speed.
 STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, 30
@@ -48,10 +52,14 @@ class BadRequest(Exception):
     """YouTube rejected the request itself: probably a field mask is out of date."""
 
 
-def load_proxies():
-    """Every local proxy from sing-box (run singbox_runner.py first), in random order."""
-    with open(PROXY_FILE) as f:
-        proxies = [line.split()[0] for line in f if line.strip()]
+def load_proxies(path=PROXY_FILE):
+    """Every proxy in a list, in random order: by default the local ones from sing-box (run singbox_runner.py first).
+    None if the list doesn't exist."""
+    try:
+        with open(path) as f:
+            proxies = [line.split()[0] for line in f if line.strip()]
+    except FileNotFoundError:
+        return []
     random.shuffle(proxies)
     return proxies
 
@@ -85,9 +93,11 @@ async def call(session, proxy, method, url, **kwargs):
 
 
 class Pool:
-    """One process's share of the proxies (see the top of this file), in the order to test them."""
+    """One process's share of the proxies (see the top of this file), in the order to test them. rest, if given, is
+    how long every proxy whose slots fall to zero rests (else REST or REST_IF_NEVER_ANSWERED)."""
 
-    def __init__(self, proxies):
+    def __init__(self, proxies, rest=None):
+        self.rest = rest
         self.slots = asyncio.PriorityQueue()  # free slots: (rank, order, proxy, generation)
         self.order = itertools.count()  # slots of the same rank are taken in the order they were freed
         self.generation = Counter()  # raised when a proxy starts resting, so the slots it had are thrown away
@@ -247,7 +257,7 @@ class Pool:
         self.held[proxy] = self.busy[proxy] = 0
         self.proven.discard(proxy)
         self.resting.add(proxy)
-        rest = REST if proxy in self.answered else REST_IF_NEVER_ANSWERED
+        rest = self.rest or (REST if proxy in self.answered else REST_IF_NEVER_ANSWERED)
         asyncio.get_running_loop().call_later(rest, self._test, proxy)
         if len(self.resting) == self.count:
             self._give_up()

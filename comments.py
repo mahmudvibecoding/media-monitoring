@@ -23,7 +23,8 @@ from urllib.parse import quote
 import psycopg
 from curl_cffi import AsyncSession
 
-from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
+from pool import (API, ATTEMPTS, CONTEXT, LONG_REST, PLAIN_PROXY_FILE, NoProxiesLeft, Pool, call, load_proxies,
+                  raise_open_files_limit)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
 # Saves don't wait for the disk to confirm them: a crash loses at most the last second of saves, which the next
@@ -185,7 +186,7 @@ async def save_rows(conn, pending, counts):
 async def collect_share(video_ids, proxies):
     """One process: read its share of the videos through its share of the proxies, saving every 2 seconds."""
     raise_open_files_limit()
-    pool = Pool(proxies)
+    pool = Pool(proxies, rest=LONG_REST)  # YouTube blocks busy addresses from next for a while
     results, pending, counts = Counter(), [], []
     async with await psycopg.AsyncConnection.connect(DATABASE_URL, autocommit=True, options=NO_WAIT) as conn:
         known = defaultdict(set)  # the comments already saved for this process's videos, loaded once
@@ -260,13 +261,14 @@ def main():
         video_ids = [row[0] for row in conn.execute(
             f"""SELECT v.video_id FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)
                 {where} ORDER BY s.views DESC NULLS LAST""", () if days == "all" else (int(days),))]
-    proxies = load_proxies()
+    plain, vpn = load_proxies(PLAIN_PROXY_FILE), load_proxies()
     window = "every video" if days == "all" else f"uploaded in the last {days} days"
-    print(f"{len(video_ids)} videos to read comments of ({window}), {len(proxies)} proxies")
-    if not video_ids or not proxies:
+    print(f"{len(video_ids)} videos to read comments of ({window}), {len(plain)} free proxies and "
+          f"{len(vpn)} VPN proxies")
+    if not video_ids or not plain + vpn:
         return
 
-    processes = max(1, min(PROCESSES, len(proxies) // 50, math.ceil(len(video_ids) / 1000)))
+    processes = max(1, min(PROCESSES, (len(plain) + len(vpn)) // 50, math.ceil(len(video_ids) / 1000)))
     print(f"reading with {processes} processes...")
     context = get_context("spawn")
     counter = context.Array("q", 2)  # [videos finished, new comments], counted by the worker processes
@@ -274,7 +276,8 @@ def main():
     results, outcomes, working = Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=context, initializer=share_counter,
                              initargs=(counter,)) as executor:
-        futures = [executor.submit(run_share, video_ids[i::processes], proxies[i::processes])
+        # Free proxies first: the VPN ones are often blocked from next, and an untested proxy is tried in order
+        futures = [executor.submit(run_share, video_ids[i::processes], plain[i::processes] + vpn[i::processes])
                    for i in range(processes)]
         before, then = 0, started
         while not all(f.done() for f in futures):

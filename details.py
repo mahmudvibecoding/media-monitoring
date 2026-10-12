@@ -18,7 +18,8 @@ from multiprocessing import get_context
 import psycopg
 from curl_cffi import AsyncSession
 
-from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
+from pool import (API, ATTEMPTS, CONTEXT, LONG_REST, PLAIN_PROXY_FILE, NoProxiesLeft, Pool, call, load_proxies,
+                  raise_open_files_limit)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
 # Saves don't wait for the disk to confirm them: a crash loses at most the last second of saves, which the next
@@ -95,7 +96,7 @@ async def save_rows(conn, pending, unavailable):
 async def collect_share(video_ids, proxies):
     """One process: fetch its share of the videos through its share of the proxies, saving every 2 seconds."""
     raise_open_files_limit()
-    pool = Pool(proxies)
+    pool = Pool(proxies, rest=LONG_REST)  # YouTube blocks busy addresses from next for a while
     results, pending, unavailable = Counter(), [], []
     async with await psycopg.AsyncConnection.connect(DATABASE_URL, autocommit=True, options=NO_WAIT) as conn:
         await conn.execute(DETAILS)
@@ -150,17 +151,19 @@ def main():
     sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
     with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
         video_ids = [row[0] for row in conn.execute("SELECT video_id FROM youtube_videos WHERE title IS NULL")]
-    proxies = load_proxies()
-    print(f"{len(video_ids)} videos without details, {len(proxies)} proxies")
-    if not video_ids or not proxies:
+    plain, vpn = load_proxies(PLAIN_PROXY_FILE), load_proxies()
+    print(f"{len(video_ids)} videos without details, {len(plain)} free proxies and "
+          f"{len(vpn)} VPN proxies")
+    if not video_ids or not plain + vpn:
         return
 
-    processes = max(1, min(PROCESSES, len(proxies) // 50, math.ceil(len(video_ids) / 1000)))
+    processes = max(1, min(PROCESSES, (len(plain) + len(vpn)) // 50, math.ceil(len(video_ids) / 1000)))
     print(f"fetching with {processes} processes...")
     started = time.monotonic()
     results, outcomes, working = Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=get_context("spawn")) as executor:
-        futures = [executor.submit(run_share, video_ids[i::processes], proxies[i::processes])
+        # Free proxies first: the VPN ones are often blocked from next, and an untested proxy is tried in order
+        futures = [executor.submit(run_share, video_ids[i::processes], plain[i::processes] + vpn[i::processes])
                    for i in range(processes)]
         with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
             while not all(f.done() for f in futures):

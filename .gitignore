@@ -4,5 +4,6 @@ __pycache__/
 vpn_configs.txt
 outbounds.json
 vpn_proxies.txt
+plain_proxies.txt
 singbox/
 vpn_sources.txt

@@ -18,9 +18,11 @@ We download 24 of those lists, about 70,000 configurations in total. A program c
 turns each one into a proxy on our own server, and our real YouTube requests show which ones work.
 Usually a few thousand work at a time, which is plenty.
 
-We tried free public proxies first. They were slow and unreliable: they did only about 5% of
-the work, and most failed on their first real request, so we removed them (the code is still
-in the git history).
+Video pages and comments also use free public proxies. YouTube blocks an address from those
+for a while after heavy use, so they need as many different addresses as possible. Only about
+1% of the free proxies work (none of the SOCKS5 ones), but the pool finds those by itself, and
+each one is another address. There, every proxy that fails, free or VPN, rests 15 minutes
+before it's tried again.
 
 ## How a collection run works
 
