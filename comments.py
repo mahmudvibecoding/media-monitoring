@@ -1,0 +1,285 @@
+"""Collect the comments of videos, newest first, top level only (no replies). The first time, a video's whole
+comment list is read; after that, only the new comments, down to the first page that ends with one we already have.
+
+"uv run comments.py" covers the videos uploaded in the last DAYS days, "uv run comments.py 30" the last 30 days,
+and "uv run comments.py all" every video. Each video's total comment count, as YouTube shows it, goes next to its
+views and likes, so run stats.py first. Run it while singbox_runner.py is running: the pool tests the proxies by
+itself (see pool.py).
+"""
+import asyncio
+import base64
+import math
+import os
+import re
+import sys
+import time
+from collections import Counter, defaultdict
+from concurrent.futures import ProcessPoolExecutor, wait
+from datetime import datetime, timedelta, timezone
+from functools import partial
+from multiprocessing import get_context
+from urllib.parse import quote
+
+import psycopg
+from curl_cffi import AsyncSession
+
+from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
+
+DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
+# Saves don't wait for the disk to confirm them: a crash loses at most the last second of saves, which the next
+# run fetches again
+NO_WAIT = "-c synchronous_commit=off"
+PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few cores stay free for sing-box
+CONCURRENCY = 500  # videos in progress at a time, per process
+DAYS = 90  # by default, the videos uploaded in the last DAYS days
+EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
+ITEMS = ("continuationItems(commentsHeaderRenderer/countText/runs/text,"
+         "continuationItemRenderer/continuationEndpoint/continuationCommand/token)")
+FIELDS = (f"onResponseReceivedEndpoints(reloadContinuationItemsCommand/{ITEMS},appendContinuationItemsAction/{ITEMS}),"
+          "frameworkUpdates/entityBatchUpdate/mutations/payload/commentEntityPayload("
+          "properties(commentId,content/content,publishedTime,replyLevel),author(channelId,displayName))")
+URL = API + "next?prettyPrint=false&fields=" + FIELDS
+COUNT = re.compile(r"[\d,]+")  # "15,925 Comments"
+AGO = re.compile(r"(\d+) (second|minute|hour|day|week|month|year)s? ago")  # "2 hours ago (edited)"
+SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 7 * 86400, "month": 30 * 86400,
+           "year": 365 * 86400}
+
+NEW_COMMENTS = """CREATE TEMP TABLE new_comments (video_id text, comment_id text, author_channel_id text,
+                  author_name text, text text, published_text text, published_at timestamptz) ON COMMIT DELETE ROWS"""
+SAVE_COMMENTS = """INSERT INTO youtube_comments (video_id, comment_id, author_channel_id, author_name, text,
+                                                published_text, published_at)
+                   SELECT * FROM new_comments ON CONFLICT DO NOTHING"""
+VIDEO_COUNTS = "CREATE TEMP TABLE video_counts (video_id text, comments bigint, complete boolean) ON COMMIT DELETE ROWS"
+# A failed read keeps the count it had
+SAVE_COUNTS = """UPDATE youtube_video_stats AS s
+                 SET comments = coalesce(c.comments, s.comments), comments_complete = c.complete
+                 FROM video_counts AS c WHERE s.video_id = c.video_id"""
+LOAD_KNOWN = "SELECT video_id, comment_id FROM youtube_comments WHERE video_id = ANY(%s)"
+LOAD_COMPLETE = "SELECT video_id FROM youtube_video_stats WHERE comments_complete AND video_id = ANY(%s)"
+
+done = None  # in each worker process: [videos finished, new comments], counted by all processes together
+
+
+def first_token(video_id):
+    """The token for the first page of a video's comments, newest first, built from its ID: what the video's page
+    asks for when you sort its comments by newest."""
+    raw = (b"\x12\x0d\x12\x0b" + video_id.encode() + b"\x18\x06\x32\x25\x22\x11\x22\x0b" + video_id.encode()
+           + b"\x30\x01\x78\x02\x42\x10comments-section")
+    return quote(base64.urlsafe_b64encode(raw).decode())
+
+
+def text(value):
+    """Text as PostgreSQL can store it: without NUL characters."""
+    return value.replace("\x00", "") if value else value
+
+
+def published(shown, now):
+    """When a comment was posted, estimated from what YouTube shows ("2 hours ago"); None if it doesn't say."""
+    match = AGO.search(shown or "")
+    return now - timedelta(seconds=int(match.group(1)) * SECONDS[match.group(2)]) if match else None
+
+
+def parse_page(data):
+    """(count, comments, next page's token) from one page of comments. count is the total YouTube shows, replies
+    included (only the first page has it); comments are (comment_id, author_channel_id, author_name, text,
+    published_text), top level only, in the page's order."""
+    count = token = None
+    for endpoint in data.get("onResponseReceivedEndpoints") or []:
+        for action in endpoint.values():
+            for item in action.get("continuationItems") or []:
+                if "commentsHeaderRenderer" in item:
+                    shown = "".join(run["text"] for run in item["commentsHeaderRenderer"]["countText"]["runs"])
+                    match = COUNT.search(shown)
+                    count = int(match.group().replace(",", "")) if match else None
+                elif "continuationItemRenderer" in item:
+                    token = item["continuationItemRenderer"]["continuationEndpoint"]["continuationCommand"]["token"]
+    comments = []
+    for mutation in data.get("frameworkUpdates", {}).get("entityBatchUpdate", {}).get("mutations") or []:
+        entity = mutation.get("payload", {}).get("commentEntityPayload")
+        if entity and not entity["properties"].get("replyLevel"):
+            properties, author = entity["properties"], entity.get("author") or {}
+            comments.append((properties["commentId"], author.get("channelId"), text(author.get("displayName")),
+                             text((properties.get("content") or {}).get("content")), properties.get("publishedTime")))
+    return count, comments, token
+
+
+async def fetch_page(session, token, proxy):
+    """One page of a video's comments through one proxy. Returns (outcome, (count, comments, next_token))."""
+    problem, response = await call(session, proxy, "POST", URL, json={"context": CONTEXT, "continuation": token})
+    if problem:
+        return problem, None
+    try:
+        data = response.json()
+    except Exception:
+        return "broken", None  # not YouTube's answer: the proxy mangled it
+    try:
+        return "ok", parse_page(data)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return "youtube error", None  # an answer in an unexpected shape; the next try gets it
+
+
+async def read_video(pool, session, video_id, known, complete, pending, counts):
+    """Read one video's comments, newest first, adding the new ones to pending: all of them if its whole list hasn't
+    been read yet, else down to the first page that ends with a comment we already have. Adds (video_id, count,
+    complete) to counts once done. Returns "ok" or "failed"."""
+    token, count, first, seen, empty_tries = first_token(video_id), None, True, set(), 0
+    now = datetime.now(timezone.utc)
+    while token:
+        result, page = await pool.run(partial(fetch_page, session, token))
+        if result != "ok":
+            counts.append((video_id, count, False))  # its whole list is read again next time, so nothing is missed
+            return "failed"
+        page_count, comments, next_token = page
+        if not first and not comments and not next_token and empty_tries < EMPTY_PAGE_TRIES:
+            empty_tries += 1
+            continue  # ask for the same page again
+        if first:
+            count, first = page_count, False
+        for comment in comments:
+            if comment[0] not in known and comment[0] not in seen:  # a comment can show up again on the next page
+                seen.add(comment[0])
+                pending.append((video_id, *comment, published(comment[4], now)))
+        if complete and comments and comments[-1][0] in known:
+            break  # reached the comments we already have (a pinned one comes first, so it can't end a page)
+        token = next_token
+    counts.append((video_id, count, True))
+    return "ok"
+
+
+async def save_rows(conn, pending, counts):
+    """Write the new comments and the finished videos' counts to the database and empty the lists. A video's count
+    is saved with or after all of its comments."""
+    rows, finished = pending[:], counts[:]
+    pending.clear()
+    counts.clear()
+    if rows or finished:
+        async with conn.transaction(), conn.cursor() as cur:
+            if rows:
+                async with cur.copy("COPY new_comments FROM STDIN") as copy:
+                    for row in rows:
+                        await copy.write_row(row)
+                await cur.execute(SAVE_COMMENTS)
+            if finished:
+                async with cur.copy("COPY video_counts FROM STDIN") as copy:
+                    for row in finished:
+                        await copy.write_row(row)
+                await cur.execute(SAVE_COUNTS)
+    return len(rows), len(finished)
+
+
+async def collect_share(video_ids, proxies):
+    """One process: read its share of the videos through its share of the proxies, saving every 2 seconds."""
+    raise_open_files_limit()
+    pool = Pool(proxies)
+    results, pending, counts = Counter(), [], []
+    async with await psycopg.AsyncConnection.connect(DATABASE_URL, autocommit=True, options=NO_WAIT) as conn:
+        known = defaultdict(set)  # the comments already saved for this process's videos, loaded once
+        async with conn.cursor() as cur:
+            await cur.execute(LOAD_KNOWN, (video_ids,))
+            async for video_id, comment_id in cur:
+                known[video_id].add(comment_id)
+            await cur.execute(LOAD_COMPLETE, (video_ids,))
+            complete = {row[0] for row in await cur.fetchall()}
+        await conn.execute(NEW_COMMENTS)
+        await conn.execute(VIDEO_COUNTS)
+        # verify=False: no certificate checks through proxies (all the data is public)
+        async with AsyncSession(impersonate="chrome", verify=False, max_clients=CONCURRENCY * ATTEMPTS) as session:
+            remaining = iter(video_ids)
+
+            async def worker():
+                for video_id in remaining:  # all workers share one iterator
+                    try:
+                        result = await read_video(pool, session, video_id, known.get(video_id, ()),
+                                                  video_id in complete, pending, counts)
+                    except NoProxiesLeft:
+                        return  # this process's proxies all broke; its other videos wait for the next run
+                    results[result] += 1
+                pool.draining = True  # no new videos left: idle capacity goes to the slowest requests
+
+            stop = asyncio.Event()
+
+            async def saver():
+                """Saves every 2 seconds until stopped, then once more. Only this touches the database, so a save
+                is never interrupted halfway."""
+                while True:
+                    try:
+                        await asyncio.wait_for(stop.wait(), timeout=2)
+                    except TimeoutError:
+                        pass
+                    stopped = stop.is_set()  # checked before saving: rows added during this save get the next one
+                    comments, videos = await save_rows(conn, pending, counts)
+                    results["new comments"] += comments
+                    with done.get_lock():
+                        done[0] += videos
+                        done[1] += comments
+                    if stopped:
+                        return
+
+            saving = asyncio.create_task(saver())
+            try:
+                await asyncio.gather(*(worker() for _ in range(min(CONCURRENCY, len(video_ids)))))
+            finally:
+                await pool.close()
+                stop.set()  # also on Ctrl+C or an error: save what we have
+                await saving
+    return results, pool.outcomes, len(pool.proven)
+
+
+def share_counter(counter):
+    """Runs first in each worker process."""
+    global done
+    done = counter
+
+
+def run_share(video_ids, proxies):
+    """Entry point of each worker process: it runs its own event loop."""
+    return asyncio.run(collect_share(video_ids, proxies))
+
+
+def main():
+    sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
+    days = sys.argv[1] if len(sys.argv) > 1 else str(DAYS)
+    where = "" if days == "all" else "WHERE v.upload_date >= current_date - %s::int"
+    with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
+        # Most viewed first: their long comment lists start early instead of holding up the end of the run
+        video_ids = [row[0] for row in conn.execute(
+            f"""SELECT v.video_id FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)
+                {where} ORDER BY s.views DESC NULLS LAST""", () if days == "all" else (int(days),))]
+    proxies = load_proxies()
+    window = "every video" if days == "all" else f"uploaded in the last {days} days"
+    print(f"{len(video_ids)} videos to read comments of ({window}), {len(proxies)} proxies")
+    if not video_ids or not proxies:
+        return
+
+    processes = max(1, min(PROCESSES, len(proxies) // 50, math.ceil(len(video_ids) / 1000)))
+    print(f"reading with {processes} processes...")
+    context = get_context("spawn")
+    counter = context.Array("q", 2)  # [videos finished, new comments], counted by the worker processes
+    started = time.monotonic()
+    results, outcomes, working = Counter(), Counter(), 0
+    with ProcessPoolExecutor(processes, mp_context=context, initializer=share_counter,
+                             initargs=(counter,)) as executor:
+        futures = [executor.submit(run_share, video_ids[i::processes], proxies[i::processes])
+                   for i in range(processes)]
+        before, then = 0, started
+        while not all(f.done() for f in futures):
+            wait(futures, timeout=10)
+            now, (videos, comments) = time.monotonic(), counter[:]
+            print(f"{now - started:5.0f} s  {videos} of {len(video_ids)} videos done, {comments} new comments, "
+                  f"{(videos - before) / (now - then):,.0f} videos/s")
+            before, then = videos, now
+        for future in futures:
+            share_results, share_outcomes, share_working = future.result()
+            results += share_results
+            outcomes += share_outcomes
+            working += share_working
+    took = time.monotonic() - started
+    print(f"\nfinished in {took:.0f} s: {results['ok']} videos read, {results['failed']} failed (read in full next "
+          f"run), {results['new comments']} new comments")
+    print(f"requests: {dict(outcomes)}")
+    print(f"{working} proxies working at the end")
+
+
+# Needed for multiple processes: each worker process imports this file and must not run main() again.
+if __name__ == "__main__":
+    main()

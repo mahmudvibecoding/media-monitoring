@@ -16,27 +16,27 @@ CREATE TABLE IF NOT EXISTS youtube_videos (
 );
 CREATE INDEX IF NOT EXISTS youtube_videos_channel ON youtube_videos (channel_id);
 
--- Each video's latest views and likes: one small row per video, which stats.py overwrites on every refresh.
+-- Each video's latest views, likes and comment count: one small row per video, overwritten on every refresh.
 -- It's apart from youtube_videos, so a refresh rewrites a few bytes instead of the title and description, and
 -- half of each page stays free, so an update fits next to the old row.
 CREATE TABLE IF NOT EXISTS youtube_video_stats (
     video_id    text PRIMARY KEY REFERENCES youtube_videos,
     views       bigint,                     -- NULL while a stream is live or upcoming: YouTube shows viewers then
     likes       bigint,                     -- NULL when likes are off, e.g. on videos made for kids
-    updated_at  timestamptz NOT NULL
+    updated_at  timestamptz NOT NULL,       -- when stats.py refreshed views and likes
+    comments    bigint,                     -- the total YouTube shows, replies included (comments.py)
+    comments_complete boolean NOT NULL DEFAULT false  -- the whole comment list has been read once
 ) WITH (fillfactor = 50);
 
+-- Top-level comments only (no replies), collected by comments.py.
 CREATE TABLE IF NOT EXISTS youtube_comments (
-    comment_id        text PRIMARY KEY,
     video_id          text NOT NULL REFERENCES youtube_videos,
-    parent_id         text,                 -- the comment this one replies to; NULL for top-level comments
+    comment_id        text NOT NULL,
     author_channel_id text,
     author_name       text,
     text              text,
-    likes             integer,
-    reply_count       integer,
     published_text    text,                 -- as YouTube shows it: "2 hours ago"
     published_at      timestamptz,          -- estimated from published_text
-    first_seen_at     timestamptz NOT NULL DEFAULT now()
+    first_seen_at     timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (video_id, comment_id)      -- a video's comments sit together, so comments.py loads them quickly
 );
-CREATE INDEX IF NOT EXISTS youtube_comments_video ON youtube_comments (video_id, first_seen_at);

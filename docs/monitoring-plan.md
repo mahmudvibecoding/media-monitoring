@@ -40,8 +40,9 @@ saves the results and stops. There are no schedules: every round simply checks e
    likes, using the lightest request YouTube's website has for it. Only the latest numbers are
    kept. While a stream is live or upcoming, YouTube shows viewers instead of views, so its
    views stay empty until it ends.
-6. **Comments:** for each video from the last 90 days, read its newest comments back to the
-   last one we have.
+6. **Comments:** for each video from the last 90 days, read its comments newest first: the
+   whole list the first time, then only the new ones, down to the last one we have. Top-level
+   comments only, no replies.
 
 Then the round stops the proxies, waits, and the next round starts.
 
@@ -49,9 +50,9 @@ Then the round stops the proxies, waits, and the next round starts.
 
 - **Channels:** name, handle, description, picture, subscriber count.
 - **Videos:** title, description, length, upload day, thumbnail.
-- **Views and likes:** each video's latest numbers, in one small row per video.
-- **Comments:** text, author, likes and number of replies. YouTube only shows comment times
-  like "2 hours ago", so the time is an estimate, plus the time we first saw the comment.
+- **Views, likes and comment count:** each video's latest numbers, in one small row per video.
+- **Comments:** text and author, top level only. YouTube only shows comment times like
+  "2 hours ago", so the time is an estimate, plus the time we first saw the comment.
 
 ## Why only the upload day
 
@@ -68,7 +69,6 @@ so even frequent rounds use a small part of its capacity.
 ## Still to decide
 
 - How often rounds run.
-- Whether to collect replies to comments.
 - Whether to refresh every channel's subscriber count regularly.
 
 ## Still unknown
@@ -81,5 +81,5 @@ so even frequent rounds use a small part of its capacity.
 2. New videos (done).
 3. Video details (done).
 4. Views and likes (built).
-5. Comments.
+5. Comments (built).
 6. One script that runs the rounds.
