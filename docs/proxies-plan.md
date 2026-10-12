@@ -19,8 +19,8 @@ turns each one into a proxy on our own server, and we test each with one real Yo
 Usually a few thousand work at a time, which is plenty.
 
 We tried free public proxies first. They were slow and unreliable: they did only about 5% of
-the work, and most failed on their first real request, so we stopped using them. The code is
-still there as a fallback.
+the work, and most failed on their first real request, so we removed them (the code is still
+in the git history).
 
 ## How a collection run works
 

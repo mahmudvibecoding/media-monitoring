@@ -17,10 +17,10 @@ from multiprocessing import get_context
 import psycopg
 from curl_cffi import AsyncSession
 
-from pool import ATTEMPTS, NoProxiesLeft, Pool, call, load_proxies
-from proxies import CONTEXT, URL, raise_open_files_limit
+from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
+URL = API + "browse?prettyPrint=false"
 PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few cores stay free for sing-box
 CONCURRENCY = 500  # channels in progress at a time, per process
 PROFILE = "microformat.microformatDataRenderer.channelProfileMicroformatDetails.profilePage.mainEntity"

@@ -5,12 +5,13 @@ so fast proxies come back sooner and carry more of the work. A request that fail
 another proxy. channels.py and the monitoring jobs all send their requests this way.
 """
 import asyncio
+import resource
 import time
 from collections import Counter, deque
 
-# The proxy is the first word of each line. Plain proxies (working_proxies.txt from proxies.py) did only
-# 4-7% of the work and most failed their first request, so they're left out; add the file back to use them.
-PROXY_FILES = ["working_vpn_proxies.txt"]
+API = "https://www.youtube.com/youtubei/v1/"  # InnerTube: the API behind YouTube's own website
+CONTEXT = {"client": {"clientName": "WEB", "clientVersion": "2.20251001.01.00", "hl": "en", "gl": "US"}}
+PROXY_FILE = "working_vpn_proxies.txt"  # from check_vpn.py, fastest first; the proxy is the first word of each line
 REQUESTS_PER_PROXY = 8  # requests in flight through one proxy at a time, so a weak proxy isn't flooded
 TIMEOUT = 5  # seconds; a proxy that hasn't answered by then is dropped
 HEDGE_AFTER = 1  # when draining: seconds without an answer before the request also goes out elsewhere
@@ -29,17 +30,20 @@ class BadRequest(Exception):
 
 
 def load_proxies():
-    """All proxies from PROXY_FILES, without duplicates."""
-    proxies = {}
-    for path in PROXY_FILES:
+    """The working proxies from PROXY_FILE (run check_vpn.py first)."""
+    with open(PROXY_FILE) as f:
+        return [line.split()[0] for line in f if line.strip()]
+
+
+def raise_open_files_limit():
+    """Every connection needs an open file; the default limit (1024 on Linux, 256 on macOS) is too low."""
+    _, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    for limit in (1_000_000, 10240):  # macOS refuses more than 10240
         try:
-            with open(path) as f:
-                for line in f:
-                    if line.strip():
-                        proxies[line.split()[0]] = None
-        except FileNotFoundError:
-            print(f"{path} not found, skipping it")
-    return list(proxies)
+            resource.setrlimit(resource.RLIMIT_NOFILE, (min(limit, hard), hard))
+            return
+        except (ValueError, OSError):
+            continue
 
 
 async def call(session, proxy, method, url, **kwargs):
