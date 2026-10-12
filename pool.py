@@ -1,39 +1,39 @@
 """Send YouTube requests through the local VPN proxies from sing-box, as fast as the proxies answer.
 
-Real requests test the proxies, so there's no separate check. Each proxy has slots in a queue: a request takes
-the best free slot and puts it back when it ends, so fast proxies come back sooner and carry more of the work.
-Working proxies' slots always go first: untested proxies only get requests that would otherwise wait.
+Real requests test the proxies, so there's no separate check, and each run starts fresh with every proxy in random
+order: proxies stop working within minutes, so a list from an earlier run wouldn't help. Each proxy has slots in a
+queue: a request takes the best free slot and puts it back when it ends, so fast proxies come back sooner and carry
+more of the work. Working proxies' slots always go first: untested proxies only get requests that would otherwise
+wait.
 
-Each proxy finds its own pace. An untested proxy has one slot, so a dead one holds up a single request, and that
-failure doesn't count against the request's tries. Once YouTube answers through it, it gets START_LIMIT slots,
-and one more after each answer that found all of them busy, up to MAX_LIMIT: with few proxies each one carries
-more, with many each carries less. Each failure takes one slot away; at zero the proxy rests REST seconds and is
-then tested again, so proxies that recover come back even during long runs.
-
-Each run tries the proxies that answered in the last run first, and saves its own working ones for the next
-(working_vpn_proxies.txt). channels.py and the other collectors all send their requests this way.
+Each proxy finds its own pace. An untested proxy has one slot, so a dead one holds up a single request, which also
+goes out elsewhere if it has no answer within HEDGE_AFTER seconds, and its failure doesn't count against the
+request's tries. Once YouTube answers through a proxy, it gets START_LIMIT slots, and one more after each answer
+that found all of them busy, up to MAX_LIMIT: with few proxies each one carries more, with many each carries less.
+Each failure takes one slot away; at zero the proxy rests REST seconds and is then tested again, so proxies that
+recover come back even during long runs. channels.py and the other collectors all send their requests this way.
 """
 import asyncio
 import itertools
-import os
+import random
 import resource
 import time
 from collections import Counter, deque
 
 API = "https://www.youtube.com/youtubei/v1/"  # InnerTube: the API behind YouTube's own website
 CONTEXT = {"client": {"clientName": "WEB", "clientVersion": "2.20251001.01.00", "hl": "en", "gl": "US"}}
-ALL_PROXIES = "vpn_proxies.txt"  # from singbox_runner.py: one line per local proxy, "proxy link"
-WORKING_PROXIES = "working_vpn_proxies.txt"  # the lines of the proxies that answered in the last run
+PROXY_FILE = "vpn_proxies.txt"  # from singbox_runner.py: one line per local proxy, "proxy link"
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
 TIMEOUT = 5  # seconds; a proxy that hasn't answered by then has failed
-HEDGE_AFTER = 1  # when draining: seconds without an answer before the request also goes out elsewhere
+HEDGE_AFTER = 1  # seconds without an answer before a request through an untested proxy (or any, when draining)
+                 # also goes out elsewhere
 ATTEMPTS = 5  # requests per answer at most, not counting failures of proxies that were being tested
 REST = 30  # seconds a proxy rests when its slots fall to zero
 # YouTube returns a random 403/429 now and then; that alone changes nothing. Only a real storm (8 blocks
 # among a proxy's last 10 answers) pauses that proxy for 30 seconds; then it continues at full speed.
 STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, 30
 # Which free slot a request gets first: a working proxy's; else a test of a proxy that answered earlier in this
-# run; else a test of any other, in the order given (load_proxies puts the last run's working ones first)
+# run; else a test of any other
 WORKING, ANSWERED_BEFORE, OTHER = range(3)
 
 
@@ -45,32 +45,12 @@ class BadRequest(Exception):
     """YouTube rejected the request itself: probably a field mask is out of date."""
 
 
-def read_lines(path):
-    """The lines of a proxy list, "proxy link" each; none if the file doesn't exist."""
-    try:
-        with open(path) as f:
-            return [line.strip() for line in f if line.strip()]
-    except FileNotFoundError:
-        return []
-
-
 def load_proxies():
-    """Every local proxy from sing-box (run singbox_runner.py first) as {proxy: its line}, the ones that answered
-    in the last run first. Whole lines are compared: after a restart, sing-box may run another link at an address."""
-    last = set(read_lines(WORKING_PROXIES))
-    lines = sorted(read_lines(ALL_PROXIES), key=lambda line: line not in last)  # stable: else in the file's order
-    return {line.split()[0]: line for line in lines}
-
-
-def save_working(proxies, working, failed):
-    """Save the working proxies for the next run: the ones that answered in this run, and the ones from the last
-    run that weren't found failing. proxies is from load_proxies()."""
-    last = set(read_lines(WORKING_PROXIES))
-    lines = [line for proxy, line in proxies.items() if proxy in working or (line in last and proxy not in failed)]
-    with open(WORKING_PROXIES + ".tmp", "w") as f:
-        f.writelines(line + "\n" for line in lines)
-    os.replace(WORKING_PROXIES + ".tmp", WORKING_PROXIES)  # all at once: a stopped run never leaves half a file
-    return len(lines)
+    """Every local proxy from sing-box (run singbox_runner.py first), in random order."""
+    with open(PROXY_FILE) as f:
+        proxies = [line.split()[0] for line in f if line.strip()]
+    random.shuffle(proxies)
+    return proxies
 
 
 def raise_open_files_limit():
@@ -113,7 +93,6 @@ class Pool:
         self.busy = Counter()  # each proxy's slots in use
         self.proven = set()  # proxies that answered and haven't rested since
         self.answered = set()  # proxies that answered at least once in this run
-        self.failed = set()  # proxies that rested and haven't answered since
         self.resting = set()  # proxies waiting for their next test
         self.recent = {}  # each proxy's last answers: True = blocked
         self.paused_until = {}  # proxies resting after a storm: {proxy: time}
@@ -129,27 +108,30 @@ class Pool:
     async def run(self, request):
         """Get one answer. request(proxy) sends one request through that proxy and returns (outcome, result),
         where outcome is "ok", "gone" or a problem from call(). A failed request goes out again through
-        another proxy, up to ATTEMPTS times. When draining, a request without an answer after HEDGE_AFTER
-        seconds also goes out elsewhere, and the first useful answer wins.
+        another proxy, up to ATTEMPTS times. A request without an answer after HEDGE_AFTER seconds also goes out
+        elsewhere if it only went through untested proxies, or always when draining; the first useful answer wins.
         Returns ("ok", result), ("gone", result) or ("failed", None)."""
-        tries, sent, slow = set(), 0, False
+        tries, tests, sent, slow = set(), set(), 0, False
         try:
             while True:
-                if sent < ATTEMPTS and (not tries or (slow and self.draining)):
+                if sent < ATTEMPTS and (not tries or (slow and (self.draining or tries <= tests))):
                     proxy, generation = await self._take()
-                    tries.add(asyncio.create_task(self._send(request, proxy, generation)))
+                    task = asyncio.create_task(self._send(request, proxy, generation))
+                    tries.add(task)
+                    if proxy not in self.proven:
+                        tests.add(task)  # this request also tests the proxy
                     sent += 1
                 elif not tries:
                     return "failed", None
                 done, tries = await asyncio.wait(tries, timeout=HEDGE_AFTER, return_when=asyncio.FIRST_COMPLETED)
                 slow = not done
                 for task in done:
-                    outcome, result, working = task.result()
+                    outcome, result = task.result()
                     if outcome == "bad request":
                         raise BadRequest("YouTube answered 400 Bad Request: a field mask is probably out of date")
                     if outcome in ("ok", "gone"):
                         return outcome, result
-                    if outcome == "broken" and not working:
+                    if outcome == "broken" and task in tests:
                         sent -= 1  # a proxy's test failed, not this request
         finally:
             for task in tries:  # left to finish, so their proxies are judged by how they answer
@@ -163,14 +145,13 @@ class Pool:
         await asyncio.gather(*self.background, return_exceptions=True)
 
     async def _send(self, request, proxy, generation):
-        working = proxy in self.proven  # else this request also tests the proxy
         outcome = result = None
         try:
             outcome, result = await request(proxy)
         finally:
             self._give_back(proxy, generation, outcome)  # outcome is still None if this request was cancelled
         self.outcomes[outcome] += 1
-        return outcome, result, working
+        return outcome, result
 
     async def _take(self):
         """Wait for the best free slot; return its proxy and generation."""
@@ -206,7 +187,6 @@ class Pool:
                 self._rest(proxy)
                 return
         elif outcome in ("ok", "gone", "blocked", "youtube error"):  # YouTube answered
-            self.failed.discard(proxy)
             self.answered.add(proxy)
             if proxy not in self.proven:
                 self.proven.add(proxy)
@@ -241,7 +221,6 @@ class Pool:
         self.generation[proxy] += 1  # its slots still out are thrown away
         self.held[proxy] = self.busy[proxy] = 0
         self.proven.discard(proxy)
-        self.failed.add(proxy)
         self.resting.add(proxy)
         asyncio.get_running_loop().call_later(REST, self._test, proxy)
         if len(self.resting) == self.count:

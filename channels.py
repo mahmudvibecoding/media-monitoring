@@ -16,8 +16,7 @@ from multiprocessing import get_context
 import psycopg
 from curl_cffi import AsyncSession
 
-from pool import (API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit,
-                  save_working)
+from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
 URL = API + "browse?prettyPrint=false"
@@ -124,7 +123,7 @@ async def collect_share(channel_ids, proxies):
                 await pool.close()
                 stop.set()  # also on Ctrl+C or an error: save what we have
                 await saving
-    return results, pool.outcomes, pool.proven, pool.failed
+    return results, pool.outcomes, len(pool.proven)
 
 
 def run_share(channel_ids, proxies):
@@ -141,14 +140,13 @@ def main():
     if not channel_ids or not proxies:
         return
 
-    # Each process gets a share of the channels, and an equal share of the proxies: last run's working ones first
-    addresses = list(proxies)
-    processes = max(1, min(PROCESSES, len(addresses) // 50, math.ceil(len(channel_ids) / 1000)))
+    # Each process gets a share of the channels and of the proxies
+    processes = max(1, min(PROCESSES, len(proxies) // 50, math.ceil(len(channel_ids) / 1000)))
     print(f"fetching with {processes} processes...")
     started = time.monotonic()
-    results, outcomes, working, failed = Counter(), Counter(), set(), set()
+    results, outcomes, working = Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=get_context("spawn")) as executor:
-        futures = [executor.submit(run_share, channel_ids[i::processes], addresses[i::processes])
+        futures = [executor.submit(run_share, channel_ids[i::processes], proxies[i::processes])
                    for i in range(processes)]
         with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
             while not all(f.done() for f in futures):
@@ -156,15 +154,13 @@ def main():
                 left = conn.execute("SELECT count(*) FROM youtube_channels WHERE title IS NULL").fetchone()[0]
                 print(f"{time.monotonic() - started:5.0f} s  {len(channel_ids) - left} of {len(channel_ids)} filled")
         for future in futures:
-            share_results, share_outcomes, share_working, share_failed = future.result()
+            share_results, share_outcomes, share_working = future.result()
             results += share_results
             outcomes += share_outcomes
-            working |= share_working
-            failed |= share_failed
-    saved = save_working(proxies, working, failed)
+            working += share_working
     print(f"\nfinished in {time.monotonic() - started:.0f} s: {dict(results)}")
     print(f"requests: {dict(outcomes)}")
-    print(f"{len(working)} proxies answered; {saved} saved as working for the next run")
+    print(f"{working} proxies working at the end")
 
 
 # Needed for multiple processes: each worker process imports this file and must not run main() again.

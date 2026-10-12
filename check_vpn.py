@@ -1,5 +1,5 @@
-"""Check every local VPN proxy from vpn_proxies.txt with one real YouTube request, count what works per
-protocol and per source, and save the working proxies to working_vpn_proxies.txt, fastest first.
+"""Check every local VPN proxy from vpn_proxies.txt with one real YouTube request, and count what works per
+protocol and per source. Only a report: the collectors find working proxies by themselves (see pool.py).
 
 Keep singbox_runner.py running in another terminal while this runs.
 """
@@ -15,7 +15,6 @@ from pool import API, CONTEXT, raise_open_files_limit
 
 INPUT = "vpn_proxies.txt"  # from singbox_runner.py: "<local proxy> <link>"
 SOURCES_FILE = "vpn_sources.txt"  # from vpn_configs.py: "<link> <source> <source> ..."
-OUTPUT = "working_vpn_proxies.txt"
 # Tuned on a 52-core server. PROCESSES x CHECKS_PER_PROCESS should cover all proxies, so everything is checked
 # in one wave. On a laptop, use far fewer (e.g. 4 processes x 500).
 PROCESSES = 96
@@ -127,10 +126,6 @@ def main():
                 by_source[source]["only here"] += 1
     print_table("protocol", by_protocol)
     print_table("source", by_source)
-
-    with open(OUTPUT, "w") as f:
-        f.write("".join(f"{proxy} {links[proxy]}\n" for _, proxy in working))  # fastest first
-    print(f"\nsaved to {OUTPUT}")
 
 
 # Needed for multiple processes: each worker process imports this file and must not run main() again.

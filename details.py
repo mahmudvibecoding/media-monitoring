@@ -18,8 +18,7 @@ from multiprocessing import get_context
 import psycopg
 from curl_cffi import AsyncSession
 
-from pool import (API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit,
-                  save_working)
+from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
 PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few cores stay free for sing-box
@@ -136,7 +135,7 @@ async def collect_share(video_ids, proxies):
                 await pool.close()
                 stop.set()  # also on Ctrl+C or an error: save what we have
                 await saving
-    return results, pool.outcomes, pool.proven, pool.failed
+    return results, pool.outcomes, len(pool.proven)
 
 
 def run_share(video_ids, proxies):
@@ -153,13 +152,12 @@ def main():
     if not video_ids or not proxies:
         return
 
-    addresses = list(proxies)  # each process gets an equal share of last run's working proxies, which go first
-    processes = max(1, min(PROCESSES, len(addresses) // 50, math.ceil(len(video_ids) / 1000)))
+    processes = max(1, min(PROCESSES, len(proxies) // 50, math.ceil(len(video_ids) / 1000)))
     print(f"fetching with {processes} processes...")
     started = time.monotonic()
-    results, outcomes, working, failed = Counter(), Counter(), set(), set()
+    results, outcomes, working = Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=get_context("spawn")) as executor:
-        futures = [executor.submit(run_share, video_ids[i::processes], addresses[i::processes])
+        futures = [executor.submit(run_share, video_ids[i::processes], proxies[i::processes])
                    for i in range(processes)]
         with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
             while not all(f.done() for f in futures):
@@ -167,16 +165,14 @@ def main():
                 left = conn.execute(COUNT).fetchone()[0]
                 print(f"{time.monotonic() - started:5.0f} s  {len(video_ids) - left} of {len(video_ids)} done")
         for future in futures:
-            share_results, share_outcomes, share_working, share_failed = future.result()
+            share_results, share_outcomes, share_working = future.result()
             results += share_results
             outcomes += share_outcomes
-            working |= share_working
-            failed |= share_failed
-    saved = save_working(proxies, working, failed)
+            working += share_working
     print(f"\nfinished in {time.monotonic() - started:.0f} s: {results['ok']} videos with details, "
           f"{results['gone']} unavailable (tried again next run), {results['failed']} failed")
     print(f"requests: {dict(outcomes)}")
-    print(f"{len(working)} proxies answered; {saved} saved as working for the next run")
+    print(f"{working} proxies working at the end")
 
 
 # Needed for multiple processes: each worker process imports this file and must not run main() again.
