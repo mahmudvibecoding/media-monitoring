@@ -1,12 +1,11 @@
 """Fetch the details of every video that doesn't have them yet: title, description and upload day, from the
 video's page. Run videos.py first, so new videos are in youtube_videos.
 
-Run check_vpn.py first (with singbox_runner.py still running), so the pool is fresh.
+Run it while singbox_runner.py is running: the pool tests the proxies by itself (see pool.py).
 """
 import asyncio
 import math
 import os
-import random
 import re
 import sys
 import time
@@ -19,7 +18,8 @@ from multiprocessing import get_context
 import psycopg
 from curl_cffi import AsyncSession
 
-from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
+from pool import (API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit,
+                  save_working)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
 PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few cores stay free for sing-box
@@ -57,9 +57,13 @@ async def fetch(session, video_id, proxy):
     if problem:
         return problem, None
     try:
-        items = response.json()["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"]
+        data = response.json()
     except Exception:
-        return "broken", None  # not a video page: the proxy mangled it
+        return "broken", None  # not YouTube's answer: the proxy mangled it
+    try:
+        items = data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"]
+    except (KeyError, TypeError):
+        return "youtube error", None  # now and then YouTube answers without the page; the next try gets it
     primary = next((item["videoPrimaryInfoRenderer"] for item in items if "videoPrimaryInfoRenderer" in item), None)
     if primary is None:
         return "gone", None  # removed, private, or blocked where the proxy is
@@ -132,7 +136,7 @@ async def collect_share(video_ids, proxies):
                 await pool.close()
                 stop.set()  # also on Ctrl+C or an error: save what we have
                 await saving
-    return results, pool.outcomes
+    return results, pool.outcomes, pool.proven, pool.failed
 
 
 def run_share(video_ids, proxies):
@@ -149,13 +153,13 @@ def main():
     if not video_ids or not proxies:
         return
 
-    random.shuffle(proxies)
-    processes = max(1, min(PROCESSES, len(proxies) // 50, math.ceil(len(video_ids) / 1000)))
+    addresses = list(proxies)  # each process gets an equal share of last run's working proxies, which go first
+    processes = max(1, min(PROCESSES, len(addresses) // 50, math.ceil(len(video_ids) / 1000)))
     print(f"fetching with {processes} processes...")
     started = time.monotonic()
-    results, outcomes = Counter(), Counter()
+    results, outcomes, working, failed = Counter(), Counter(), set(), set()
     with ProcessPoolExecutor(processes, mp_context=get_context("spawn")) as executor:
-        futures = [executor.submit(run_share, video_ids[i::processes], proxies[i::processes])
+        futures = [executor.submit(run_share, video_ids[i::processes], addresses[i::processes])
                    for i in range(processes)]
         with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
             while not all(f.done() for f in futures):
@@ -163,12 +167,16 @@ def main():
                 left = conn.execute(COUNT).fetchone()[0]
                 print(f"{time.monotonic() - started:5.0f} s  {len(video_ids) - left} of {len(video_ids)} done")
         for future in futures:
-            share_results, share_outcomes = future.result()
+            share_results, share_outcomes, share_working, share_failed = future.result()
             results += share_results
             outcomes += share_outcomes
+            working |= share_working
+            failed |= share_failed
+    saved = save_working(proxies, working, failed)
     print(f"\nfinished in {time.monotonic() - started:.0f} s: {results['ok']} videos with details, "
           f"{results['gone']} unavailable (tried again next run), {results['failed']} failed")
     print(f"requests: {dict(outcomes)}")
+    print(f"{len(working)} proxies answered; {saved} saved as working for the next run")
 
 
 # Needed for multiple processes: each worker process imports this file and must not run main() again.

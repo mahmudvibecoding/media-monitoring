@@ -1,12 +1,11 @@
 """Fill youtube_channels (title, handle, description, avatar_url, subscriber_count) from InnerTube,
 as fast as the proxies answer, through the working VPN configs.
 
-Run check_vpn.py first (with singbox_runner.py still running), so the pool is fresh.
+Run it while singbox_runner.py is running: the pool tests the proxies by itself (see pool.py).
 """
 import asyncio
 import math
 import os
-import random
 import sys
 import time
 from collections import Counter
@@ -17,7 +16,8 @@ from multiprocessing import get_context
 import psycopg
 from curl_cffi import AsyncSession
 
-from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
+from pool import (API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit,
+                  save_working)
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
 URL = API + "browse?prettyPrint=false"
@@ -59,13 +59,16 @@ async def fetch(session, channel_id, proxy):
         return problem, None
     try:
         data = response.json()
+    except Exception:
+        return "broken", None  # not YouTube's answer: the proxy mangled it
+    try:
         if "metadata" in data:
             return "ok", parse(data) + (channel_id,)
         if data.get("alerts"):  # e.g. "This channel does not exist."
             return "gone", None
     except Exception:
         pass
-    return "broken", None  # an answer that isn't YouTube's: the proxy mangled it
+    return "youtube error", None  # now and then YouTube answers without the page; the next try gets it
 
 
 async def save_rows(conn, pending):
@@ -121,7 +124,7 @@ async def collect_share(channel_ids, proxies):
                 await pool.close()
                 stop.set()  # also on Ctrl+C or an error: save what we have
                 await saving
-    return results, pool.outcomes
+    return results, pool.outcomes, pool.proven, pool.failed
 
 
 def run_share(channel_ids, proxies):
@@ -138,14 +141,14 @@ def main():
     if not channel_ids or not proxies:
         return
 
-    # Each process gets an equal mix of fast and slow proxies, and a share of the channels
-    random.shuffle(proxies)
-    processes = max(1, min(PROCESSES, len(proxies) // 50, math.ceil(len(channel_ids) / 1000)))
+    # Each process gets a share of the channels, and an equal share of the proxies: last run's working ones first
+    addresses = list(proxies)
+    processes = max(1, min(PROCESSES, len(addresses) // 50, math.ceil(len(channel_ids) / 1000)))
     print(f"fetching with {processes} processes...")
     started = time.monotonic()
-    results, outcomes = Counter(), Counter()
+    results, outcomes, working, failed = Counter(), Counter(), set(), set()
     with ProcessPoolExecutor(processes, mp_context=get_context("spawn")) as executor:
-        futures = [executor.submit(run_share, channel_ids[i::processes], proxies[i::processes])
+        futures = [executor.submit(run_share, channel_ids[i::processes], addresses[i::processes])
                    for i in range(processes)]
         with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
             while not all(f.done() for f in futures):
@@ -153,11 +156,15 @@ def main():
                 left = conn.execute("SELECT count(*) FROM youtube_channels WHERE title IS NULL").fetchone()[0]
                 print(f"{time.monotonic() - started:5.0f} s  {len(channel_ids) - left} of {len(channel_ids)} filled")
         for future in futures:
-            share_results, share_outcomes = future.result()
+            share_results, share_outcomes, share_working, share_failed = future.result()
             results += share_results
             outcomes += share_outcomes
+            working |= share_working
+            failed |= share_failed
+    saved = save_working(proxies, working, failed)
     print(f"\nfinished in {time.monotonic() - started:.0f} s: {dict(results)}")
     print(f"requests: {dict(outcomes)}")
+    print(f"{len(working)} proxies answered; {saved} saved as working for the next run")
 
 
 # Needed for multiple processes: each worker process imports this file and must not run main() again.

@@ -27,8 +27,9 @@ a few separate programs in a fixed order. Each one reads from the database what 
 all of its work as fast as possible through our proxies (see [proxies-plan.md](proxies-plan.md)),
 saves the results and stops. There are no schedules: every round simply checks everything again.
 
-1. **Fresh proxies:** download the public VPN lists, start sing-box, and keep the
-   configurations that answer a test request.
+1. **Fresh proxies:** download the public VPN lists and start sing-box. There's no separate
+   test: the programs below find the working proxies through their real requests, starting
+   with the ones that worked last time.
 2. **Channel details:** fill in the name, handle, description, picture and subscriber count of
    channels we don't have details for yet.
 3. **New videos:** read each channel's list of uploads, newest first, until reaching a video we
