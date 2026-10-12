@@ -32,9 +32,9 @@ in the git history).
 4. Each proxy finds its own pace. Once YouTube answers through it, it carries 8 requests at a
    time, and one more whenever it keeps up while all of them are busy, up to 64. So with few
    proxies each one carries more, and with many each carries less. Each failure (no answer
-   within 5 seconds) halves its share.
-5. A proxy whose share falls to zero rests for a minute, twice as long each time in a row, and
-   then gets one request again. So proxies that come back are used again, even during long runs.
+   within 5 seconds) takes one request off its share.
+5. A proxy whose share falls to zero rests for 30 seconds, then gets one request again. So
+   proxies that come back are used again, even during long runs.
 6. At the end, the proxies that worked are saved, so the next program starts with them.
 
 A separate checker can still test every proxy once, to show which lists work best.
