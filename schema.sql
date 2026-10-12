@@ -28,9 +28,12 @@ CREATE TABLE IF NOT EXISTS youtube_video_stats (
     comments_complete boolean NOT NULL DEFAULT false  -- the whole comment list has been read once
 ) WITH (fillfactor = 50);
 
--- Top-level comments only (no replies), collected by comments.py.
+-- Top-level comments only (no replies), collected by comments.py. video_id isn't declared a reference to
+-- youtube_videos: checking that would make each save also lock and write the video's row. For the first full
+-- collection, the table can be made UNLOGGED (much faster saves, but a crash empties it) and switched back with
+-- ALTER TABLE youtube_comments SET LOGGED once it's done.
 CREATE TABLE IF NOT EXISTS youtube_comments (
-    video_id          text NOT NULL REFERENCES youtube_videos,
+    video_id          text NOT NULL,
     comment_id        text NOT NULL,
     author_channel_id text,
     author_name       text,

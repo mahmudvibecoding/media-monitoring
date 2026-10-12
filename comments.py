@@ -33,6 +33,9 @@ PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few co
 CONCURRENCY = 500  # videos in progress at a time, per process
 DAYS = 90  # by default, the videos uploaded in the last DAYS days
 EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
+# Saving normally keeps up, so a process holds a few thousand unsaved comments. Only if it falls this far behind do
+# its videos wait before their next page, so the server can't run out of memory (which would crash PostgreSQL)
+MAX_UNSAVED = 250_000
 ITEMS = ("continuationItems(commentsHeaderRenderer/countText/runs/text,"
          "continuationItemRenderer/continuationEndpoint/continuationCommand/token)")
 FIELDS = (f"onResponseReceivedEndpoints(reloadContinuationItemsCommand/{ITEMS},appendContinuationItemsAction/{ITEMS}),"
@@ -44,6 +47,10 @@ AGO = re.compile(r"(\d+) (second|minute|hour|day|week|month|year)s? ago")  # "2 
 SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 7 * 86400, "month": 30 * 86400,
            "year": 365 * 86400}
 
+# Comments go straight into the table with COPY, PostgreSQL's fastest way to add rows. Only if a batch has a comment
+# that's already saved does it go the slower way, through new_comments, which skips those.
+COPY_COMMENTS = """COPY youtube_comments (video_id, comment_id, author_channel_id, author_name, text, published_text,
+                   published_at) FROM STDIN"""
 NEW_COMMENTS = """CREATE TEMP TABLE new_comments (video_id text, comment_id text, author_channel_id text,
                   author_name text, text text, published_text text, published_at timestamptz) ON COMMIT DELETE ROWS"""
 SAVE_COMMENTS = """INSERT INTO youtube_comments (video_id, comment_id, author_channel_id, author_name, text,
@@ -125,6 +132,8 @@ async def read_video(pool, session, video_id, known, complete, pending, counts):
     token, count, first, seen, empty_tries = first_token(video_id), None, True, set(), 0
     now = datetime.now(timezone.utc)
     while token:
+        while len(pending) > MAX_UNSAVED:
+            await asyncio.sleep(0.5)
         result, page = await pool.run(partial(fetch_page, session, token))
         if result != "ok":
             counts.append((video_id, count, False))  # its whole list is read again next time, so nothing is missed
@@ -155,10 +164,16 @@ async def save_rows(conn, pending, counts):
     if rows or finished:
         async with conn.transaction(), conn.cursor() as cur:
             if rows:
-                async with cur.copy("COPY new_comments FROM STDIN") as copy:
-                    for row in rows:
-                        await copy.write_row(row)
-                await cur.execute(SAVE_COMMENTS)
+                try:
+                    async with conn.transaction():  # a savepoint: a duplicate only undoes this part
+                        async with cur.copy(COPY_COMMENTS) as copy:
+                            for row in rows:
+                                await copy.write_row(row)
+                except psycopg.errors.UniqueViolation:
+                    async with cur.copy("COPY new_comments FROM STDIN") as copy:
+                        for row in rows:
+                            await copy.write_row(row)
+                    await cur.execute(SAVE_COMMENTS)
             if finished:
                 async with cur.copy("COPY video_counts FROM STDIN") as copy:
                     for row in finished:
