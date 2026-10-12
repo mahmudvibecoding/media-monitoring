@@ -6,4 +6,5 @@ readme = "README.md"
 requires-python = ">=3.15"
 dependencies = [
     "curl-cffi>=0.16.3",
+    "psycopg[binary]>=3.3.6",
 ]

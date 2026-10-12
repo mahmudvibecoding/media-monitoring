@@ -1,6 +1,7 @@
 # Proxy plan
 
-Status: plan only; nothing is built yet. Written 2026-10-11.
+Status: written 2026-10-11 as a plan. The collector, checker, VPN configs and the channel
+collector (`channels.py`) are built; the long-running pool is not.
 
 ## Goal
 
@@ -142,25 +143,41 @@ Every 30 minutes:
 
 ## 4. Pool
 
-What the program keeps in memory for each working proxy:
+What `channels.py` keeps in memory for each proxy:
 
 | Field | Why |
 |---|---|
 | proxy URL, e.g. `socks5://1.2.3.4:1080` | how curl_cffi connects to it |
-| source | to judge sources later |
-| latency | to prefer fast proxies |
-| next allowed request time | the per-proxy speed limit |
-| requests in progress | so one proxy isn't overloaded |
-| resting until, blocks in a row | for cooldowns and retirement |
-| successes, blocks | to measure how long proxies last |
+| slots in a shared queue | at most 8 requests in flight through one proxy |
+| last 10 answers | to spot a block storm |
+| resting until | the pause after a storm |
 
-**Picking a proxy:** choose one that isn't resting and whose speed limit allows a request
-now, preferring fast ones.
+**Picking a proxy:** a request takes the next free slot from the queue and puts it back when
+it ends, so fast proxies come back sooner and carry more of the work. A proxy starts with one
+slot, so a dead one holds up a single request; once YouTube answers through it, it gets all 8.
 
-**Speed limit:** start at 1 request every 10 seconds per IP address. Raise it slowly while
-watching how often YouTube blocks. Count per IP, not per proxy URL: one IP often appears
-with several ports or types (e.g. 45.74.31.42 and 45.74.31.46 on many ports), and YouTube
-sees them all as the same IP.
+**No speed limit per IP** (decided 2026-10-12), so no exit-IP lookup either. Measured with the
+channel request (`/browse` with a field mask) on the 52-core test server:
+- **YouTube doesn't block for speed.** Groups of IPs ran for 5 minutes at fixed speeds from 1
+  request every 10 s to about 6 successful requests per second per IP: 0–0.1% of answers were
+  403/429, never two in a row on one IP. Then with no limit at all, about 40,000 requests per
+  second through about 5,900 proxies for a minute (about 7 per second per proxy on average,
+  more through the fast ones): 0.00% blocked. YouTube also answers 500 "Internal error" to
+  about 0.1% of requests, spread over many proxies; retrying elsewhere fixes it.
+- **The limit is our CPU.** One process tops out at about 900 channels per second, so speed
+  grows with processes: 32 processes gave 30,000 per second, 48 gave 40,000 (75% of the
+  machine's CPU busy, 7 cores of it sing-box). About 60% of a process's CPU goes to
+  curl_cffi's Python layer (setting options and parsing every response), the rest to curl
+  itself; driving curl directly could roughly double the speed per core if it's ever needed.
+- **Traffic:** 2.9 KB per request; at 40,000 per second about 200 Mbit/s down and 100 up.
+- **Full run:** all 55,859 channels in about 6 seconds with 48 processes, against 67 seconds
+  at 2 requests per second per IP and 7 min 52 s at 1 request per 10 s per IP.
+- **Don't use curl's PIPEWAIT** (requests through a proxy waiting to share one connection):
+  with many proxies to the same host, nearly every request waited until its timeout.
+- **Proxies wear out at full speed.** In one minute, 88% of plain proxies and 17% of VPN
+  configs failed at least once and were dropped (a third of those worked again right after).
+  That doesn't matter for a run of seconds, but a long-running collector needs the checker to
+  keep refilling the pool.
 
 **Sorting responses:**
 
@@ -169,12 +186,14 @@ sees them all as the same IP.
 | 200 with the fields you asked for | success | record it |
 | 200 with "This channel does not exist." | the channel is gone | save that; not the proxy's fault |
 | 400 | the field mask is out of date | stop and fix the mask; not the proxy's fault |
-| 429, 403, a captcha page, or anything other than the expected JSON | YouTube blocked this proxy | rest it 1 minute, then 5, then 30; retire it after 3 blocks in a row |
-| timeout, refused connection, 407, other proxy errors | the proxy is broken | send it back to the checker |
-| 500–599 | YouTube's own error | retry later; not the proxy's fault |
+| 429 or 403 | usually a random block | retry through another proxy; the proxy keeps its speed. Only a storm (8 of a proxy's last 10 answers blocked) pauses that proxy for 30 seconds |
+| an answer that isn't YouTube's JSON | the proxy mangled it | treat the proxy as broken |
+| timeout (5 s), refused connection, 407, other proxy errors | the proxy is broken | drop it for this run |
+| 500–599 | YouTube's own error | retry through another proxy; not the proxy's fault |
 
-**Retries:** if a request fails because of the proxy, retry it on a different proxy, up to
-5 tries in total.
+**Retries:** a failed request is retried through another proxy right away, up to 5 tries in
+total. At the end of a run, a request without an answer after 1 second also goes out through
+another proxy, and the first answer wins, so a few slow proxies don't hold up the finish.
 
 **Reuse connections:** keep sending a proxy's requests over the same connection. A new TLS
 handshake with YouTube costs about 6.5 KB and adds time.
@@ -207,6 +226,7 @@ proxies can carry your daily volume.
 2. **Checker** (done, tuned on the test server 2026-10-11): test the candidates with several
    processes, print the working ones, and save them to `working_proxies.txt`.
 3. **Checkpoint file:** save and load the working proxies.
-4. **Pool:** use it in the channel collector, with speed limits, response sorting and retries.
+4. **Pool** (done in `channels.py`, 2026-10-12): proxy slots, response sorting and retries;
+   no speed limit per IP.
 5. **Tune:** run for a day, review the measurements, adjust the numbers, and drop useless sources.
 6. **Later:** VPN-type configs through sing-box.
