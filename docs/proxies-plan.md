@@ -27,13 +27,15 @@ in the git history).
 1. Download the 24 lists.
 2. Start sing-box, which turns every configuration into a local proxy.
 3. Send the real requests through the proxies, the ones that worked last time first. A new
-   proxy gets a single request; only once YouTube answers through it does it get its full
-   share of the work. A failure through a new proxy isn't held against the request, which
-   simply goes out again through another.
-4. A proxy that fails (no answer within 5 seconds) rests for a minute, twice as long each
-   time it fails again, and then gets one request again. So proxies that come back are used
-   again, even during long runs.
-5. At the end, the proxies that worked are saved, so the next program starts with them.
+   proxy gets a single request. A failure there isn't held against the request, which simply
+   goes out again through another.
+4. Each proxy finds its own pace. Once YouTube answers through it, it carries 8 requests at a
+   time, and one more whenever it keeps up while all of them are busy, up to 64. So with few
+   proxies each one carries more, and with many each carries less. Each failure (no answer
+   within 5 seconds) halves its share.
+5. A proxy whose share falls to zero rests for a minute, twice as long each time in a row, and
+   then gets one request again. So proxies that come back are used again, even during long runs.
+6. At the end, the proxies that worked are saved, so the next program starts with them.
 
 A separate checker can still test every proxy once, to show which lists work best.
 
