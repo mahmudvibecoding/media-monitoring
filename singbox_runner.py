@@ -1,5 +1,6 @@
 """Run every VPN config through sing-box, each on its own local SOCKS5 address."""
 import json
+import os
 import random
 import resource
 import signal
@@ -142,11 +143,12 @@ def main():
         if not running:
             return
 
-        with open(OUTPUT, "w") as f:
+        with open(f"{OUTPUT}.tmp", "w") as f:
             for _, group in running.values():
                 for i, _ in group:
                     host, port = address_and_port(i)
                     f.write(f"socks5h://{host}:{port} {links_by_index[i]}\n")
+        os.replace(f"{OUTPUT}.tmp", OUTPUT)  # all at once: a collector reading it never sees half a list
         print(f"{sum(len(g) for _, g in running.values())} local proxies saved to {OUTPUT}; press Ctrl+C to stop")
 
         while True:

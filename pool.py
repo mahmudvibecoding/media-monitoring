@@ -19,6 +19,7 @@ import itertools
 import random
 import resource
 import time
+import zlib
 from collections import Counter, deque
 
 API = "https://www.youtube.com/youtubei/v1/"  # InnerTube: the API behind YouTube's own website
@@ -64,6 +65,12 @@ def load_proxies(path=PROXY_FILE):
     return proxies
 
 
+def load_share(path, share, shares):
+    """One process's share of a proxy list, by a hash of each proxy: the same proxies whenever the list is read, so a
+    refreshed list brings each process only what's new to it."""
+    return [proxy for proxy in load_proxies(path) if zlib.crc32(proxy.encode()) % shares == share]
+
+
 def raise_open_files_limit():
     """Every connection needs an open file; the default limit (1024 on Linux, 256 on macOS) is too low."""
     _, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
@@ -94,10 +101,13 @@ async def call(session, proxy, method, url, **kwargs):
 
 class Pool:
     """One process's share of the proxies (see the top of this file), in the order to test them. rest, if given, is
-    how long every proxy whose slots fall to zero rests (else REST or REST_IF_NEVER_ANSWERED)."""
+    how long every proxy whose slots fall to zero rests (else REST or REST_IF_NEVER_ANSWERED). With give_up=False,
+    requests wait when every proxy rests at once, for one to come back or for add() to bring new ones."""
 
-    def __init__(self, proxies, rest=None):
+    def __init__(self, proxies, rest=None, give_up=True):
         self.rest = rest
+        self.give_up = give_up
+        self.known = set(proxies)
         self.slots = asyncio.PriorityQueue()  # free slots: (rank, order, proxy, generation)
         self.order = itertools.count()  # slots of the same rank are taken in the order they were freed
         self.generation = Counter()  # raised when a proxy starts resting, so the slots it had are thrown away
@@ -115,8 +125,26 @@ class Pool:
         self.background = set()  # slower copies of requests that already got their answer
         for proxy in proxies:
             self._test(proxy)
-        if not proxies:
+        if not proxies and give_up:
             self._give_up()
+
+    def add(self, proxies):
+        """Proxies that joined the lists while the pool runs: each gets one slot, so its next request tests it."""
+        for proxy in proxies:
+            if proxy not in self.known:
+                self.known.add(proxy)
+                self.count += 1
+                self._test(proxy)
+
+    def renew(self, proxies):
+        """Proxies whose address now leads somewhere else (sing-box restarted with new configs): what we knew about
+        them no longer holds, so each is tested again."""
+        self.add(proxies)
+        for proxy in set(proxies) & self.known:
+            self.generation[proxy] += 1  # its slots, and a rest it was taking, are thrown away
+            self.proven.discard(proxy)
+            self.answered.discard(proxy)
+            self._test(proxy)
 
     async def run(self, request):
         """Get one answer. request(proxy) sends one request through that proxy and returns (outcome, result),
@@ -249,6 +277,7 @@ class Pool:
         """One slot, so the proxy's next request tests it."""
         self.resting.discard(proxy)
         self.limit[proxy] = self.held[proxy] = 1
+        self.busy[proxy] = 0
         self._free(proxy, self.generation[proxy])
 
     def _rest(self, proxy):
@@ -258,9 +287,14 @@ class Pool:
         self.proven.discard(proxy)
         self.resting.add(proxy)
         rest = self.rest or (REST if proxy in self.answered else REST_IF_NEVER_ANSWERED)
-        asyncio.get_running_loop().call_later(rest, self._test, proxy)
-        if len(self.resting) == self.count:
+        asyncio.get_running_loop().call_later(rest, self._wake, proxy, self.generation[proxy])
+        if len(self.resting) == self.count and self.give_up:
             self._give_up()
+
+    def _wake(self, proxy, generation):
+        """The proxy's rest is over: test it again, unless renew() already did."""
+        if generation == self.generation[proxy]:
+            self._test(proxy)
 
     def _give_up(self):
         """Every proxy is resting at once (the network is probably down): end the run."""

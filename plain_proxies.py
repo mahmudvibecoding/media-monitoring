@@ -4,6 +4,7 @@ VPN configs. Most of them don't work; the pool finds the ones that do by itself 
 """
 import asyncio
 import ipaddress
+import os
 
 from curl_cffi import AsyncSession
 
@@ -82,8 +83,9 @@ async def main():
         found = {proxy for line in result.splitlines() if (proxy := parse_line(line, default_type))}
         print(f"{len(found):>7}  {url}")
         proxies |= found
-    with open(OUTPUT, "w") as f:
+    with open(OUTPUT + ".tmp", "w") as f:
         f.writelines(proxy + "\n" for proxy in proxies)
+    os.replace(OUTPUT + ".tmp", OUTPUT)  # all at once: a collector reading it never sees half a list
     print(f"{len(proxies):>7}  saved to {OUTPUT}")
 
 
