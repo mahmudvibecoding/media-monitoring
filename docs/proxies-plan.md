@@ -96,6 +96,14 @@ Every 30 minutes:
     about 2,000 checks in flight per process. With 48 processes × 2,000, a full check takes
     about 40 seconds and finds as many working proxies as slower settings. At 3,000 per
     process, results became less consistent.
+  - **Everything in one wave:** 96 processes × 1,500 checks (144,000 in flight) finish a full
+    check in about 25 seconds instead of about 36 seconds. Across six paired runs they found
+    as many working proxies as 48 × 2,000. The rule: if processes × checks per process covers
+    all candidates, there's a single 20-second wave. More processes than CPU cores is fine,
+    because the checks used only about 10 cores in total.
+  - **No gradual start:** starting checks at 10,000, 20,000 or 50,000 per second instead of
+    all at once made no measurable difference. The effect was smaller than the ±40%
+    minute-to-minute swing of free proxies.
   - **20-second total timeout, with no connect timeout.** A 5-second connect limit halved
     the working proxies, because working free proxies are slow (median 7–9 s). 20 seconds
     found about 1.7 times as many as 10 seconds, and 30 seconds added almost nothing.
@@ -116,6 +124,17 @@ Every 30 minutes:
     1,450 per check.
   - So don't use per-proxy retry timers. Recheck all candidates every few minutes (a full
     check takes about 45 seconds), and keep the proxies that worked in recent checks.
+  - Numbers from 9 full checks about a minute apart:
+    - Different working proxies after 1, 2, 3, 5 and 9 checks: 1,188, 2,073, 2,502, 3,359
+      and 5,071, still growing.
+    - A proxy that worked has a 38% chance of working in the next check.
+    - Of the 5,071, 1,630 worked only once and 58 worked every time.
+    - History predicts reliability. Proxies that worked in at least 4 of the first 6 checks
+      worked 63% of the time afterwards, and those that worked in all 6 worked 82%.
+    - A pool built from the last 5 checks holds about 3,700 proxies and contains 71% of the
+      proxies that work in the next check.
+  - Plan: keep each proxy's results from the last 5–10 checks, and use the most reliable and
+    fastest ones first.
 - **Wrong types:** lists often label proxies with the wrong type, and some addresses work
   under several types (e.g. `http://8.215.25.3:2080` and `socks4://8.215.25.3:2080`).
   Test the listed type first. Later, measure whether retrying failed `http` proxies as

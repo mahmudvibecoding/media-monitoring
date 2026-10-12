@@ -32,8 +32,8 @@ TEST_CHANNEL = "UCVPst_iSyaVYpuOP4ogRhlw"  # KunUZ
 FIELD_MASK = "metadata.channelMetadataRenderer.title"  # the check only needs the title
 
 # Tuned on a 52-core server with 1 Gbit. On a laptop, use far fewer (e.g. 4 processes x 500).
-PROCESSES = min(os.cpu_count(), 48)  # separate Python processes, each on its own CPU core
-CHECKS_PER_PROCESS = 2000  # checks in flight in each process; more makes a process fall behind
+PROCESSES = 96
+CHECKS_PER_PROCESS = 1500
 TIMEOUT = 20  # seconds per check; working free proxies are slow (median 7-9 s)
 SAMPLE = None  # check only this many random candidates; None checks all
 OUTPUT = Path("working_proxies.txt")
