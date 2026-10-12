@@ -296,7 +296,8 @@ def main():
     days = sys.argv[1] if len(sys.argv) > 1 else str(DAYS)
     # "unread" leaves out videos without views and likes (stats.py found them removed or private): their count row,
     # where a finished read is recorded, doesn't exist
-    where = {"all": "", "unread": "WHERE NOT s.comments_complete"}.get(days, "WHERE v.upload_date >= current_date - %s::int")
+    where = {"all": "", "unread": "WHERE NOT s.comments_complete"}.get(
+        days, "WHERE v.upload_date >= current_date - %s::int")
     with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
         # Most viewed first: their long comment lists start early instead of holding up the end of the run
         video_ids = [row[0] for row in conn.execute(
