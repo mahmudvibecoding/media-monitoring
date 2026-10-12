@@ -1,7 +1,8 @@
 # Proxy plan
 
-Status: written 2026-10-11 as a plan. The collector, checker, VPN configs and the channel
-collector (`channels.py`) are built; the long-running pool is not.
+Status: written 2026-10-11 as a plan. The plain-proxy collector and checker, the VPN configs
+and the channel collector (`channels.py`) are built; the long-running pool is not. Since
+2026-10-12 the collector uses only VPN configs.
 
 ## Goal
 
@@ -10,9 +11,14 @@ InnerTube requests from many IP addresses instead of one.
 
 ## Decisions
 
-- **Free proxies only, for now.** Start with plain HTTP (including lists labeled HTTPS),
-  SOCKS4 and SOCKS5, which curl_cffi uses directly. VPN-type configs (vless, vmess, trojan,
-  shadowsocks, hysteria2, wireguard) come later, through sing-box.
+- **VPN configs only** (since 2026-10-12). The collector sends its requests through VPN
+  configs (vless, vmess, trojan, shadowsocks, hysteria2) that sing-box turns into local
+  SOCKS5 proxies. Free plain proxies (HTTP, SOCKS4, SOCKS5) did only 4–7% of the
+  collector's work, and most of them failed their first real request (see "Plain proxies
+  vs VPN configs" under Pool). `proxies.py` stays: `check_vpn.py` uses its checker, and plain
+  proxies come back by adding `working_proxies.txt` to `PROXY_FILES` in `channels.py`.
+- **5-second check timeout** (since 2026-10-12, was 20 seconds): the same as a request in
+  the collector, so checks finish 2.6 times faster with no loss of collecting speed.
 - **No database for proxies.** The pool lives in memory. Working proxies are saved to a
   file, so a restart doesn't start from zero.
 - **No TLS certificate checks through proxies** (`verify=False`). All the data is public.
@@ -22,14 +28,92 @@ InnerTube requests from many IP addresses instead of one.
 ## How the parts fit together
 
 ```
-sources → collector → checker → pool (in memory) → channel collector
-                         ↑           │
-                         └─ recheck ─┘
-
-pool → working_proxies.txt   (written every minute, loaded on startup)
+vpn_configs.py → singbox_runner.py → check_vpn.py → working_vpn_proxies.txt → channels.py
+(24 public lists)  (a local SOCKS5     (the checker    (fastest first)
+                   proxy per config)   from proxies.py)
 ```
 
+Run order: `uv run vpn_configs.py`, then `uv run singbox_runner.py` (leave it running), then
+in a second terminal `uv run check_vpn.py` and `uv run channels.py`.
+
+The plain-proxy path still works if it's ever needed: `proxies.py` downloads the lists in
+section 1, checks them and writes `working_proxies.txt`.
+
+## VPN config sources
+
+`vpn_configs.py` downloads 24 public lists from 19 GitHub repositories. They were reviewed on
+2026-10-12 with the GitHub API and a full check of every config; "only here" counts working
+configs that no other list has, which is what we'd lose if that list disappeared.
+
+| List | Repository since | How it updates | Working | Only here |
+|---|---|---|---|---|
+| mheidari98/.proxy `all` | 2022 | hourly bot; wipes its git history weekly | 1,421 | 18 |
+| 10ium/V2ray-Config `All_Configs_Sub.txt` | Jan 2025 | daily bot; 15 GB repository | 1,402 | **481** |
+| Argh94/V2RayAutoConfig (Vless, Trojan, ShadowSocks, Vmess) | Jul 2025 | bot every 45 min, copying about 30 other lists; 14 GB | 950, 422, 164, 99 | 47, 47, 2, 10 |
+| ebrasha/free-v2ray-public-list `all_extracted_configs.txt` | Jun 2025 | pushed from outside GitHub as one squashed commit | 886 | 62 |
+| hamedcode/port-based-v2ray-configs (vless, trojan, vmess) | Jun 2025 | bot every 4 h; tests configs before publishing | 816, 223, 60 | **184, 79**, 9 |
+| Giromo0/Collector `All_Configs_Sub.txt` (added) | Sep 2025 | constant bot; 8 GB | 739 | **120** |
+| xiaoji235/airport-free `v2ray.txt` (added) | Oct 2024 | about daily | 688 | 0 |
+| Epodonios/v2ray-configs `All_Configs_Sub.txt` (added) | Feb 2024 | constant bot; 25 GB | 589 | 0 |
+| barry-far/V2ray-Config `All_Configs_Sub.txt` (added) | Jun 2025 | the same file as Epodonios: a mirror | 589 | 0 |
+| Surfboardv2ray/Proxy-sorter `converted.txt` (added) | Apr 2024 | constant bot | 330 | 0 |
+| Leon406/SubCrawler `vless` | 2021 (list since 2023) | bot 4–5 times a day | 289 | **121** |
+| nyeinkokoaung404/V2ray-Configs `All_Configs_Sub.txt` (added) | Oct 2024 | constant bot | 224 | 0 |
+| mahdibland/V2RayAggregator `sub_merge.txt` (added) | Sep 2022 | about twice a day | 125 | 0 |
+| ALIILAPRO/v2rayNG-Config `sub.txt` (added) | Nov 2023 | constant bot | 113 | 2 |
+| miladtahanian/V2RayCFGDumper `sub.txt` | 2024 (list since Feb 2026) | hourly, from Telegram channels | 86 | 4 |
+| patterniha/Free-Configs `configs.txt` (added) | Aug 2026 | about daily; miladtahanian's source | 60 | 0 |
+| roosterkid/openproxylist `V2RAY_RAW.txt` (added) | Apr 2021 | constant bot | 57 | 0 |
+| itsyebekhe/PSG `cdn` | Jul 2025 | every 6 h, from Telegram channels | 56 | 56 |
+| MhdiTaheri/V2rayCollector `sub/mix` (added) | Nov 2023 | constant bot | 42 | 1 |
+
+Of 69,654 configs, 3,516 worked in that check (5-second timeout, 9 seconds for all).
+
+**How reliable they are:**
+- **No single list is safe for years.** Collectors that were well known in 2023 are gone
+  (soroushmirzaei/telegram-configs-collector, yebekhe/TelegramV2rayCollector,
+  iPsycho1/multi-proxy-config-fetcher), others moved (aiboboxx/v2rayfree became
+  free-nodes/v2rayfree), and several of our lists are only about a year old. The ecosystem
+  as a whole has kept going since about 2021, so the plan is to make lists replaceable.
+- **They copy each other.** Argh94 reads about 30 other lists, mheidari98 crawls other lists,
+  and most configs first appear in public Telegram channels, which miladtahanian and PSG
+  scrape. A change at Telegram, or at the CDN in front of many servers (two thirds of working
+  configs exit from a different address than they connect to), could hit many lists at once.
+- **Huge repositories:** 10ium (15 GB), Argh94 (14 GB), Epodonios (25 GB) and barry-far
+  (10 GB) are far above GitHub's recommended size, so GitHub could step in.
+
+**The 11 lists added on 2026-10-12** brought only about 1,500 new configs (our lists already
+copy them), but they back up the old ones: working configs that only one list carries fell
+from 48% of the pool to 35%, and losing mheidari98 would now cost 18 working configs
+instead of about 350. Six lists still carry configs nobody else has: 10ium, hamedcode,
+Leon406, Giromo0, ebrasha and itsyebekhe (together about 1,100 of 3,516).
+
+**Candidates checked and skipped** (2026-10-12):
+- No useful working configs: LonUp/NodeList, mostafasadeghifar/v2ray-config (0 of 605),
+  ZywChannel/free, Pawdroid/Free-servers (1 of 8 despite 19,000 stars),
+  AlienVPN402 (1 of 906), w1770946466/Auto_proxy, ts-sf/fly, SonzaiEkkusu/V2RayDumper,
+  xsparvin/Submahsanetxsparvin (10 of 827).
+- Stale or irregular: LalatinaHub/Mineral (no updates in 30 days), ermaozi/get_subscribe,
+  WilliamStar007/ClashX-V2Ray-TopFreeProxy.
+- Copies of lists we already take: 10ium/V2Hub3, giromo/Collector2, MhdiTaheri/V2rayCollector_Py.
+- Small, every config already elsewhere: 4n0nymou3/multi-proxy-config-fetcher,
+  peasoft/NoMoreWalls, HakurouKen/free-node.
+- Broken links: free-nodes/v2rayfree (moved), MahsaNetConfigTopic/config (gone),
+  mahsanet/MahsaFreeConfig (unreadable).
+
+**Still to do, to depend on these lists for years:**
+- Save the per-source counts from every check and warn when a list stops changing for 2 days
+  or brings nothing unique for a week.
+- Keep an archive of every config ever seen, with when it was first seen and last worked, so
+  the pool survives lists disappearing, and so we learn how long configs last.
+- If the GitHub lists die, read the public Telegram channels directly.
+- Test a paid fallback once (datacenter proxies or an IPv6 range): the planned monitoring
+  needs about 6 million requests a day.
+
 ## 1. Sources
+
+These are the plain-proxy lists. They're not used for collecting since 2026-10-12, but
+`proxies.py` still has them.
 
 Checked on 2026-10-11, using the last commit that changed each list file (not the last
 commit to the repository, which can be just a README change). Every file below had changed
@@ -100,14 +184,28 @@ Every 30 minutes:
   - **Everything in one wave:** 96 processes × 1,500 checks (144,000 in flight) finish a full
     check in about 25 seconds instead of about 36 seconds. Across six paired runs they found
     as many working proxies as 48 × 2,000. The rule: if processes × checks per process covers
-    all candidates, there's a single 20-second wave. More processes than CPU cores is fine,
-    because the checks used only about 10 cores in total.
+    all candidates, there's a single wave that lasts about as long as the timeout. More
+    processes than CPU cores is fine, because the checks used only about 10 cores in total.
   - **No gradual start:** starting checks at 10,000, 20,000 or 50,000 per second instead of
     all at once made no measurable difference. The effect was smaller than the ±40%
     minute-to-minute swing of free proxies.
-  - **20-second total timeout, with no connect timeout.** A 5-second connect limit halved
-    the working proxies, because working free proxies are slow (median 7–9 s). 20 seconds
-    found about 1.7 times as many as 10 seconds, and 30 seconds added almost nothing.
+  - **5-second total timeout, with no separate connect timeout** (since 2026-10-12).
+    Longer timeouts find more proxies: on 2026-10-11, 20 seconds found about 1.7 times as
+    many as 10 seconds, and 30 seconds added almost nothing. But those slow proxies barely
+    work in the collector, which also gives each request 5 seconds. Four runs on 2026-10-12,
+    alternating 20 s and 5 s checks, each followed by 30 seconds of collecting at full speed:
+
+    | Check timeout | Check time (plain + VPN) | Working proxies | Collector speed |
+    |---|---|---|---|
+    | 20 s | 47–48 s | 5,326–6,933 | 40,069–41,346 channels/s |
+    | 5 s | 18–19 s | 3,342–3,892 | 41,086–41,690 channels/s |
+
+    With the 20-second check, proxies whose check took 10–20 seconds did only 2% of the
+    collector's successful requests, and 85% of them did none. The 5-second pool also
+    started faster: about 8,850 channels in the first second instead of 4,000–7,700. The
+    measured check times include the checker's own load (thousands of handshakes at once):
+    no proxy measured under 2 seconds, although VPN configs answer in about 0.3 seconds
+    once connected.
 - **Open-file limit:** every connection uses an open file. Raise the limit at program start
   with `resource.setrlimit`: Linux allows up to 1,000,000, macOS at most 10,240.
 - **Conntrack:** a full check opens about 3,500 new connections per second. Each one stays
@@ -124,7 +222,8 @@ Every 30 minutes:
   - Nine back-to-back full checks found 5,071 different working proxies, against about
     1,450 per check.
   - So don't use per-proxy retry timers. Recheck all candidates every few minutes (a full
-    check takes about 45 seconds), and keep the proxies that worked in recent checks.
+    check takes about 10 seconds with the 5-second timeout), and keep the proxies that
+    worked in recent checks.
   - Numbers from 9 full checks about a minute apart:
     - Different working proxies after 1, 2, 3, 5 and 9 checks: 1,188, 2,073, 2,502, 3,359
       and 5,071, still growing.
@@ -179,6 +278,30 @@ channel request (`/browse` with a field mask) on the 52-core test server:
   That doesn't matter for a run of seconds, but a long-running collector needs the checker to
   keep refilling the pool.
 
+**Plain proxies vs VPN configs** (measured 2026-10-12, which is why the collector now uses
+only VPN configs):
+- In four 30-second runs at full speed with both kinds, plain proxies did only 4–7% of the
+  successful requests and VPN configs 93–96%. Of the plain proxies that passed the check,
+  82–87% did no work at all: they failed their first real request.
+- Full runs of all 55,859 channels, each after a fresh 5-second check, alternating:
+
+  | | Plain + VPN | VPN only |
+  |---|---|---|
+  | Run time | 6.5 s, 6.3 s | 6.1 s, 6.4 s |
+  | Channels filled after 4 seconds | 53,847, 49,445 | 55,332, 54,757 |
+  | Broken requests | 77, 73 | 42, 24 |
+
+- VPN only for 30 seconds at full speed: 40,405 channels per second, 0 blocks, 0.1% broken
+  requests, and 85% of the configs still usable at the end (about two thirds with both
+  kinds).
+- What it costs: fewer distinct addresses (an earlier count found about 1,160 VPN exit IPs,
+  against about 1,820 with plain proxies included), which didn't matter because VPN
+  addresses already carried about 95% of the load. And all proxies now come from the public
+  VPN lists (see "VPN config sources"), so plain proxies are the fallback if those dry up.
+- What it saves: no more testing 143,000 random addresses per check, which took 10 seconds
+  of each check, looks like a port scan to the hosting provider, and fills the connection
+  tracking table.
+
 **Sorting responses:**
 
 | Response | What it means | What to do |
@@ -200,8 +323,8 @@ handshake with YouTube costs about 6.5 KB and adds time.
 
 ## 5. Checkpoint file
 
-- Every minute, write the working proxies to `working_proxies.txt`, one URL per line,
-  fastest first.
+- Every minute, write the working proxies to `working_vpn_proxies.txt`, one per line,
+  fastest first (`working_proxies.txt` for plain proxies).
 - Write to a temporary file, then swap it in with `os.replace`, so a crash never leaves
   half a file behind.
 - On startup, load the file and recheck those proxies first, so the pool is ready in
@@ -223,10 +346,12 @@ proxies can carry your daily volume.
 ## Build order
 
 1. **Collector** (done): download and read the sources, and print how many candidates you got.
-2. **Checker** (done, tuned on the test server 2026-10-11): test the candidates with several
-   processes, print the working ones, and save them to `working_proxies.txt`.
+2. **Checker** (done, tuned on the test server 2026-10-11; 5-second timeout since 2026-10-12):
+   test the candidates with several processes, print the working ones, and save them to
+   `working_proxies.txt`.
 3. **Checkpoint file:** save and load the working proxies.
 4. **Pool** (done in `channels.py`, 2026-10-12): proxy slots, response sorting and retries;
    no speed limit per IP.
 5. **Tune:** run for a day, review the measurements, adjust the numbers, and drop useless sources.
-6. **Later:** VPN-type configs through sing-box.
+6. **VPN configs through sing-box** (done 2026-10-12): `vpn_configs.py`, `converter.py`,
+   `singbox_runner.py` and `check_vpn.py`. Since 2026-10-12 the collector uses only these.

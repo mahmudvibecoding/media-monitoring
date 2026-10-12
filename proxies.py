@@ -35,7 +35,7 @@ FIELD_MASK = "metadata.channelMetadataRenderer.title"  # the check only needs th
 # so everything is checked in one wave. On a laptop, use far fewer (e.g. 4 processes x 500).
 PROCESSES = 96
 CHECKS_PER_PROCESS = 1500  # checks in flight in each process; 1500-2000 is safe
-TIMEOUT = 20  # seconds per check; working free proxies are slow (median 7-9 s)
+TIMEOUT = 5  # seconds per check, like a request in channels.py: slower proxies barely do any work there
 SAMPLE = None  # check only this many random candidates; None checks all
 OUTPUT = Path("working_proxies.txt")
 

@@ -1,7 +1,7 @@
 """Fill youtube_channels (title, handle, description, avatar_url, subscriber_count) from InnerTube,
-as fast as the proxies answer, through all working proxies: plain proxies and VPN configs.
+as fast as the proxies answer, through the working VPN configs.
 
-Run proxies.py and check_vpn.py first (with singbox_runner.py still running), so the pool is fresh.
+Run check_vpn.py first (with singbox_runner.py still running), so the pool is fresh.
 """
 import asyncio
 import math
@@ -19,7 +19,9 @@ from curl_cffi import AsyncSession
 from proxies import CONTEXT, URL, raise_open_files_limit
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
-PROXY_FILES = ["working_proxies.txt", "working_vpn_proxies.txt"]  # the proxy is the first word of each line
+# The proxy is the first word of each line. Plain proxies (working_proxies.txt from proxies.py) did only
+# 4-7% of the work and most failed their first request, so they're left out; add the file back to use them.
+PROXY_FILES = ["working_vpn_proxies.txt"]
 PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few cores stay free for sing-box
 CONCURRENCY = 500  # channels in progress at a time, per process
 REQUESTS_PER_PROXY = 8  # requests in flight through one proxy at a time, so a weak proxy isn't flooded

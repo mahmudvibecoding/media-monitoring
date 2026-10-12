@@ -23,6 +23,19 @@ SOURCES = [
     GITHUB + "hamedcode/port-based-v2ray-configs/main/sub/vmess.txt",
     GITHUB + "hamedcode/port-based-v2ray-configs/main/sub/trojan.txt",
     GITHUB + "miladtahanian/V2RayCFGDumper/main/sub.txt",
+    # Added 2026-10-12. These mostly copy the lists above, so they keep those configs if a list
+    # disappears; Giromo0 also brings configs no other list has (see docs/proxies-plan.md).
+    GITHUB + "xiaoji235/airport-free/main/v2ray.txt",
+    GITHUB + "Giromo0/Collector/main/All_Configs_Sub.txt",
+    GITHUB + "Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+    GITHUB + "barry-far/V2ray-Config/main/All_Configs_Sub.txt",
+    GITHUB + "Surfboardv2ray/Proxy-sorter/main/submerge/converted.txt",
+    GITHUB + "nyeinkokoaung404/V2ray-Configs/main/All_Configs_Sub.txt",
+    GITHUB + "ALIILAPRO/v2rayNG-Config/main/sub.txt",
+    GITHUB + "mahdibland/V2RayAggregator/master/sub/sub_merge.txt",
+    GITHUB + "patterniha/Free-Configs/main/configs.txt",
+    GITHUB + "roosterkid/openproxylist/main/V2RAY_RAW.txt",
+    GITHUB + "MhdiTaheri/V2rayCollector/main/sub/mix",
 ]
 
 # A link starts with one of these protocols; (?<!\w) stops "ss://" matching inside "vless://".
