@@ -3,7 +3,7 @@ import base64
 import binascii
 import json
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from urllib.parse import parse_qsl, unquote, urlsplit
 
 from curl_cffi import AsyncSession
@@ -36,6 +36,7 @@ SS_METHODS = {  # the Shadowsocks ciphers sing-box supports
     "rc4-md5", "chacha20-ietf", "xchacha20", "none",
 }
 OUTPUT = "vpn_configs.txt"
+SOURCES_OUTPUT = "vpn_sources.txt"  # one line per config: "<link> <source> <source> ..."
 
 
 def decode_base64(text):
@@ -135,11 +136,12 @@ async def download(session, url):
 
 
 async def collect():
-    """Download all sources and return {key: (protocol, clean_link)} for the unique configs."""
+    """Download all sources. Returns {key: (protocol, clean_link)} for the unique configs, and
+    {key: {source, ...}} with every list each config appeared in."""
     async with AsyncSession() as session:
         results = await asyncio.gather(*(download(session, url) for url in SOURCES), return_exceptions=True)
 
-    configs = {}
+    configs, sources = {}, defaultdict(set)
     for url, result in zip(SOURCES, results):
         name = url.removeprefix(GITHUB)
         if isinstance(result, Exception):
@@ -156,19 +158,22 @@ async def collect():
             if key not in configs:
                 configs[key] = (protocol, clean_link)
                 new += 1
+            sources[key].add(name)
         print(f"{valid:>6} valid, {new:>6} new, {skipped:>6} skipped  {name}")
 
     print(f"\n{len(configs):>7}  unique configs in total")
     for protocol, count in Counter(p for p, _ in configs.values()).most_common():
         print(f"{count:>7}  {protocol}")
-    return configs
+    return configs, sources
 
 
 def main():
-    configs = asyncio.run(collect())
+    configs, sources = asyncio.run(collect())
     with open(OUTPUT, "w") as f:
         f.write("".join(f"{link}\n" for _, link in sorted(configs.values())))
-    print(f"\nsaved to {OUTPUT}")
+    with open(SOURCES_OUTPUT, "w") as f:
+        f.write("".join(f"{link} {' '.join(sorted(sources[key]))}\n" for key, (_, link) in configs.items()))
+    print(f"\nsaved to {OUTPUT} and {SOURCES_OUTPUT}")
 
 
 if __name__ == "__main__":  # only when run directly, not when imported

@@ -53,6 +53,17 @@ def group_config(group):
     return {"log": {"level": "error"}, "inbounds": inbounds, "outbounds": outbounds, "route": {"rules": rules}}
 
 
+def port_is_free(host, port):
+    """True if nothing else listens on host:port (e.g. another copy of this runner)."""
+    with socket.socket() as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # like sing-box: closed connections don't count
+        try:
+            s.bind((host, port))
+            return True
+        except OSError:
+            return False
+
+
 def wait_until_ready(process, host, port, timeout=60):
     """True once the group's last port accepts connections; False if sing-box exits or never gets there."""
     deadline = time.monotonic() + timeout
@@ -77,6 +88,12 @@ def start_groups(configs, processes):
     groups = [configs[g:g + GROUP_SIZE] for g in range(0, len(configs), GROUP_SIZE)]
     started = {}
     for number, group in enumerate(groups, 1):
+        taken = [address_and_port(i) for i, _ in group if not port_is_free(*address_and_port(i))]
+        if taken:
+            host, port = taken[0]
+            print(f"group {number} skipped: {len(taken)} of its ports are in use, e.g. {host}:{port} "
+                  "(is another singbox_runner.py running?)")
+            continue
         path = FOLDER / f"group-{number}.json"
         path.write_text(json.dumps(group_config(group)))
         log = open(FOLDER / f"group-{number}.log", "w")
@@ -122,6 +139,8 @@ def main():
         began = time.monotonic()
         running = start_groups(configs, processes)
         print(f"{len(running)} processes running after {time.monotonic() - began:.0f} s")
+        if not running:
+            return
 
         with open(OUTPUT, "w") as f:
             for _, group in running.values():

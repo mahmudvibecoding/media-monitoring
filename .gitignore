@@ -6,3 +6,5 @@ vpn_configs.txt
 outbounds.json
 vpn_proxies.txt
 singbox/
+vpn_sources.txt
+working_vpn_proxies.txt

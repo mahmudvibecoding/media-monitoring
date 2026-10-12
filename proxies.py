@@ -31,9 +31,10 @@ CONTEXT = {"client": {"clientName": "WEB", "clientVersion": "2.20251001.01.00", 
 TEST_CHANNEL = "UCVPst_iSyaVYpuOP4ogRhlw"  # KunUZ
 FIELD_MASK = "metadata.channelMetadataRenderer.title"  # the check only needs the title
 
-# Tuned on a 52-core server with 1 Gbit. On a laptop, use far fewer (e.g. 4 processes x 500).
+# Tuned on a 52-core server with 1 Gbit. PROCESSES x CHECKS_PER_PROCESS should cover all candidates,
+# so everything is checked in one wave. On a laptop, use far fewer (e.g. 4 processes x 500).
 PROCESSES = 96
-CHECKS_PER_PROCESS = 1500
+CHECKS_PER_PROCESS = 1500  # checks in flight in each process; 1500-2000 is safe
 TIMEOUT = 20  # seconds per check; working free proxies are slow (median 7-9 s)
 SAMPLE = None  # check only this many random candidates; None checks all
 OUTPUT = Path("working_proxies.txt")
@@ -156,10 +157,12 @@ def run_share(proxies):
 
 
 def check_all(proxies):
-    """Split the proxies between PROCESSES processes and check them in parallel."""
-    shares = [proxies[i::PROCESSES] for i in range(PROCESSES)]
+    """Split the proxies between processes and check them in parallel, all in one wave."""
+    # only as many processes as one wave needs (up to PROCESSES): 1,000 proxies need just one
+    processes = max(1, min(PROCESSES, -(-len(proxies) // CHECKS_PER_PROCESS)))
+    shares = [proxies[i::processes] for i in range(processes)]
     # "spawn" starts each process fresh, which works the same on macOS and Linux
-    with ProcessPoolExecutor(PROCESSES, mp_context=get_context("spawn")) as pool:
+    with ProcessPoolExecutor(processes, mp_context=get_context("spawn")) as pool:
         results = list(pool.map(run_share, shares))
     working = sorted(w for share_working, _ in results for w in share_working)
     outcomes = sum((share_outcomes for _, share_outcomes in results), Counter())
@@ -178,7 +181,7 @@ def main():
     if SAMPLE:
         candidates = random.sample(candidates, SAMPLE)
 
-    print(f"\nchecking with {PROCESSES} processes x {CHECKS_PER_PROCESS} checks at a time...")
+    print(f"\nchecking with up to {PROCESSES} processes x {CHECKS_PER_PROCESS} checks at a time...")
     started = time.monotonic()
     working, outcomes = check_all(candidates)
     seconds = time.monotonic() - started
