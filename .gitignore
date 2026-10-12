@@ -2,3 +2,7 @@
 __pycache__/
 working_proxies.txt
 *.tmp
+vpn_configs.txt
+outbounds.json
+vpn_proxies.txt
+singbox/
