@@ -1,5 +1,5 @@
-"""Refresh the views and likes of recent videos and keep every refresh as history: the latest numbers go into
-youtube_videos, and each refresh also adds a row to youtube_video_stats.
+"""Refresh the views and likes of recent videos: each video has one row in youtube_video_stats with its latest
+numbers, overwritten on every refresh.
 
 "uv run stats.py" refreshes the videos uploaded in the last DAYS days, "uv run stats.py 30" the last 30 days,
 and "uv run stats.py all" every video. Run details.py first, so new videos have their upload day, and run it
@@ -30,9 +30,10 @@ FIELDS = ("actions/updateViewershipAction/viewCount/videoViewCountRenderer(origi
 URL = API + "updated_metadata?prettyPrint=false&fields=" + FIELDS
 
 STATS = "CREATE TEMP TABLE stats (video_id text, views bigint, likes bigint) ON COMMIT DELETE ROWS"
-SAVE = """UPDATE youtube_videos AS v SET views = s.views, likes = s.likes, stats_at = now()
-          FROM stats AS s WHERE v.video_id = s.video_id"""
-KEEP = "INSERT INTO youtube_video_stats (video_id, at, views, likes) SELECT video_id, now(), views, likes FROM stats"
+SAVE = """INSERT INTO youtube_video_stats (video_id, views, likes, updated_at)
+          SELECT video_id, views, likes, now() FROM stats
+          ON CONFLICT (video_id) DO UPDATE SET views = excluded.views, likes = excluded.likes,
+                                               updated_at = excluded.updated_at"""
 
 finished = None  # in each worker process: how many videos all processes have finished, shared with the main one
 
@@ -81,7 +82,6 @@ async def save_rows(conn, pending):
                 for row in rows:
                     await copy.write_row(row)
             await cur.execute(SAVE)
-            await cur.execute(KEEP)
 
 
 async def collect_share(video_ids, proxies):

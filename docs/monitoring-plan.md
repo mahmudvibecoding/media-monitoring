@@ -16,8 +16,8 @@ We follow about 56,000 YouTube channels. The system should:
 Measured on our channel list:
 - About a third of the channels are active (posted in the last 90 days), and about 40% haven't
   posted for over a year.
-- Together they have about 7.7 million videos, and publish about 6,000 new ones a day.
-- The 90-day window holds about 557,000 videos, with about 8 million comments, and at least
+- Together they have about 8 million videos, and publish about 6,000 new ones a day.
+- The 90-day window holds about 690,000 videos, with about 8 million comments, and at least
   44,000 new comments arrive each day.
 
 ## How it works
@@ -37,8 +37,9 @@ saves the results and stops. There are no schedules: every round simply checks e
 4. **Video details:** for each video without details, open its video page to get the title,
    description and upload day. The thumbnail's address is built from the video's ID.
 5. **Views and likes:** for each video from the last 90 days, ask for its current views and
-   likes, using the lightest request YouTube's website has for it. Every refresh is also kept
-   as history, to see how videos grow.
+   likes, using the lightest request YouTube's website has for it. Only the latest numbers are
+   kept. While a stream is live or upcoming, YouTube shows viewers instead of views, so its
+   views stay empty until it ends.
 6. **Comments:** for each video from the last 90 days, read its newest comments back to the
    last one we have.
 
@@ -47,9 +48,8 @@ Then the round stops the proxies, waits, and the next round starts.
 ## What we keep
 
 - **Channels:** name, handle, description, picture, subscriber count.
-- **Videos:** title, description, length, upload day, thumbnail, and the latest views, likes and
-  comment count.
-- **History:** the views and likes of each refresh.
+- **Videos:** title, description, length, upload day, thumbnail.
+- **Views and likes:** each video's latest numbers, in one small row per video.
 - **Comments:** text, author, likes and number of replies. YouTube only shows comment times
   like "2 hours ago", so the time is an estimate, plus the time we first saw the comment.
 
@@ -61,28 +61,25 @@ videos found in later rounds, the time we first saw them is within one round of 
 
 ## How much work it is
 
-A round takes one or two minutes; the first one takes longer, because it reads all 7.7 million
+A round takes one or two minutes; the first one takes longer, because it reads all 8 million
 videos and the existing comments. In tests, the server handled about 40,000 requests a second,
 so even frequent rounds use a small part of its capacity.
 
 ## Still to decide
 
 - How often rounds run.
-- How much history to keep: every refresh adds up quickly (tens of millions of rows a day at
-  15-minute rounds), so maybe only one per hour or per day.
 - Whether to collect replies to comments.
 - Whether to refresh every channel's subscriber count regularly.
 
 ## Still unknown
 
 - Whether YouTube stays this tolerant over days and weeks; we tested minutes.
-- How to treat live streams, whose view counts mean "watching now" while live.
 
 ## Steps
 
 1. Proxies, channel details and the database tables (done).
-2. New videos.
-3. Video details.
-4. Views and likes, with history.
+2. New videos (done).
+3. Video details (done).
+4. Views and likes (built).
 5. Comments.
 6. One script that runs the rounds.
