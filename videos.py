@@ -21,6 +21,9 @@ from curl_cffi import AsyncSession
 from pool import API, ATTEMPTS, CONTEXT, NoProxiesLeft, Pool, call, load_proxies, raise_open_files_limit
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
+# Saves don't wait for the disk to confirm them: a crash loses at most the last second of saves, which the next
+# run fetches again
+NO_WAIT = "-c synchronous_commit=off"
 PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few cores stay free for sing-box
 CONCURRENCY = 500  # channels in progress at a time, per process
 URL = API + "browse?prettyPrint=false&fields="
@@ -152,7 +155,7 @@ async def collect_share(channel_ids, proxies):
     raise_open_files_limit()
     pool = Pool(proxies)
     results, pending, known = Counter(), [], defaultdict(set)
-    async with await psycopg.AsyncConnection.connect(DATABASE_URL, autocommit=True) as conn:
+    async with await psycopg.AsyncConnection.connect(DATABASE_URL, autocommit=True, options=NO_WAIT) as conn:
         async with conn.cursor() as cur:  # the videos already saved for this process's channels, loaded once
             await cur.execute(LOAD_KNOWN, (channel_ids,))
             async for channel_id, video_id in cur:
