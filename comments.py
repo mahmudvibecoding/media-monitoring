@@ -294,8 +294,9 @@ def run_share(video_ids, share, shares):
 def main():
     sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
     days = sys.argv[1] if len(sys.argv) > 1 else str(DAYS)
-    where = {"all": "", "unread": "WHERE NOT coalesce(s.comments_complete, false)"}.get(
-        days, "WHERE v.upload_date >= current_date - %s::int")
+    # "unread" leaves out videos without views and likes (stats.py found them removed or private): their count row,
+    # where a finished read is recorded, doesn't exist
+    where = {"all": "", "unread": "WHERE NOT s.comments_complete"}.get(days, "WHERE v.upload_date >= current_date - %s::int")
     with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
         # Most viewed first: their long comment lists start early instead of holding up the end of the run
         video_ids = [row[0] for row in conn.execute(
