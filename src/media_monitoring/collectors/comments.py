@@ -202,11 +202,13 @@ async def read_video(pool, session, video_id, known, newest, complete, resume, p
 
 async def save_rows(conn, pending, counts, progress):
     """Write the new comments, the places to continue long reads from, and the finished videos' counts to the
-    database, and empty the lists. A video's count is saved with or after all of its comments."""
+    database, and empty the lists. A video's count is saved with or after all of its comments. Returns how many
+    comments were added (not counting those already saved) and how many videos finished."""
     rows, finished, places = pending[:], counts[:], dict(progress)  # the latest place for each video
     pending.clear()
     counts.clear()
     progress.clear()
+    added = 0
     if rows or finished or places:
         async with conn.transaction(), conn.cursor() as cur:
             if rows:
@@ -215,11 +217,13 @@ async def save_rows(conn, pending, counts, progress):
                         async with cur.copy(COPY_COMMENTS) as copy:
                             for row in rows:
                                 await copy.write_row(row)
+                    added = len(rows)
                 except psycopg.errors.UniqueViolation:
                     async with cur.copy("COPY new_comments FROM STDIN") as copy:
                         for row in rows:
                             await copy.write_row(row)
                     await cur.execute(SAVE_COMMENTS)
+                    added = cur.rowcount  # the rows it inserted: those already saved are skipped
             if places:
                 async with cur.copy("COPY video_progress FROM STDIN") as copy:
                     for row in places.items():
@@ -231,7 +235,7 @@ async def save_rows(conn, pending, counts, progress):
                         await copy.write_row(row)
                 await cur.execute(SAVE_COUNTS)
                 await cur.execute(SAVE_NEWEST)
-    return len(rows), len(finished)
+    return added, len(finished)
 
 
 class Comments(Collector):
@@ -292,7 +296,7 @@ class Comments(Collector):
                                 self.counts, self.places)
 
     async def save(self, conn):
-        """Returns how many new comments were saved."""
+        """Returns how many comments were added: those already saved don't count."""
         comments, _ = await save_rows(conn, self.pending, self.counts, self.places)
         return comments
 
