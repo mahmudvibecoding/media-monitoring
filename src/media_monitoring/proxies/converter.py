@@ -150,7 +150,7 @@ def trojan(link):
 def shadowsocks(link):
     rest = link.split("://", 1)[1].split("#", 1)[0]
     address, _, query = rest.partition("?")
-    if "@" not in address:  # old style: ss://BASE64(method:password@host:port)
+    if "@" not in address:  # old style: ss://BASE64(<method>:<password>@<host>:<port>)
         address = decode_base64(address)
     user, host, port = split_address(address.rstrip("/"))
     method, _, password = ss_credentials(user).partition(":")

@@ -124,7 +124,7 @@ def parse(link):
         return parse_vmess(rest)
 
     address, _, query = rest.partition("?")  # protocol://user@host:port?param=value&...
-    if protocol == "ss" and "@" not in address:  # old style: ss://BASE64(method:password@host:port)
+    if protocol == "ss" and "@" not in address:  # old style: ss://BASE64(<method>:<password>@<host>:<port>)
         address = decode_base64(address)
     parsed = split_address(address.rstrip("/"))
     if parsed is None:
