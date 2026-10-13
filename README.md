@@ -17,7 +17,6 @@ tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN 
 
 ```bash
 DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (90 by default)
-./run.sh --plain   # video pages and comments also go through fresh free proxies
 ./run.sh setup     # only set the machine up
 ```
 
@@ -30,9 +29,9 @@ To keep the data up to date, run it again and again: for example every 15 minute
 
 ## The steps
 
-Each step can also run on its own, after `uv run proxies`. Every step goes through the VPN proxies; add
-`--plain` to also use the free proxies (like `uv run comments 90 --plain`). They're many more addresses, which helps
-`details` and `comments`, since their endpoint blocks busy addresses for a while.
+Each step can also run on its own, after `uv run proxies`. Every step goes through the VPN proxies, and brings in
+the free proxies by itself once those stop working: YouTube blocks busy addresses for a while on video pages and
+comments, and the free proxies are many more addresses.
 
 | Command | What it does |
 |---|---|

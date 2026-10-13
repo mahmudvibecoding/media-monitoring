@@ -3,9 +3,9 @@ items and of the proxies, works through its items `concurrency` at a time, and s
 SAVE_EVERY seconds. A collector (channels, videos, details, stats, comments) only describes its own part: see
 Collector.
 
-Every collector goes through the VPN proxies run by sing-box. With --plain it also uses the free proxies: many
-more addresses, which helps with YouTube's next endpoint (details, comments) since it blocks
-busy addresses for a while.
+Every collector goes through the VPN proxies run by sing-box. Each process also holds its share of the free proxies
+in reserve, and brings them in once its VPN proxies stop working: YouTube's next endpoint (details, comments) blocks
+busy addresses for a while, and the free proxies are many more addresses (see Pool).
 """
 import argparse
 import asyncio
@@ -28,7 +28,8 @@ PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few co
 SAVE_EVERY = 2  # seconds
 FOLLOW_EVERY = 60  # seconds between looks at the proxy lists, for collectors that follow them
 
-# In each worker process: [items finished, items saved, processes ready], counted by all processes together
+# In each worker process: [items finished, items saved, processes ready, processes that brought in the free proxies],
+# counted by all processes together
 progress = None
 
 
@@ -76,14 +77,18 @@ def modified(path):
         return None
 
 
-async def work(collector, items, share, shares, plain):
-    """One worker process: its share of the items, through its share of the proxies (with plain, the free ones too)."""
+async def work(collector, items, share, shares):
+    """One worker process: its share of the items, through its share of the VPN proxies, with its share of the free
+    ones in reserve."""
     raise_open_files_limit()
-    # Free proxies first: the VPN ones are often blocked from next, and untested proxies are tried in order
-    lists = [PLAIN_PROXY_FILE, PROXY_FILE] if plain else [PROXY_FILE]
-    seen = {path: modified(path) for path in lists}
-    pool = Pool([proxy for path in lists for proxy in load_share(path, share, shares)], rest=collector.rest,
-                give_up=collector.give_up)
+    seen = {path: modified(path) for path in (PROXY_FILE, PLAIN_PROXY_FILE)}
+
+    def reserve_brought():
+        with progress.get_lock():
+            progress[3] += 1
+
+    pool = Pool(load_share(PROXY_FILE, share, shares), rest=collector.rest, give_up=collector.give_up,
+                reserve=load_share(PLAIN_PROXY_FILE, share, shares), on_reserve=reserve_brought)
     collector.results = results = Counter()
     finished = 0
     async with await db.connect() as conn:
@@ -124,18 +129,23 @@ async def work(collector, items, share, shares, plain):
                         return
 
             async def follower():
-                """Every FOLLOW_EVERY seconds: proxies new to the free list join the pool, and once sing-box has
-                restarted with new configs, its local proxies are tested again."""
+                """Every FOLLOW_EVERY seconds: once sing-box has restarted with new configs, its local proxies are
+                tested again; a refreshed free list joins the pool if the reserve is in use, else replaces it."""
                 while not stop.is_set():
                     try:
                         await asyncio.wait_for(stop.wait(), timeout=FOLLOW_EVERY)
                     except TimeoutError:
                         pass
-                    for path in lists:
+                    for path in (PROXY_FILE, PLAIN_PROXY_FILE):
                         if modified(path) != seen[path]:
                             seen[path] = modified(path)
                             proxies = load_share(path, share, shares)
-                            pool.renew(proxies) if path == PROXY_FILE else pool.add(proxies)
+                            if path == PROXY_FILE:
+                                pool.renew(proxies)
+                            elif pool.reserve_used:
+                                pool.add(proxies)
+                            else:
+                                pool.reserve = proxies
 
             tasks = [asyncio.create_task(saver())]
             if collector.follow_lists:
@@ -160,9 +170,9 @@ def start(counter):
         pass  # not Linux
 
 
-def run_share(collector_class, items, share, shares, plain):
+def run_share(collector_class, items, share, shares):
     """Entry point of each worker process: it runs its own event loop."""
-    return asyncio.run(work(collector_class(), items, share, shares, plain))
+    return asyncio.run(work(collector_class(), items, share, shares))
 
 
 def run(collector_class):
@@ -171,38 +181,37 @@ def run(collector_class):
     parser = argparse.ArgumentParser(description=sys.modules[collector_class.__module__].__doc__.split("\n\n")[0])
     parser.add_argument("argument", nargs="?",
                         help="for stats and comments: a number of days (90 by default), all, or (comments) unread")
-    parser.add_argument("--plain", action="store_true",
-                        help="also use the free proxies, not only the VPN ones")
     args = parser.parse_args()
     collector = collector_class()
     with psycopg.connect(db.DATABASE_URL, autocommit=True) as conn:
         items = collector.load(conn, args.argument)
-    free = load_proxies(PLAIN_PROXY_FILE) if args.plain else []
-    vpn = load_proxies(PROXY_FILE)
-    proxies = f"{len(free)} free and {len(vpn)} VPN proxies" if args.plain else f"{len(vpn)} proxies"
-    print(f"{len(items)} {collector.describe(args.argument)}, {proxies}")
-    if not items or not free + vpn:
+    vpn, free = load_proxies(PROXY_FILE), load_proxies(PLAIN_PROXY_FILE)
+    print(f"{len(items)} {collector.describe(args.argument)}, {len(vpn)} VPN proxies and {len(free)} free ones in "
+          "reserve")
+    if not items or not vpn + free:
         return
 
-    processes = max(1, min(PROCESSES, (len(free) + len(vpn)) // 50, math.ceil(len(items) / 1000)))
+    processes = max(1, min(PROCESSES, (len(vpn) or len(free)) // 50, math.ceil(len(items) / 1000)))
     print(f"working with {processes} processes...")
     context = get_context("spawn")
-    counter = context.Array("q", 3)  # [items finished, items saved, processes ready], counted by the processes
+    counter = context.Array("q", 4)  # see progress: counted by the processes
     started = time.monotonic()
     results, outcomes, working = Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=context, initializer=start, initargs=(counter,)) as executor:
-        futures = [executor.submit(run_share, collector_class, items[i::processes], i, processes, args.plain)
+        futures = [executor.submit(run_share, collector_class, items[i::processes], i, processes)
                    for i in range(processes)]
         before, then = 0, started
         while not all(future.done() for future in futures):
             wait(futures, timeout=collector.report_every)
-            now, (finished, saved, ready) = time.monotonic(), counter[:]
+            now, (finished, saved, ready, reserve) = time.monotonic(), counter[:]
             # Before its work, each process loads what's already saved for its items (comments' IDs, for example),
             # which for a big run takes a while: say so, or the line would look stuck at 0
-            loading = (f"  ({processes - ready} of {processes} processes still loading what's already saved)"
-                       if ready < processes else "")
+            notes = ([f"{processes - ready} of {processes} processes still loading what's already saved"]
+                     if ready < processes else [])
+            notes += [f"free proxies brought in by {reserve} of {processes} processes"] if reserve else []
             print(f"{now - started:5.0f} s  {finished} of {len(items)} {collector.item_name} done, {saved} "
-                  f"{collector.saved_name}, {(finished - before) / max(now - then, 0.001):,.0f}/s{loading}")
+                  f"{collector.saved_name}, {(finished - before) / max(now - then, 0.001):,.0f}/s"
+                  + "".join(f"  ({note})" for note in notes))
             before, then = finished, now
         for future in futures:
             share_results, share_outcomes, share_working = future.result()
@@ -213,4 +222,7 @@ def run(collector_class):
     print(f"\nfinished in {took:.0f} s ({len(items) / took:,.0f} {collector.item_name}/s): "
           f"{collector.summary(results, counter[1])}")
     print(f"requests: {dict(outcomes)}")
+    if counter[3]:
+        print(f"free proxies were brought in by {counter[3]} of {processes} processes, when their VPN proxies stopped "
+              "working")
     print(f"{working} proxies working at the end")

@@ -19,7 +19,8 @@ YouTube sees the proxy's address instead of the server's.
   address (127.1.1.1, 127.1.2.1, and so on). A few thousand of them work at any time.
 - **Free proxies.** `uv run proxies` also downloads 26 public lists of free HTTP and SOCKS4 proxies, about 330,000
   in all. Only about 1% work, but each one is another address, which video pages and comments can use (see
-  below). They're used only when asked for with `--plain`. Free SOCKS5 proxies are left out: none of them worked.
+  below). Each collector process keeps its share of them in reserve, and brings them in once its VPN proxies stop
+  working. Free SOCKS5 proxies are left out: none of them worked.
 
 Every round downloads both again and restarts sing-box with the new configs, in the background: `uv run proxies`
 does all of it in one command, and `uv run proxies stop` stops sing-box.
@@ -55,12 +56,15 @@ like one: a 400 error, for example, only if it's YouTube's own error message.
 
 Video pages and comments come from a different YouTube endpoint (`next`). It blocks an address after a few
 minutes of heavy use: every request from it then gets a "Sorry, unusual traffic" page, which takes 20 to 25
-seconds to arrive. So a proxy that fails there rests 15 minutes instead of 30 seconds, and with `--plain` the
-details and comments steps also use the free proxies, for as many addresses as possible.
+seconds to arrive. So a proxy that fails there rests 15 minutes instead of 30 seconds. And once the working VPN
+proxies of a collector process fall to a quarter of the most it had (or all of them rest), the process brings in its
+share of the free proxies: many more addresses. Proxies that already work still come first, so when the VPN ones
+come back from their rest they carry the load again.
 
 The comments step can run for hours (`comments all`), so it also takes in refreshed lists while it runs:
-sing-box's proxies are tested again when it restarts with new configs, and with `--plain`, new free proxies
-join when `uv run proxies` runs again. When every proxy rests at once, it waits for them instead of stopping.
+sing-box's proxies are tested again when it restarts with new configs, and new free proxies join when `uv run
+proxies` runs again (or replace the reserve, if it isn't in use yet). When every proxy rests at once, it waits
+for them instead of stopping.
 
 ## What we've learned
 

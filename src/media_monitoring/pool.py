@@ -23,7 +23,7 @@ import zlib
 from collections import Counter, deque
 
 PROXY_FILE = "data/vpn_proxies.txt"  # from sing-box (uv run proxies): one line per local proxy, "proxy link"
-PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from uv run proxies: free HTTP and SOCKS4 proxies, for --plain
+PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from uv run proxies: free HTTP and SOCKS4 proxies, the reserve
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
 HEDGE_AFTER = 1  # seconds without an answer before a request through an untested proxy (or any, when draining)
                  # also goes out through a working proxy, if one has a free slot
@@ -40,6 +40,10 @@ LONG_REST = 900
 # YouTube returns a random 403/429 now and then; that alone changes nothing. Only a real storm (8 blocks
 # among a proxy's last 10 answers) pauses that proxy for 30 seconds; then it continues at full speed.
 STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, 30
+# A process brings in its reserve (its share of the free proxies) once its working proxies fall to a quarter of the
+# most it had working at once, which YouTube blocking their addresses does, or once every proxy rests. Below this
+# many, a peak is too small to say.
+MIN_PEAK = 8
 # Which free slot a request gets first: a working proxy's; else a test of a proxy that answered earlier in this
 # run; else a test of any other
 WORKING, ANSWERED_BEFORE, OTHER = range(3)
@@ -84,12 +88,18 @@ def raise_open_files_limit():
 
 class Pool:
     """One process's share of the proxies (see the top of this file), in the order to test them. rest, if given, is
-    how long every proxy whose slots fall to zero rests (else REST or REST_IF_NEVER_ANSWERED). With give_up=False,
-    requests wait when every proxy rests at once, for one to come back or for add() to bring new ones."""
+    how long every proxy whose slots fall to zero rests (else REST or REST_IF_NEVER_ANSWERED). reserve is more proxies
+    (the free ones), brought in once the working proxies collapse (see MIN_PEAK); on_reserve is called when they are.
+    With give_up=False, requests wait when every proxy rests at once, for one to come back or for add() to bring new
+    ones."""
 
-    def __init__(self, proxies, rest=None, give_up=True):
+    def __init__(self, proxies, rest=None, give_up=True, reserve=(), on_reserve=None):
         self.rest = rest
         self.give_up = give_up
+        self.reserve = list(reserve)  # replaceable until used, e.g. by a refreshed list
+        self.reserve_used = False
+        self.on_reserve = on_reserve
+        self.peak = 0  # the most proxies working at once in this run
         self.known = set(proxies)
         self.slots = asyncio.PriorityQueue()  # free slots: (rank, order, proxy, generation)
         self.order = itertools.count()  # slots of the same rank are taken in the order they were freed
@@ -109,7 +119,9 @@ class Pool:
         self.bad_requests = 0  # YouTube's 400s since its last good answer
         for proxy in proxies:
             self._test(proxy)
-        if not proxies and give_up:
+        if not proxies:
+            self._bring_reserve()
+        if not self.count and give_up:
             self._give_up()
 
     def add(self, proxies):
@@ -129,6 +141,7 @@ class Pool:
             self.proven.discard(proxy)
             self.answered.discard(proxy)
             self._test(proxy)
+        self.peak = len(self.proven)  # what worked before says nothing about the new ones
 
     async def run(self, request):
         """Get one answer. request(proxy) sends one request through that proxy and returns (outcome, result),
@@ -238,6 +251,7 @@ class Pool:
             self.answered.add(proxy)
             if proxy not in self.proven:
                 self.proven.add(proxy)
+                self.peak = max(self.peak, len(self.proven))
                 self.limit[proxy] = START_LIMIT
             elif all_busy and outcome in ("ok", "gone"):  # it could carry more
                 self.limit[proxy] = min(MAX_LIMIT, self.limit[proxy] + 1)
@@ -273,8 +287,20 @@ class Pool:
         self.resting.add(proxy)
         rest = self.rest or (REST if proxy in self.answered else REST_IF_NEVER_ANSWERED)
         asyncio.get_running_loop().call_later(rest, self._wake, proxy, self.generation[proxy])
+        collapsed = self.peak >= MIN_PEAK and len(self.proven) * 4 <= self.peak
+        if collapsed or len(self.resting) == self.count:
+            self._bring_reserve()
         if len(self.resting) == self.count and self.give_up:
             self._give_up()
+
+    def _bring_reserve(self):
+        """Bring in the reserve, once: each of its proxies gets one slot, tested by the requests that need one."""
+        if self.reserve_used or not self.reserve:
+            return
+        self.reserve_used = True
+        self.add(self.reserve)
+        if self.on_reserve:
+            self.on_reserve()
 
     def _wake(self, proxy, generation):
         """The proxy's rest is over: test it again, unless renew() already did."""

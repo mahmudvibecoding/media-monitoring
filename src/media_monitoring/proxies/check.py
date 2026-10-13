@@ -5,8 +5,9 @@ report: the collectors find working proxies by themselves (see pool.py).
     uv run proxies check vpn      the local VPN proxies run by sing-box (after uv run proxies)
     uv run proxies check plain    the free proxies (downloaded by uv run proxies)
 
-A VPN proxy is checked with a channel page, the lightest request the collectors make. Free proxies are only used for
-video pages and comments (YouTube's next endpoint, with --plain), so a free proxy is checked with a video page.
+A VPN proxy is checked with a channel page, the lightest request the collectors make. Free proxies come in when the VPN
+ones stop working, which YouTube's next endpoint (video pages and comments) does most, so a free proxy is checked
+with a video page.
 """
 import asyncio
 import sys

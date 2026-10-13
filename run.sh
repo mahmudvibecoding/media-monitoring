@@ -5,7 +5,6 @@
 #
 #   ./run.sh              one round, through the VPN proxies; views, likes and comments for the last 90 days
 #   DAYS=30 ./run.sh      the same for the last 30 days
-#   ./run.sh --plain      video pages and comments also go through the free proxies
 #   ./run.sh setup        only set the machine up
 #
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
@@ -21,11 +20,9 @@ SING_BOX_VERSION=1.14.3  # the version the VPN configs were tested with
 # Where uv and sing-box install themselves; cron's PATH has neither
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 only_setup=""
-plain=""  # "--plain" for the steps that read YouTube's next endpoint (details, comments)
 for argument in "$@"; do
     case "$argument" in
         setup) only_setup=1 ;;
-        --plain) plain="--plain" ;;
         *) echo "run.sh: unknown argument $argument (see the top of run.sh)"; exit 1 ;;
     esac
 done
@@ -133,7 +130,7 @@ if ! uv run proxies > data/proxies.log 2>&1; then
     exit 1
 fi
 tail -2 data/proxies.log | head -1
-for step in "channels" "videos" "details $plain" "stats $DAYS" "comments $DAYS $plain"; do
+for step in "channels" "videos" "details" "stats $DAYS" "comments $DAYS"; do
     echo "### $(date -u +%T) $step"
     uv run $step
 done

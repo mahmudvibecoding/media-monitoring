@@ -2,7 +2,7 @@
 video's page. Run videos first, so new videos are in youtube_videos.
 
 Video pages come from YouTube's next endpoint, which blocks busy addresses for a while, so failed proxies rest
-longer. "uv run details --plain" also uses the free proxies, for many more addresses. Run it after "uv run proxies"
+longer, and once the VPN proxies are blocked the free ones come in (see Pool). Run it after "uv run proxies"
 (see pool.py).
 """
 import re
