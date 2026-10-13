@@ -21,7 +21,7 @@ YouTube sees the proxy's address instead of the server's.
   in all. Only about 1% work, but each one is another address, which video pages and comments need (see
   below). Free SOCKS5 proxies are left out: none of them worked.
 
-Every round downloads all the lists again and restarts sing-box with the new configs.
+Every round downloads all the lists again and starts sing-box with the new configs.
 
 ## How the collectors use them
 

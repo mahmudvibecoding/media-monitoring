@@ -12,13 +12,19 @@ On a Debian or Ubuntu machine, as root or as a user with sudo:
 ./run.sh
 ```
 
-At every start it sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, the
-database and its tables, and the channels from `channels.txt`. Then it runs a round every 15 minutes: fresh
-proxies, then each collector in turn.
+It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, the database and its
+tables, and the channels from `channels.txt`. Then it runs one round: fresh proxies, then each collector in turn.
 
 ```bash
-ROUND_MINUTES=30 DAYS=30 ./run.sh   # a round every 30 minutes; views, likes and comments for the last 30 days
-./run.sh setup                      # only set the machine up
+DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (90 by default)
+./run.sh setup     # only set the machine up
+```
+
+To keep the data up to date, run it again and again: for example every 15 minutes from cron (`crontab -e`), where
+`flock` skips a round while the last one is still running:
+
+```
+*/15 * * * * cd /path/to/media-monitoring && flock -n /tmp/media-monitoring.lock ./run.sh >> run.log 2>&1
 ```
 
 ## The steps
@@ -42,7 +48,7 @@ The database is `media_monitoring`; set `DATABASE_URL` to use another.
 ## Layout
 
 ```
-run.sh                  sets the machine up and runs the rounds
+run.sh                  sets the machine up and runs a round
 channels.txt            the channels to monitor, one ID per line
 schema.sql              the database tables
 src/media_monitoring/

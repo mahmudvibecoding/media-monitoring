@@ -16,11 +16,11 @@ On October 13, 2026:
 
 ## Rounds
 
-`run.sh` works in rounds: one starts every 15 minutes, or right after the last one if that took longer. A
-round keeps no schedules and doesn't guess what changed: it checks everything again, in this order.
+`run.sh` runs one round and stops; running it again, for example every 15 minutes from cron, keeps the data up
+to date. A round doesn't guess what changed: it checks everything again, in this order.
 
-1. **Fresh proxies.** Download the public lists of VPN configs and free proxies, and restart sing-box with
-   the new configs.
+1. **Fresh proxies.** Download the public lists of VPN configs and free proxies, and start sing-box with the
+   new configs. It stops when the round ends.
 2. **Channels** (`channels`). Refresh every channel's name, handle, description, picture and subscriber
    count. Only the channels whose details changed are written.
 3. **New videos** (`videos`). Read each channel's uploads list, newest first, until reaching a video already
@@ -73,8 +73,8 @@ half minutes, and reading every video's comments the first time took hours.
 - **Every round checks everything.** It takes about three minutes, and it's simpler and more complete than
   guessing what changed. A new video is found within one round of its upload.
 - **Only the upload day.** The only request that gives a video's exact upload time is refused by YouTube at
-  our volume ("confirm you're not a bot"). The video page works without limits, but shows only the day. The
-  time a round first found a video is within about 15 minutes of its upload.
+  our volume ("confirm you're not a bot"). The video page works without limits, but shows only the day. With a
+  round every 15 minutes, the time a round first found a video is within about 15 minutes of its upload.
 - **Only the latest views and likes.** Each video has one row, overwritten at every refresh, so the table
   doesn't grow with every round. It's kept apart from the videos table, so a refresh rewrites a few bytes
   instead of the title and description, and half of each table page stays free, so the new row fits next to
