@@ -71,10 +71,14 @@ async def download(session, url):
     return response.text
 
 
-async def main():
+async def download_all():
     async with AsyncSession() as session:
         # All sources at once; return_exceptions=True keeps one failed download from stopping the others
-        results = await asyncio.gather(*(download(session, url) for url, _ in SOURCES), return_exceptions=True)
+        return await asyncio.gather(*(download(session, url) for url, _ in SOURCES), return_exceptions=True)
+
+
+def main():
+    results = asyncio.run(download_all())
     proxies = set()
     for (url, default_type), result in zip(SOURCES, results):
         if isinstance(result, Exception):
@@ -91,4 +95,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
