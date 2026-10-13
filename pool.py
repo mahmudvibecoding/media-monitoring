@@ -31,6 +31,9 @@ TIMEOUT = 5  # seconds; a proxy that hasn't answered by then has failed
 HEDGE_AFTER = 1  # seconds without an answer before a request through an untested proxy (or any, when draining)
                  # also goes out through a working proxy, if one has a free slot
 ATTEMPTS = 5  # requests per answer at most, not counting failures of proxies that were being tested
+# YouTube's own 400s in a row, with no good answer between, that stop the run: a field mask is probably out of date.
+# A single one only fails its request.
+BAD_REQUESTS = 20
 # Seconds a proxy rests when its slots fall to zero: a proxy that has answered in this run comes back sooner, while
 # one that never has (most of them are dead) is tried less often
 REST, REST_IF_NEVER_ANSWERED = 30, 60
@@ -91,7 +94,12 @@ async def call(session, proxy, method, url, **kwargs):
     except Exception:
         return "broken", None  # the proxy didn't get us an answer
     if response.status_code == 400:
-        return "bad request", None
+        # YouTube's own 400 is a JSON error; any other came from the proxy (we don't check certificates)
+        try:
+            from_youtube = response.json()["error"]["code"] == 400
+        except Exception:
+            from_youtube = False
+        return ("bad request" if from_youtube else "broken"), None
     if response.status_code in (403, 429):
         return "blocked", None
     if response.status_code >= 500:
@@ -123,6 +131,7 @@ class Pool:
         self.draining = False  # set it when no new work is left: then slow requests also go out elsewhere
         self.outcomes = Counter()  # how every request ended
         self.background = set()  # slower copies of requests that already got their answer
+        self.bad_requests = 0  # YouTube's 400s since its last good answer
         for proxy in proxies:
             self._test(proxy)
         if not proxies and give_up:
@@ -173,8 +182,8 @@ class Pool:
                 slow = not done
                 for task in done:
                     outcome, result = task.result()
-                    if outcome == "bad request":
-                        raise BadRequest("YouTube answered 400 Bad Request: a field mask is probably out of date")
+                    if outcome == "bad request" and self.bad_requests >= BAD_REQUESTS:
+                        raise BadRequest("YouTube keeps answering 400: a field mask is probably out of date")
                     if outcome in ("ok", "gone"):
                         return outcome, result
                     if outcome == "broken" and task in tests:
@@ -249,7 +258,8 @@ class Pool:
             if not self.limit[proxy]:
                 self._rest(proxy)
                 return
-        elif outcome in ("ok", "gone", "blocked", "youtube error"):  # YouTube answered
+        elif outcome in ("ok", "gone", "blocked", "youtube error", "bad request"):  # YouTube answered
+            self.bad_requests = self.bad_requests + 1 if outcome == "bad request" else 0
             self.answered.add(proxy)
             if proxy not in self.proven:
                 self.proven.add(proxy)
