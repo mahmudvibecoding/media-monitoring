@@ -81,9 +81,10 @@ join when `uv run proxies` runs again. When every proxy rests at once, it waits 
 
 ## Checking the lists
 
-`uv run check-vpn` sends one real request through every VPN proxy and reports how many work, by protocol and
-by list. `uv run check-plain` does the same for the free proxies, by type and by list, with a video page, since
-that's what they're used for. The collectors don't need either; they show which lists are worth keeping.
+`uv run proxies check` sends one real request through every proxy and reports how many work: the VPN ones by
+protocol and by list, and the free ones by type and by list, checked with a video page, since that's what they're
+used for. `uv run proxies check vpn` or `check plain` checks one kind. The collectors don't need it; it shows which
+lists are worth keeping.
 
 ## Weak points
 

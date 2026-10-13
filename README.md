@@ -41,10 +41,9 @@ Each step can also run on its own, after `uv run proxies`. Every step goes throu
 | `uv run details` | fetches the title, description and upload day of videos that don't have them yet |
 | `uv run stats [days\|all]` | refreshes views and likes (videos from the last 90 days by default) |
 | `uv run comments [days\|all\|unread]` | collects new comments (videos from the last 90 days by default) |
-| `uv run proxies` | downloads the public lists of VPN configs and of free proxies, and restarts sing-box with the new configs in the background |
+| `uv run proxies` | downloads VPN configs and free proxies, and restarts sing-box with them in the background |
 | `uv run proxies stop` | stops sing-box |
-| `uv run check-vpn` | reports which VPN lists work best (optional) |
-| `uv run check-plain` | reports which free proxy lists work best, with a video page (optional) |
+| `uv run proxies check [vpn\|plain]` | reports how many proxies work, by protocol or type and by list (optional) |
 
 The database is `media_monitoring`; set `DATABASE_URL` to use another.
 

@@ -16,9 +16,7 @@ videos = "media_monitoring.collectors.videos:main"
 details = "media_monitoring.collectors.details:main"
 stats = "media_monitoring.collectors.stats:main"
 comments = "media_monitoring.collectors.comments:main"
-proxies = "media_monitoring.proxies.refresh:main"
-check-vpn = "media_monitoring.proxies.check:check_vpn"
-check-plain = "media_monitoring.proxies.check:check_plain"
+proxies = "media_monitoring.proxies.command:main"
 
 [build-system]
 requires = ["uv_build>=0.11,<0.14"]

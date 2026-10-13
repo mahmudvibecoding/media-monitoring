@@ -1,8 +1,10 @@
-"""Fresh proxies in one command: download the public lists of VPN configs and of free proxies, then restart sing-box
-with the new configs in the background, and return once its local proxies are ready.
+"""The proxies command. By itself it gets fresh proxies: it downloads the public lists of VPN configs and of free
+proxies, then restarts sing-box with the new configs in the background, and returns once its local proxies are ready.
 
-    uv run proxies         download both, and (re)start sing-box in the background
-    uv run proxies stop    stop sing-box
+    uv run proxies                      download both, and (re)start sing-box in the background
+    uv run proxies stop                 stop sing-box
+    uv run proxies check [vpn|plain]    report how many proxies work, by protocol or type and by list (both kinds
+                                        unless one is named; the VPN ones need sing-box running)
 
 sing-box keeps running after this command ends and after its terminal closes. Its log is data/singbox/runner.log.
 """
@@ -10,10 +12,11 @@ import subprocess
 import sys
 import time
 
-from media_monitoring.proxies import plain_proxies, vpn_proxies
+from media_monitoring.proxies import check, plain_proxies, vpn_proxies
 from media_monitoring.proxies.singbox import FOLDER, stop_old
 
 LOG = FOLDER / "runner.log"
+USAGE = "usage: uv run proxies [stop | check [vpn | plain]]"
 READY = "local proxies saved"  # what sing-box's runner prints once its proxies are listed in data/vpn_proxies.txt
 
 
@@ -36,14 +39,8 @@ def start_singbox():
         time.sleep(1)
 
 
-def main():
-    sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
-    if sys.argv[1:] == ["stop"]:
-        if not stop_old():
-            print("no sing-box running here")
-        return
-    if sys.argv[1:]:
-        sys.exit("usage: uv run proxies [stop]")
+def refresh():
+    """Download both lists, and restart sing-box with the new configs in the background."""
     vpn_proxies.main()
     plain_proxies.main()
     print("\nstarting sing-box in the background...")
@@ -51,3 +48,22 @@ def main():
     if ready is None:
         sys.exit(f"sing-box didn't start: see {LOG}")
     print(f"{ready}\nsing-box runs in the background (log: {LOG}); stop it with: uv run proxies stop")
+
+
+def main():
+    sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
+    args = sys.argv[1:]
+    if not args:
+        refresh()
+    elif args == ["stop"]:
+        if not stop_old():
+            print("no sing-box running here")
+    elif args[0] == "check" and args[1:] in ([], ["vpn"], ["plain"]):
+        if args[1:] != ["plain"]:
+            check.check_vpn()
+        if args[1:] == []:
+            print()
+        if args[1:] != ["vpn"]:
+            check.check_plain()
+    else:
+        sys.exit(USAGE)
