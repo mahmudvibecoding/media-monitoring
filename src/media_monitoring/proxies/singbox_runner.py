@@ -160,7 +160,7 @@ def main():
     except KeyboardInterrupt:
         pass
     except FileNotFoundError:
-        print("sing-box isn't installed (see step 2)")
+        print("sing-box isn't installed (./run.sh setup installs it)")
     finally:
         for process in processes:
             process.terminate()

@@ -27,7 +27,7 @@ SOURCES = [
     GITHUB + "hamedcode/port-based-v2ray-configs/main/sub/trojan.txt",
     GITHUB + "miladtahanian/V2RayCFGDumper/main/sub.txt",
     # Added 2026-10-12. These mostly copy the lists above, so they keep those configs if a list
-    # disappears; Giromo0 also brings configs no other list has (see docs/proxies-plan.md).
+    # disappears; Giromo0 also brings configs no other list has.
     GITHUB + "xiaoji235/airport-free/main/v2ray.txt",
     GITHUB + "Giromo0/Collector/main/All_Configs_Sub.txt",
     GITHUB + "Epodonios/v2ray-configs/main/All_Configs_Sub.txt",

@@ -56,5 +56,5 @@ docs/                   how it works and why
 data/                   downloaded and generated files (not in git)
 ```
 
-How it works, and why it's built this way: [docs/monitoring-plan.md](docs/monitoring-plan.md) and
-[docs/proxies-plan.md](docs/proxies-plan.md).
+How it works, and why it's built this way: [docs/monitoring.md](docs/monitoring.md) and
+[docs/proxies.md](docs/proxies.md).
