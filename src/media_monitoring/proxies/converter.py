@@ -174,7 +174,9 @@ def hysteria2(link):
     outbound = {"type": "hysteria2", "server": host, "server_port": port, "password": user}
     obfs = q.get("obfs", "")
     if obfs == "salamander":
-        outbound["obfs"] = {"type": "salamander", "password": q.get("obfs-password", "")}
+        if not q.get("obfs-password"):  # sing-box refuses it, and with it every config in its group
+            raise Unusable("hysteria2 obfs without a password")
+        outbound["obfs"] = {"type": "salamander", "password": q["obfs-password"]}
     elif obfs:
         raise Unusable("unsupported hysteria2 obfs")
     server_name = q.get("sni") or host
