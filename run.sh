@@ -16,7 +16,7 @@ set -u
 cd "$(dirname "$0")"
 ROUND_MINUTES=${ROUND_MINUTES:-15}
 DAYS=${DAYS:-90}
-DATABASE=media_monitoring_v2
+DATABASE=media_monitoring
 SING_BOX_VERSION=1.14.3  # the version the VPN configs were tested with
 RUNNER_LOG=singbox/runner.log
 export PATH="$HOME/.local/bin:$PATH"  # where uv installs itself

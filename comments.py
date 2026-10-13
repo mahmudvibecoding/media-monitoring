@@ -29,7 +29,7 @@ from curl_cffi import AsyncSession
 from pool import (API, ATTEMPTS, CONTEXT, LONG_REST, PLAIN_PROXY_FILE, PROXY_FILE, NoProxiesLeft, Pool, call,
                   load_proxies, load_share, raise_open_files_limit)
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring_v2")
+DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring")
 # Saves don't wait for the disk to confirm them: a crash loses at most the last second of saves, which the next
 # run fetches again
 NO_WAIT = "-c synchronous_commit=off"
