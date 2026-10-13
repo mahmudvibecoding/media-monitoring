@@ -17,7 +17,8 @@ On October 13, 2026:
 ## Rounds
 
 `run.sh` runs one round and stops; running it again, for example every 15 minutes from cron, keeps the data up
-to date. A round doesn't guess what changed: it checks everything again, in this order.
+to date. A round started while another is still running is skipped. A round doesn't guess what changed: it checks
+everything again, in this order.
 
 1. **Fresh proxies** (`uv run proxies`). Download the public lists of VPN configs and of free proxies, and
    restart sing-box with the new configs, in the background. It stops when the round ends.
@@ -26,10 +27,13 @@ to date. A round doesn't guess what changed: it checks everything again, in this
 3. **New videos** (`videos`). Read each channel's uploads list, newest first, until reaching a video already
    saved. The list gives each video's ID and length. A channel's first run reads its whole history.
 4. **Video details** (`details`). Open the page of each video that has no title yet, for its title,
-   description and upload day. A video whose page shows no video (removed, private, or blocked where the
-   proxy is) is marked unavailable and tried again every round.
+   description and upload day. Streams and premieres of the last day show how long ago they started ("Streamed
+   live 3 hours ago"), which is counted back from now; a stream that hasn't started shows no day. A video whose
+   page shows no video (removed, private, or blocked where the proxy is) is marked unavailable and tried again
+   every round.
 5. **Views and likes** (`stats 90`). Ask for the current views and likes of every video uploaded in the last
-   90 days, with the lightest request YouTube's own video page makes to refresh its counts.
+   90 days, with the lightest request YouTube's own video page makes to refresh its counts. A video without an
+   upload day counts from the day it was found.
 6. **Comments** (`comments 90`). Read the comments of the same videos, newest first, until reaching comments
    already saved. The most viewed videos go first, so their long lists don't hold up the end of the run.
 

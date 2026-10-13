@@ -20,18 +20,19 @@ DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (90 by defau
 ./run.sh setup     # only set the machine up
 ```
 
-To keep the data up to date, run it again and again: for example every 15 minutes from cron (`crontab -e`), where
-`flock` skips a round while the last one is still running:
+To keep the data up to date, run it again and again: for example every 15 minutes from cron (`crontab -e`). A round
+started while the last one is still running is skipped:
 
 ```
-*/15 * * * * cd /path/to/media-monitoring && flock -n /tmp/media-monitoring.lock ./run.sh >> run.log 2>&1
+*/15 * * * * cd /path/to/media-monitoring && ./run.sh >> run.log 2>&1
 ```
 
 ## The steps
 
 Each step can also run on its own, after `uv run proxies`. Every step goes through the VPN proxies, and brings in
 the free proxies by itself once those stop working: YouTube blocks busy addresses for a while on video pages and
-comments, and the free proxies are many more addresses.
+comments, and the free proxies are many more addresses. Ctrl+C or `kill` stops a step early: it saves what it has
+collected first, and the rest continues next run.
 
 | Command | What it does |
 |---|---|

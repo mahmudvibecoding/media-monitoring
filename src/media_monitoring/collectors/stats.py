@@ -59,13 +59,17 @@ async def fetch(session, video_id, proxy):
 class Stats(Collector):
     item_name = "videos"
     saved_name = "refreshed"
+    argument = f"a number of days ({DAYS} by default) or all"
+    words = ("all",)
 
     def load(self, conn, argument):
         days = argument or str(DAYS)
         if days == "all":
             return [row[0] for row in conn.execute("SELECT video_id FROM youtube_videos")]
+        # A video whose page shows no day (a stream that hasn't started yet) counts from the day it was found
         return [row[0] for row in conn.execute(
-            "SELECT video_id FROM youtube_videos WHERE upload_date >= current_date - %s::int", (int(days),))]
+            """SELECT video_id FROM youtube_videos
+               WHERE coalesce(upload_date, first_seen_at::date) >= current_date - %s::int""", (int(days),))]
 
     def describe(self, argument):
         days = argument or str(DAYS)

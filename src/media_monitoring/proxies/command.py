@@ -25,6 +25,7 @@ def start_singbox():
     terminal; it stops the one already running here first. Returns the line saying its proxies are ready, or None if
     it ended before that."""
     FOLDER.mkdir(parents=True, exist_ok=True)
+    LOG.unlink(missing_ok=True)  # a new file: the runner it replaces writes its last line into the old one as it ends
     with open(LOG, "w") as log:
         runner = subprocess.Popen([sys.executable, "-m", "media_monitoring.proxies.singbox"], stdin=subprocess.DEVNULL,
                                   stdout=log, stderr=subprocess.STDOUT, start_new_session=True)

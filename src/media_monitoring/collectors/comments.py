@@ -244,13 +244,16 @@ class Comments(Collector):
     follow_lists = True
     item_name = "videos"
     saved_name = "new comments"
+    argument = f"a number of days ({DAYS} by default), all, or unread"
+    words = ("all", "unread")
 
     def load(self, conn, argument):
         days = argument or str(DAYS)
         # "unread" leaves out videos without views and likes (stats found them removed or private): their count row,
-        # where a finished read is recorded, doesn't exist
+        # where a finished read is recorded, doesn't exist. A video whose page shows no day (a stream that hasn't
+        # started yet) counts from the day it was found.
         where = {"all": "", "unread": "WHERE NOT s.comments_complete OR s.comments_resume IS NOT NULL"}.get(
-            days, "WHERE v.upload_date >= current_date - %s::int")
+            days, "WHERE coalesce(v.upload_date, v.first_seen_at::date) >= current_date - %s::int")
         # Most viewed first: their long comment lists start early instead of holding up the end of the run
         return [row[0] for row in conn.execute(
             f"""SELECT v.video_id FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)

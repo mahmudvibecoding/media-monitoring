@@ -1,7 +1,8 @@
 #!/bin/bash
 # Set this machine up if needed, then run one monitoring round: fresh proxies (new VPN configs for sing-box, and new
 # free proxies), then the collectors in order: channel details, new videos, video details, views and likes, and
-# comments. Run it again for the next round, for example every 15 minutes from cron (see README.md).
+# comments. Run it again for the next round, for example every 15 minutes from cron (see README.md). Started while a
+# round is still running, it skips its own.
 #
 #   ./run.sh              one round, through the VPN proxies; views, likes and comments for the last 90 days
 #   DAYS=30 ./run.sh      the same for the last 30 days
@@ -26,6 +27,15 @@ for argument in "$@"; do
         *) echo "run.sh: unknown argument $argument (see the top of run.sh)"; exit 1 ;;
     esac
 done
+
+# One at a time: a second round (started by hand, or by cron while a long round still runs) would restart sing-box
+# under the first one, and the first one's end would stop the second one's sing-box
+mkdir -p data
+exec 9> data/run.lock
+if command -v flock > /dev/null && ! flock -n 9; then
+    echo "run.sh: a round is already running here, so this one is skipped"
+    exit 0
+fi
 
 if [ "$(id -u)" -eq 0 ]; then sudo=""; else sudo="sudo"; fi
 
@@ -123,7 +133,6 @@ trap 'exit 143' TERM
 
 started=$(date +%s)
 echo "### $(date -u '+%F %T') round"
-mkdir -p data
 if ! uv run proxies > data/proxies.log 2>&1; then
     tail -3 data/proxies.log
     echo "### the proxies didn't start"
@@ -132,6 +141,6 @@ fi
 tail -2 data/proxies.log | head -1
 for step in "channels" "videos" "details" "stats $DAYS" "comments $DAYS"; do
     echo "### $(date -u +%T) $step"
-    uv run $step
+    uv run $step 9>&-  # without the lock: a step left running after the round can't hold up the next ones
 done
 echo "### $(date -u +%T) round done in $(( $(date +%s) - started )) s"

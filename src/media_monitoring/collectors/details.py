@@ -6,7 +6,7 @@ longer, and once the VPN proxies are blocked the free ones come in (see Pool). R
 (see pool.py).
 """
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
@@ -18,6 +18,10 @@ FIELDS = ("contents/twoColumnWatchNextResults/results/results/contents(videoPrim
 URL = API + "next?prettyPrint=false&fields=" + FIELDS
 # The day in "Oct 11, 2026", "Premiered Mar 3, 2026", "Streamed live on Sep 4, 2022", "Scheduled for ..."
 DAY = re.compile(r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}, \d{4}")
+# Streams and premieres of the last day show how long ago they started instead: "Started streaming 12 minutes ago",
+# "Streamed live 3 hours ago", "Premiered 45 minutes ago", "Premiere in progress. Started 5 minutes ago"
+AGO = re.compile(r"(\d+) (second|minute|hour|day|week)s? ago")
+SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 7 * 86400}
 
 DETAILS = """CREATE TEMP TABLE details (video_id text, title text, description text, upload_date date)
              ON COMMIT DELETE ROWS"""
@@ -34,9 +38,15 @@ def text(value):
 
 
 def upload_day(date_text):
-    """The day written on the video page, or None (e.g. "Live stream currently offline")."""
+    """The day written on the video page, or counted back from "... ago" (in UTC); None if the page shows neither
+    (e.g. "Live stream currently offline")."""
     match = DAY.search(date_text or "")
-    return datetime.strptime(match.group(), "%b %d, %Y").date() if match else None
+    if match:
+        return datetime.strptime(match.group(), "%b %d, %Y").date()
+    match = AGO.search(date_text or "")
+    if match:
+        return (datetime.now(timezone.utc) - timedelta(seconds=int(match.group(1)) * SECONDS[match.group(2)])).date()
+    return None
 
 
 async def fetch(session, video_id, proxy):
@@ -49,8 +59,9 @@ async def fetch(session, video_id, proxy):
     except Exception:
         return "broken", None  # not YouTube's answer: the proxy mangled it
     try:
-        items = data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"]
-    except (KeyError, TypeError):
+        # A private video's page has no contents at all
+        items = data["contents"]["twoColumnWatchNextResults"]["results"]["results"].get("contents") or []
+    except (KeyError, TypeError, AttributeError):
         return "youtube error", None  # now and then YouTube answers without the page; the next try gets it
     primary = next((item["videoPrimaryInfoRenderer"] for item in items if "videoPrimaryInfoRenderer" in item), None)
     if primary is None:

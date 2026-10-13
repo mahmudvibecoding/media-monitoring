@@ -11,10 +11,13 @@ import argparse
 import asyncio
 import math
 import os
+import signal
 import sys
+import threading
 import time
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, wait
+from concurrent.futures.process import BrokenProcessPool
 from multiprocessing import get_context
 
 import psycopg
@@ -28,9 +31,16 @@ PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few co
 SAVE_EVERY = 2  # seconds
 FOLLOW_EVERY = 60  # seconds between looks at the proxy lists, for collectors that follow them
 
-# In each worker process: [items finished, items saved, processes ready, processes that brought in the free proxies],
-# counted by all processes together
+# Shared by all processes: whether the run is stopping early (set by the main process on Ctrl+C or kill, see run),
+# then four counters for each share of the items, each written only by the process working on that share: items
+# finished, items saved, whether it's ready (what's already saved is loaded) and whether it brought in the free
+# proxies. Without a lock, a process ended halfway through (killed, or out of memory) can't leave one held.
 progress = None
+STOPPING = 0
+FINISHED, SAVED, READY, RESERVE = range(4)
+parent = None  # in each worker process: the main process, which it stops for if it's gone
+busy = False  # in each worker process: whether it's working on a share (see run_share)
+killed = False  # in each worker process: whether kill asked this process alone to stop (see start)
 
 
 class Collector:
@@ -44,6 +54,8 @@ class Collector:
     report_every = 10  # seconds between progress lines
     item_name = "items"
     saved_name = "saved"
+    argument = None  # what the command line's argument may be, for its help; None if it takes none
+    words = ()  # what the argument may be besides a number of days
 
     def load(self, conn, argument):
         """In the main process: the items to work on. argument is the command line's, or None."""
@@ -82,10 +94,10 @@ async def work(collector, items, share, shares):
     ones in reserve."""
     raise_open_files_limit()
     seen = {path: modified(path) for path in (PROXY_FILE, PLAIN_PROXY_FILE)}
+    mine = 1 + 4 * share  # where this share's counters are in progress
 
     def reserve_brought():
-        with progress.get_lock():
-            progress[3] += 1
+        progress[mine + RESERVE] = 1
 
     pool = Pool(load_share(PROXY_FILE, share, shares), rest=collector.rest, give_up=collector.give_up,
                 reserve=load_share(PLAIN_PROXY_FILE, share, shares), on_reserve=reserve_brought)
@@ -93,12 +105,11 @@ async def work(collector, items, share, shares):
     finished = 0
     async with await db.connect() as conn:
         await collector.prepare(conn, items)
-        with progress.get_lock():
-            progress[2] += 1  # ready: what's already saved is loaded, and the work starts
+        progress[mine + READY] = 1  # what's already saved is loaded, and the work starts
         # verify=False: no certificate checks through proxies (all the data is public)
         async with AsyncSession(impersonate="chrome", verify=False,
                                 max_clients=collector.concurrency * ATTEMPTS) as session:
-            remaining, stop = iter(items), asyncio.Event()
+            remaining, stop, halted = iter(items), asyncio.Event(), False
 
             async def worker():
                 nonlocal finished
@@ -112,18 +123,22 @@ async def work(collector, items, share, shares):
 
             async def saver():
                 """Saves every SAVE_EVERY seconds until stopped, then once more. Only this touches the database, so
-                a save is never interrupted halfway."""
+                a save is never interrupted halfway. When the run is stopping early (Ctrl+C or kill), or the main
+                process is gone, it ends the work: the last save keeps what was collected."""
+                nonlocal halted
                 counted = 0
                 while True:
                     try:
                         await asyncio.wait_for(stop.wait(), timeout=SAVE_EVERY)
                     except TimeoutError:
                         pass
+                    if not halted and (progress[STOPPING] or ending()):
+                        halted = True
+                        working.cancel()
                     stopped, done = stop.is_set(), finished  # items finished during this save count in the next
                     saved = await collector.save(conn)
-                    with progress.get_lock():
-                        progress[0] += done - counted
-                        progress[1] += saved
+                    progress[mine + FINISHED] += done - counted
+                    progress[mine + SAVED] += saved
                     counted = done
                     if stopped:
                         return
@@ -147,22 +162,35 @@ async def work(collector, items, share, shares):
                             else:
                                 pool.reserve = proxies
 
+            working = asyncio.gather(*(worker() for _ in range(min(collector.concurrency, len(items)))))
             tasks = [asyncio.create_task(saver())]
             if collector.follow_lists:
                 tasks.append(asyncio.create_task(follower()))
             try:
-                await asyncio.gather(*(worker() for _ in range(min(collector.concurrency, len(items)))))
+                await working
+            except asyncio.CancelledError:
+                if not halted:
+                    raise  # not the saver's doing
             finally:
                 await pool.close()
-                stop.set()  # also on Ctrl+C or an error: save what we have
+                stop.set()  # also when stopping early or on an error: save what we have
                 await asyncio.gather(*tasks)
     return results, pool.outcomes, len(pool.proven)
 
 
-def start(counter):
-    """Runs first in each worker process."""
-    global progress
-    progress = counter
+def start(counter, main):
+    """Runs first in each worker process. main is the main process: not simply this one's parent, which is already
+    another one if the main process was killed while this one was starting."""
+    global progress, parent
+    progress, parent = counter, main
+    # Ctrl+C reaches the workers too, but only the main process acts on it, and the workers stop when it asks (see
+    # work). kill on a worker makes it save what it has and end, like the main process being gone; the pool then
+    # stops the others the same way (it sends them kill when one has ended). A worker interrupted halfway through
+    # could leave a lock its queues share held, and hang the run. Both were held back while this process started.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, kill_asked)
+    signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT, signal.SIGTERM})
+    threading.Thread(target=watch_parent, daemon=True).start()
     try:  # if memory runs out, Linux ends a worker first, never PostgreSQL (a crash would empty unlogged tables)
         with open("/proc/self/oom_score_adj", "w") as f:
             f.write("1000")
@@ -170,59 +198,141 @@ def start(counter):
         pass  # not Linux
 
 
+def kill_asked(signum, frame):
+    global killed
+    killed = True
+
+
+def ending():
+    """In each worker process: whether it should end by itself, because the main process is gone (killed, or out of
+    memory), or because kill asked this process alone to stop (the pool does when another one has ended) while the
+    run as a whole isn't stopping. Nobody would end it otherwise: it would wait for more work forever."""
+    return os.getppid() != parent or (killed and not progress[STOPPING])
+
+
+def watch_parent():
+    """Ends this worker process once it should (see ending) while it has no share to work on. Working on a share, it
+    saves and ends by itself (see work and run_share)."""
+    while True:
+        time.sleep(1)
+        if ending() and not busy:
+            os._exit(0)
+
+
 def run_share(collector_class, items, share, shares):
     """Entry point of each worker process: it runs its own event loop."""
-    return asyncio.run(work(collector_class(), items, share, shares))
+    global busy
+    busy = True
+    result = asyncio.run(work(collector_class(), items, share, shares))
+    if ending():
+        os._exit(0)  # what was collected is saved
+    busy = False
+    return result
 
 
 def run(collector_class):
-    """A collector's main(): load its items, work through them in worker processes, and report."""
+    """A collector's main(): load its items, work through them in worker processes, and report. Ctrl+C or kill
+    stops it early: the workers stop and save what they have collected first. Another Ctrl+C ends it at once."""
     sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
-    parser = argparse.ArgumentParser(description=sys.modules[collector_class.__module__].__doc__.split("\n\n")[0])
-    parser.add_argument("argument", nargs="?",
-                        help="for stats and comments: a number of days (90 by default), all, or (comments) unread")
-    args = parser.parse_args()
     collector = collector_class()
+    parser = argparse.ArgumentParser(description=sys.modules[collector_class.__module__].__doc__.split("\n\n")[0])
+    if collector.argument:
+        parser.add_argument("argument", nargs="?", help=collector.argument)
+    argument = getattr(parser.parse_args(), "argument", None)
+    if argument is not None and not argument.isdigit() and argument not in collector.words:
+        parser.error(f"the argument should be {collector.argument}, not {argument!r}")
+    # The signal that asked the run to stop early and when, if one did; what the processes share
+    asked, counter = [], None
+
+    def ask_to_stop(signum, frame):
+        """Ctrl+C or kill: the workers stop, saving what they have. Another one a second later ends the run at once
+        (its workers still save and stop, once they see it's gone). Within the second it's the same one: uv run
+        passes Ctrl+C on, so it arrives twice."""
+        if asked:
+            if time.monotonic() - asked[1] >= 1:
+                os._exit(128 + signum)
+            return
+        asked.extend((signum, time.monotonic()))
+        if counter is not None:
+            counter[STOPPING] = 1
+
+    handled = {s for s in (signal.SIGINT, signal.SIGTERM) if signal.getsignal(s) is not signal.SIG_IGN}
+    for signum in handled:
+        signal.signal(signum, ask_to_stop)
     with psycopg.connect(db.DATABASE_URL, autocommit=True) as conn:
-        items = collector.load(conn, args.argument)
+        items = collector.load(conn, argument)
     vpn, free = load_proxies(PROXY_FILE), load_proxies(PLAIN_PROXY_FILE)
-    print(f"{len(items)} {collector.describe(args.argument)}, {len(vpn)} VPN proxies and {len(free)} free ones in "
-          "reserve")
+    print(f"{len(items)} {collector.describe(argument)}, {len(vpn)} VPN proxies and {len(free)} free ones in reserve")
+    if asked:
+        print("stopped before it started")
+        sys.exit(128 + asked[0])
     if not items or not vpn + free:
         return
 
     processes = max(1, min(PROCESSES, (len(vpn) or len(free)) // 50, math.ceil(len(items) / 1000)))
     print(f"working with {processes} processes...")
     context = get_context("spawn")
-    counter = context.Array("q", 4)  # see progress: counted by the processes
+    counter = context.Array("q", 1 + 4 * processes, lock=False)  # see progress
+    counter[STOPPING] = bool(asked)
+
+    def totals():
+        """Items finished, items saved, shares ready and shares that brought in the free proxies, from all shares."""
+        values = counter[:]
+        return [sum(values[1 + kind::4]) for kind in (FINISHED, SAVED, READY, RESERVE)]
+
+    # Held back while the worker processes start, which takes a few seconds: they start with them held back too,
+    # until they ignore them (see start), and here they arrive once the workers are running
+    signal.pthread_sigmask(signal.SIG_BLOCK, handled)
     started = time.monotonic()
     results, outcomes, working = Counter(), Counter(), 0
-    with ProcessPoolExecutor(processes, mp_context=context, initializer=start, initargs=(counter,)) as executor:
+    with ProcessPoolExecutor(processes, mp_context=context, initializer=start,
+                             initargs=(counter, os.getpid())) as executor:
         futures = [executor.submit(run_share, collector_class, items[i::processes], i, processes)
                    for i in range(processes)]
+        signal.pthread_sigmask(signal.SIG_UNBLOCK, handled)
         before, then = 0, started
         while not all(future.done() for future in futures):
             wait(futures, timeout=collector.report_every)
-            now, (finished, saved, ready, reserve) = time.monotonic(), counter[:]
+            now, (finished, saved, ready, reserve) = time.monotonic(), totals()
             # Before its work, each process loads what's already saved for its items (comments' IDs, for example),
             # which for a big run takes a while: say so, or the line would look stuck at 0
             notes = ([f"{processes - ready} of {processes} processes still loading what's already saved"]
                      if ready < processes else [])
             notes += [f"free proxies brought in by {reserve} of {processes} processes"] if reserve else []
+            notes += ["stopping early: each process saves what it has"] if asked else []
             print(f"{now - started:5.0f} s  {finished} of {len(items)} {collector.item_name} done, {saved} "
                   f"{collector.saved_name}, {(finished - before) / max(now - then, 0.001):,.0f}/s"
                   + "".join(f"  ({note})" for note in notes))
             before, then = finished, now
+        broken = False  # a worker process ended unexpectedly (killed, or out of memory): the pool ends the others
         for future in futures:
-            share_results, share_outcomes, share_working = future.result()
+            try:
+                share_results, share_outcomes, share_working = future.result()
+            except BrokenProcessPool:
+                broken = True
+                continue
             results += share_results
             outcomes += share_outcomes
             working += share_working
     took = time.monotonic() - started
-    print(f"\nfinished in {took:.0f} s ({len(items) / took:,.0f} {collector.item_name}/s): "
-          f"{collector.summary(results, counter[1])}")
-    print(f"requests: {dict(outcomes)}")
-    if counter[3]:
-        print(f"free proxies were brought in by {counter[3]} of {processes} processes, when their VPN proxies stopped "
+    finished, saved, _, reserve = totals()
+    rate = f"{finished / took:,.0f} {collector.item_name}/s"
+    if broken:  # the shares' own counts didn't come back, only the ones they keep in progress
+        print(f"\nstopped after {took:.0f} s ({rate}): {finished} {collector.item_name} done, {saved} "
+              f"{collector.saved_name}")
+    else:
+        print(f"\n{'stopped after' if asked else 'finished in'} {took:.0f} s ({rate}): "
+              f"{collector.summary(results, saved)}")
+        print(f"requests: {dict(outcomes)}")
+    if reserve:
+        print(f"free proxies were brought in by {reserve} of {processes} processes, when their VPN proxies stopped "
               "working")
-    print(f"{working} proxies working at the end")
+    if not broken:
+        print(f"{working} proxies working at the end")
+    if asked:
+        print("stopped early (Ctrl+C or kill): what wasn't done continues next run")
+        sys.exit(128 + asked[0])
+    if broken:
+        print("stopped early: a worker process ended unexpectedly (killed, or out of memory), and the others stopped "
+              "too; what wasn't done continues next run")
+        sys.exit(1)
