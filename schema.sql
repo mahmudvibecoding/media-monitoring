@@ -1,6 +1,15 @@
--- Tables for the collected videos, their latest views and likes, and their comments.
--- (youtube_channels already exists: channels.py fills it.) Safe to run again: it only adds what's missing.
+-- Tables for the monitored channels, their videos, the videos' latest views and likes, and their comments.
+-- Safe to run again: it only adds what's missing. (run.sh runs it, and loads the channels from channels.txt.)
 SET client_min_messages = warning;  -- don't list everything that already exists
+
+CREATE TABLE IF NOT EXISTS youtube_channels (
+    channel_id        text PRIMARY KEY,     -- "UC" and 22 more characters
+    title             text,                 -- NULL until channels.py has fetched the channel's details
+    handle            text,
+    description       text,
+    avatar_url        text,
+    subscriber_count  bigint                -- NULL when hidden
+);
 
 CREATE TABLE IF NOT EXISTS youtube_videos (
     video_id          text PRIMARY KEY,
