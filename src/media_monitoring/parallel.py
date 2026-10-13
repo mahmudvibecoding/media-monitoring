@@ -3,8 +3,8 @@ items and of the proxies, works through its items `concurrency` at a time, and s
 SAVE_EVERY seconds. A collector (channels, videos, details, stats, comments) only describes its own part: see
 Collector.
 
-Every collector goes through the VPN proxies from singbox. With --plain it also uses the free proxies from
-plain-proxies: many more addresses, which helps with YouTube's next endpoint (details, comments) since it blocks
+Every collector goes through the VPN proxies run by sing-box. With --plain it also uses the free proxies: many
+more addresses, which helps with YouTube's next endpoint (details, comments) since it blocks
 busy addresses for a while.
 """
 import argparse
@@ -172,7 +172,7 @@ def run(collector_class):
     parser.add_argument("argument", nargs="?",
                         help="for stats and comments: a number of days (90 by default), all, or (comments) unread")
     parser.add_argument("--plain", action="store_true",
-                        help="also use the free proxies from plain-proxies, not only the VPN ones")
+                        help="also use the free proxies, not only the VPN ones")
     args = parser.parse_args()
     collector = collector_class()
     with psycopg.connect(db.DATABASE_URL, autocommit=True) as conn:

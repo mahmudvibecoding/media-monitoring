@@ -1,7 +1,7 @@
 """Refresh every channel's details in youtube_channels (title, handle, description, avatar_url, subscriber_count)
 from InnerTube, as fast as the proxies answer. Only channels whose details changed are written.
 
-Run it while singbox is running: the pool tests the proxies by itself (see pool.py).
+Run it after "uv run proxies": the pool tests the proxies by itself (see pool.py).
 """
 from functools import partial
 

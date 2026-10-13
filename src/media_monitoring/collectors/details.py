@@ -2,8 +2,8 @@
 video's page. Run videos first, so new videos are in youtube_videos.
 
 Video pages come from YouTube's next endpoint, which blocks busy addresses for a while, so failed proxies rest
-longer. "uv run details --plain" also uses the free proxies (plain-proxies), for many more addresses. Run it while
-singbox is running (see pool.py).
+longer. "uv run details --plain" also uses the free proxies, for many more addresses. Run it after "uv run proxies"
+(see pool.py).
 """
 import re
 from datetime import datetime

@@ -3,7 +3,7 @@ numbers, overwritten on every refresh.
 
 "uv run stats" refreshes the videos uploaded in the last DAYS days, "uv run stats 30" the last 30 days, and
 "uv run stats all" every video. Run details first, so new videos have their upload day, and run it while
-singbox is running: the pool tests the proxies by itself (see pool.py).
+sing-box is running ("uv run proxies"): the pool tests the proxies by itself (see pool.py).
 """
 from functools import partial
 

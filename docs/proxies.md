@@ -13,16 +13,16 @@ YouTube sees the proxy's address instead of the server's.
 ## Where they come from
 
 - **VPN configs.** People share free VPN configurations publicly, mostly to help others get around internet
-  censorship, and many GitHub projects collect them from Telegram channels into lists. `vpn-proxies`
-  downloads 24 of those lists, from 19 projects. `singbox` then runs every config with sing-box, as a
+  censorship, and many GitHub projects collect them from Telegram channels into lists. `uv run proxies`
+  downloads 24 of those lists, from 19 projects, then runs every config with sing-box, as a
   proxy on the server itself: about 67,000 of them, 1,000 per sing-box process, each group on its own local
   address (127.1.1.1, 127.1.2.1, and so on). A few thousand of them work at any time.
-- **Free proxies.** `plain-proxies` downloads 26 public lists of free HTTP and SOCKS4 proxies, about 330,000
+- **Free proxies.** `uv run proxies` also downloads 26 public lists of free HTTP and SOCKS4 proxies, about 330,000
   in all. Only about 1% work, but each one is another address, which video pages and comments can use (see
   below). They're used only when asked for with `--plain`. Free SOCKS5 proxies are left out: none of them worked.
 
-Every round downloads the VPN lists again and starts sing-box with the new configs; `./run.sh --plain` also
-downloads the free-proxy lists again.
+Every round downloads both again and restarts sing-box with the new configs, in the background: `uv run proxies`
+does all of it in one command, and `uv run proxies stop` stops sing-box.
 
 ## How the collectors use them
 
@@ -60,7 +60,7 @@ details and comments steps also use the free proxies, for as many addresses as p
 
 The comments step can run for hours (`comments all`), so it also takes in refreshed lists while it runs:
 sing-box's proxies are tested again when it restarts with new configs, and with `--plain`, new free proxies
-join when `plain-proxies` runs again. When every proxy rests at once, it waits for them instead of stopping.
+join when `uv run proxies` runs again. When every proxy rests at once, it waits for them instead of stopping.
 
 ## What we've learned
 

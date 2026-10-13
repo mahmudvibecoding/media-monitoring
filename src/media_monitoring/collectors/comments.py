@@ -10,7 +10,7 @@ Each video's total comment count, as YouTube shows it, goes next to its views an
 
 Comments come from YouTube's next endpoint, which blocks busy addresses for a while, so failed proxies rest longer,
 and proxy lists refreshed while it runs are taken in. --plain (e.g. "uv run comments 90 --plain") also uses the
-free proxies (plain-proxies) besides the VPN ones from sing-box, for many more addresses.
+free proxies besides the VPN ones from sing-box, for many more addresses.
 """
 import asyncio
 import base64

@@ -1,27 +1,25 @@
 #!/bin/bash
-# Set this machine up if needed, then run one monitoring round: fresh proxies (new VPN configs for sing-box), then
-# the collectors in order: channel details, new videos, video details, views and likes, and comments. Run it again
-# for the next round, for example every 15 minutes from cron (see README.md).
+# Set this machine up if needed, then run one monitoring round: fresh proxies (new VPN configs for sing-box, and new
+# free proxies), then the collectors in order: channel details, new videos, video details, views and likes, and
+# comments. Run it again for the next round, for example every 15 minutes from cron (see README.md).
 #
 #   ./run.sh              one round, through the VPN proxies; views, likes and comments for the last 90 days
 #   DAYS=30 ./run.sh      the same for the last 30 days
-#   ./run.sh --plain      video pages and comments also go through fresh free proxies (plain-proxies)
+#   ./run.sh --plain      video pages and comments also go through the free proxies
 #   ./run.sh setup        only set the machine up
 #
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
 # packages), creates the database and its tables, and loads the channels to monitor from channels.txt (any file
 # with channel IDs in it, like a CSV export; new IDs are added at every start). Run it as root or as a user with
-# sudo. It starts its own sing-box (stop any other singbox first) and stops it when the round ends, or on
+# sudo. It (re)starts sing-box in the background with "uv run proxies" and stops it when the round ends, or on
 # Ctrl+C or kill. Downloaded and generated files (proxy lists, sing-box configs and logs) go in data/.
 set -u
 cd "$(dirname "$0")"
 DAYS=${DAYS:-90}
 DATABASE=media_monitoring
 SING_BOX_VERSION=1.14.3  # the version the VPN configs were tested with
-RUNNER_LOG=data/singbox/runner.log
 # Where uv and sing-box install themselves; cron's PATH has neither
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
-runner=""
 only_setup=""
 plain=""  # "--plain" for the steps that read YouTube's next endpoint (details, comments)
 for argument in "$@"; do
@@ -117,49 +115,24 @@ setup() {
     echo "### set up: $channels channels to monitor"
 }
 
-stop_singbox() {
-    if [ -n "$runner" ]; then
-        kill -TERM -- "-$runner" 2> /dev/null  # its whole process group: uv, the runner and every sing-box
-        while kill -0 "$runner" 2> /dev/null; do sleep 1; done
-        runner=""
-    fi
-}
-
-start_singbox() {
-    mkdir -p data/singbox
-    setsid uv run singbox > "$RUNNER_LOG" 2>&1 < /dev/null &
-    runner=$!
-    # Ready once the local proxies are saved, even if a group of configs failed to start. If the runner ends
-    # before that, none started (e.g. another singbox holds the ports).
-    until grep -q "local proxies saved" "$RUNNER_LOG" 2> /dev/null; do
-        if ! kill -0 "$runner" 2> /dev/null; then
-            tail -3 "$RUNNER_LOG"
-            return 1
-        fi
-        sleep 1
-    done
-    tail -1 "$RUNNER_LOG"
-}
-
 setup
 if [ -n "$only_setup" ]; then
     exit 0
 fi
 
-trap stop_singbox EXIT  # also after Ctrl+C or kill
+trap 'uv run proxies stop > /dev/null' EXIT  # also after Ctrl+C or kill
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
 started=$(date +%s)
 echo "### $(date -u '+%F %T') round"
-uv run vpn-proxies | tail -1
-if [ -n "$plain" ]; then
-    uv run plain-proxies | tail -1
-fi
-if ! start_singbox; then
-    echo "### sing-box didn't start"
+mkdir -p data
+if ! uv run proxies > data/proxies.log 2>&1; then
+    tail -3 data/proxies.log
+    echo "### the proxies didn't start"
     exit 1
 fi
+tail -2 data/proxies.log | head -1
 for step in "channels" "videos" "details $plain" "stats $DAYS" "comments $DAYS $plain"; do
     echo "### $(date -u +%T) $step"
     uv run $step

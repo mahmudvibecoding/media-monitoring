@@ -1,7 +1,7 @@
 """Find new videos: read every channel's uploads list, newest first, until reaching a video already in
 youtube_videos, and save the new ones with their length. A channel's first run reads its whole history.
 
-Run it while singbox is running: the pool tests the proxies by itself (see pool.py).
+Run it after "uv run proxies": the pool tests the proxies by itself (see pool.py).
 """
 import random
 import re

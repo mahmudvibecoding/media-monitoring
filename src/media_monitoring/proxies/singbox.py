@@ -1,4 +1,6 @@
-"""Run every VPN config through sing-box, each on its own local SOCKS5 address."""
+"""Run every VPN config through sing-box, each on its own local SOCKS5 address, listed in data/vpn_proxies.txt.
+"uv run proxies" starts it in the background. Whatever sing-box still runs from this folder is stopped first, so
+starting it again restarts it with new configs."""
 import json
 import os
 import random
@@ -12,7 +14,7 @@ from pathlib import Path
 
 from media_monitoring.proxies.converter import Unusable, to_outbound
 
-INPUT = "data/vpn_configs.txt"  # from vpn-proxies
+INPUT = "data/vpn_configs.txt"  # from vpn_proxies.py
 OUTPUT = "data/vpn_proxies.txt"  # one line per config: "socks5h://127.1.1.1:20000 <link>"
 FOLDER = Path("data/singbox")  # the generated sing-box configs and logs
 GROUP_SIZE = 1000  # configs per sing-box process
@@ -41,6 +43,52 @@ def raise_open_files_limit():
             return
         except (ValueError, OSError):
             continue
+
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+
+
+def stop_old():
+    """Stop the sing-box left running from this folder: an earlier singbox, which stops its own sing-box processes
+    as it ends, and sing-box processes one left behind (when a closed terminal ended it, for example). Their ports are
+    about to be needed. Returns how many processes it stopped. Linux only: elsewhere, stop the old one by hand."""
+    if not os.path.isdir("/proc"):
+        return 0
+    here, old = os.getcwd(), []
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit() or int(entry) == os.getpid():
+            continue
+        try:
+            with open(f"/proc/{entry}/cmdline", "rb") as f:
+                args = [part.decode(errors="replace") for part in f.read().split(b"\0") if part]
+            folder = os.readlink(f"/proc/{entry}/cwd")
+        except OSError:
+            continue  # it ended meanwhile, or isn't ours to read
+        runner = len(args) > 1 and (os.path.basename(args[1]) == "singbox"  # started as a command of its own
+                                    or "media_monitoring.proxies.singbox" in args)  # by uv run proxies
+        leftover = args[:3] == ["sing-box", "run", "-c"] and len(args) > 3 and args[3].startswith(f"{FOLDER}/")
+        if (runner or leftover) and folder == here:
+            old.append(int(entry))
+    if not old:
+        return 0
+    print(f"stopping the sing-box left running here ({len(old)} processes)...")
+    for pid in old:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    deadline = time.monotonic() + 30
+    while any(alive(pid) for pid in old) and time.monotonic() < deadline:
+        time.sleep(0.2)
+    for pid in old:
+        if alive(pid):  # still there after 30 s
+            os.kill(pid, signal.SIGKILL)
+    return len(old)
 
 
 def group_config(group):
@@ -131,6 +179,7 @@ def main():
         links_by_index[len(configs)] = link
         configs.append((len(configs), outbound))
 
+    stop_old()
     # Stop the sing-box processes on Ctrl+C and on "kill", so they don't keep holding the ports.
     signal.signal(signal.SIGINT, signal.default_int_handler)  # Ctrl+C, even if started in the background
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
@@ -149,7 +198,7 @@ def main():
                     host, port = address_and_port(i)
                     f.write(f"socks5h://{host}:{port} {links_by_index[i]}\n")
         os.replace(f"{OUTPUT}.tmp", OUTPUT)  # all at once: a collector reading it never sees half a list
-        print(f"{sum(len(g) for _, g in running.values())} local proxies saved to {OUTPUT}; press Ctrl+C to stop")
+        print(f"{sum(len(g) for _, g in running.values())} local proxies saved to {OUTPUT}")
 
         while True:
             time.sleep(5)

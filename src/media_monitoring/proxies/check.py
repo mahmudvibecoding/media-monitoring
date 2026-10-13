@@ -1,8 +1,8 @@
 """Check every proxy with one real YouTube request, and count what works per protocol and per source list. Only a
 report: the collectors find working proxies by themselves (see pool.py).
 
-    uv run check-vpn      the local VPN proxies from singbox (keep it running in another terminal)
-    uv run check-plain    the free proxies from plain-proxies
+    uv run check-vpn      the local VPN proxies run by sing-box (after uv run proxies)
+    uv run check-plain    the free proxies (downloaded by uv run proxies)
 
 A VPN proxy is checked with a channel page, the lightest request the collectors make. Free proxies are only used for
 video pages and comments (YouTube's next endpoint, with --plain), so a free proxy is checked with a video page.
@@ -20,8 +20,8 @@ from curl_cffi import AsyncSession
 from media_monitoring.pool import PLAIN_PROXY_FILE, PROXY_FILE, raise_open_files_limit
 from media_monitoring.youtube import API, CONTEXT
 
-VPN_SOURCES = "data/vpn_sources.txt"  # from vpn-proxies: "<link> <source> <source> ..."
-PLAIN_SOURCES = "data/plain_sources.txt"  # from plain-proxies: "<proxy> <source> <source> ..."
+VPN_SOURCES = "data/vpn_sources.txt"  # from vpn_proxies.py: "<link> <source> <source> ..."
+PLAIN_SOURCES = "data/plain_sources.txt"  # from plain_proxies.py: "<proxy> <source> <source> ..."
 # Tuned on a 52-core server. PROCESSES x CHECKS_PER_PROCESS should cover all VPN proxies, so they're checked in one
 # wave; the free ones take a few. On a laptop, use far fewer (e.g. 4 processes x 500).
 PROCESSES = 96

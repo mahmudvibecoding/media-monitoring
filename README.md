@@ -30,9 +30,9 @@ To keep the data up to date, run it again and again: for example every 15 minute
 
 ## The steps
 
-Each step can also run on its own, while `singbox` runs. Every step goes through the VPN proxies; add
-`--plain` to also use the free proxies from `plain-proxies` (like `uv run comments 90 --plain`). They're many more
-addresses, which helps `details` and `comments`, since their endpoint blocks busy addresses for a while.
+Each step can also run on its own, after `uv run proxies`. Every step goes through the VPN proxies; add
+`--plain` to also use the free proxies (like `uv run comments 90 --plain`). They're many more addresses, which helps
+`details` and `comments`, since their endpoint blocks busy addresses for a while.
 
 | Command | What it does |
 |---|---|
@@ -41,9 +41,8 @@ addresses, which helps `details` and `comments`, since their endpoint blocks bus
 | `uv run details` | fetches the title, description and upload day of videos that don't have them yet |
 | `uv run stats [days\|all]` | refreshes views and likes (videos from the last 90 days by default) |
 | `uv run comments [days\|all\|unread]` | collects new comments (videos from the last 90 days by default) |
-| `uv run vpn-proxies` | downloads the public lists of VPN configs, which `singbox` runs as proxies |
-| `uv run plain-proxies` | downloads the public lists of free proxies |
-| `uv run singbox` | runs the VPN configs as local proxies |
+| `uv run proxies` | downloads the public lists of VPN configs and of free proxies, and restarts sing-box with the new configs in the background |
+| `uv run proxies stop` | stops sing-box |
 | `uv run check-vpn` | reports which VPN lists work best (optional) |
 | `uv run check-plain` | reports which free proxy lists work best, with a video page (optional) |
 
