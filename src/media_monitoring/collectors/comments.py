@@ -6,9 +6,9 @@ A read that stops partway (a page fails, or the run stops) continues next time f
 "uv run comments all" every video, and "uv run comments unread" every video whose whole list hasn't been read yet.
 Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run stats first.
 
-Comments come from YouTube's next endpoint, which blocks busy addresses for a while, so it uses the free proxies
-(plain-proxies) as well as the VPN ones from sing-box, lets failed proxies rest longer, and takes in proxy lists
-refreshed while it runs.
+Comments come from YouTube's next endpoint, which blocks busy addresses for a while, so failed proxies rest longer,
+and proxy lists refreshed while it runs are taken in. --plain (e.g. "uv run comments 90 --plain") also uses the
+free proxies (plain-proxies) besides the VPN ones from sing-box, for many more addresses.
 """
 import asyncio
 import base64
@@ -209,7 +209,6 @@ async def save_rows(conn, pending, counts, progress):
 
 
 class Comments(Collector):
-    free_proxies = True
     rest = LONG_REST
     give_up = False  # when every proxy rests, wait for one to come back or for refreshed lists
     follow_lists = True

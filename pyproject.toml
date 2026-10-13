@@ -19,7 +19,8 @@ comments = "media_monitoring.collectors.comments:main"
 vpn-configs = "media_monitoring.proxies.vpn_configs:main"
 plain-proxies = "media_monitoring.proxies.plain_proxies:main"
 singbox-runner = "media_monitoring.proxies.singbox_runner:main"
-check-vpn = "media_monitoring.proxies.check_vpn:main"
+check-vpn = "media_monitoring.proxies.check:check_vpn"
+check-plain = "media_monitoring.proxies.check:check_plain"
 
 [build-system]
 requires = ["uv_build>=0.11,<0.14"]

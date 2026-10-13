@@ -2,7 +2,12 @@
 items and of the proxies, works through its items `concurrency` at a time, and saves what it collects every
 SAVE_EVERY seconds. A collector (channels, videos, details, stats, comments) only describes its own part: see
 Collector.
+
+Every collector goes through the VPN proxies from singbox-runner. With --plain it also uses the free proxies from
+plain-proxies: many more addresses, which helps with YouTube's next endpoint (details, comments) since it blocks
+busy addresses for a while.
 """
+import argparse
 import asyncio
 import math
 import os
@@ -29,10 +34,8 @@ progress = None  # in each worker process: [items finished, items saved], counte
 class Collector:
     """One collector's own part; run() does the rest. In each worker process one instance works through that
     process's share of the items: prepare() once, then handle() for each item, while save() writes what has been
-    collected every SAVE_EVERY seconds. self.results counts the items' outcomes; handle() may add counts of its own.
-    The defaults fit a collector that only uses the VPN proxies."""
+    collected every SAVE_EVERY seconds. self.results counts the items' outcomes; handle() may add counts of its own."""
     concurrency = 500  # items in progress at a time, per process
-    free_proxies = False  # also use the free proxies: for YouTube's next endpoint, which blocks busy addresses
     rest = None  # how long a failed proxy rests (see Pool)
     give_up = True  # end the run when every proxy rests at once (see Pool)
     follow_lists = False  # take in refreshed proxy lists while running
@@ -72,11 +75,11 @@ def modified(path):
         return None
 
 
-async def work(collector, items, share, shares):
-    """One worker process: its share of the items, through its share of the proxies."""
+async def work(collector, items, share, shares, plain):
+    """One worker process: its share of the items, through its share of the proxies (with plain, the free ones too)."""
     raise_open_files_limit()
     # Free proxies first: the VPN ones are often blocked from next, and untested proxies are tried in order
-    lists = [PLAIN_PROXY_FILE, PROXY_FILE] if collector.free_proxies else [PROXY_FILE]
+    lists = [PLAIN_PROXY_FILE, PROXY_FILE] if plain else [PROXY_FILE]
     seen = {path: modified(path) for path in lists}
     pool = Pool([proxy for path in lists for proxy in load_share(path, share, shares)], rest=collector.rest,
                 give_up=collector.give_up)
@@ -154,22 +157,27 @@ def start(counter):
         pass  # not Linux
 
 
-def run_share(collector_class, items, share, shares):
+def run_share(collector_class, items, share, shares, plain):
     """Entry point of each worker process: it runs its own event loop."""
-    return asyncio.run(work(collector_class(), items, share, shares))
+    return asyncio.run(work(collector_class(), items, share, shares, plain))
 
 
 def run(collector_class):
     """A collector's main(): load its items, work through them in worker processes, and report."""
     sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
+    parser = argparse.ArgumentParser(description=sys.modules[collector_class.__module__].__doc__.split("\n\n")[0])
+    parser.add_argument("argument", nargs="?",
+                        help="for stats and comments: a number of days (90 by default), all, or (comments) unread")
+    parser.add_argument("--plain", action="store_true",
+                        help="also use the free proxies from plain-proxies, not only the VPN ones")
+    args = parser.parse_args()
     collector = collector_class()
-    argument = sys.argv[1] if len(sys.argv) > 1 else None
     with psycopg.connect(db.DATABASE_URL, autocommit=True) as conn:
-        items = collector.load(conn, argument)
-    free = load_proxies(PLAIN_PROXY_FILE) if collector.free_proxies else []
+        items = collector.load(conn, args.argument)
+    free = load_proxies(PLAIN_PROXY_FILE) if args.plain else []
     vpn = load_proxies(PROXY_FILE)
-    proxies = f"{len(free)} free and {len(vpn)} VPN proxies" if collector.free_proxies else f"{len(vpn)} proxies"
-    print(f"{len(items)} {collector.describe(argument)}, {proxies}")
+    proxies = f"{len(free)} free and {len(vpn)} VPN proxies" if args.plain else f"{len(vpn)} proxies"
+    print(f"{len(items)} {collector.describe(args.argument)}, {proxies}")
     if not items or not free + vpn:
         return
 
@@ -180,7 +188,7 @@ def run(collector_class):
     started = time.monotonic()
     results, outcomes, working = Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=context, initializer=start, initargs=(counter,)) as executor:
-        futures = [executor.submit(run_share, collector_class, items[i::processes], i, processes)
+        futures = [executor.submit(run_share, collector_class, items[i::processes], i, processes, args.plain)
                    for i in range(processes)]
         before, then = 0, started
         while not all(future.done() for future in futures):

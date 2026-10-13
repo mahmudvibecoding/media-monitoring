@@ -1,10 +1,11 @@
 #!/bin/bash
-# Set this machine up if needed, then run one monitoring round: fresh proxies (new VPN configs for sing-box and new
-# free proxies), then the collectors in order: channel details, new videos, video details, views and likes, and
-# comments. Run it again for the next round, for example every 15 minutes from cron (see README.md).
+# Set this machine up if needed, then run one monitoring round: fresh proxies (new VPN configs for sing-box), then
+# the collectors in order: channel details, new videos, video details, views and likes, and comments. Run it again
+# for the next round, for example every 15 minutes from cron (see README.md).
 #
-#   ./run.sh              one round; views, likes and comments for the last 90 days
+#   ./run.sh              one round, through the VPN proxies; views, likes and comments for the last 90 days
 #   DAYS=30 ./run.sh      the same for the last 30 days
+#   ./run.sh --plain      video pages and comments also go through fresh free proxies (plain-proxies)
 #   ./run.sh setup        only set the machine up
 #
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
@@ -21,6 +22,15 @@ RUNNER_LOG=data/singbox/runner.log
 # Where uv and sing-box install themselves; cron's PATH has neither
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 runner=""
+only_setup=""
+plain=""  # "--plain" for the steps that read YouTube's next endpoint (details, comments)
+for argument in "$@"; do
+    case "$argument" in
+        setup) only_setup=1 ;;
+        --plain) plain="--plain" ;;
+        *) echo "run.sh: unknown argument $argument (see the top of run.sh)"; exit 1 ;;
+    esac
+done
 
 if [ "$(id -u)" -eq 0 ]; then sudo=""; else sudo="sudo"; fi
 
@@ -132,7 +142,7 @@ start_singbox() {
 }
 
 setup
-if [ "${1:-}" = setup ]; then
+if [ -n "$only_setup" ]; then
     exit 0
 fi
 
@@ -143,12 +153,14 @@ trap 'exit 143' TERM
 started=$(date +%s)
 echo "### $(date -u '+%F %T') round"
 uv run vpn-configs | tail -1
-uv run plain-proxies | tail -1
+if [ -n "$plain" ]; then
+    uv run plain-proxies | tail -1
+fi
 if ! start_singbox; then
     echo "### sing-box didn't start"
     exit 1
 fi
-for step in "channels" "videos" "details" "stats $DAYS" "comments $DAYS"; do
+for step in "channels" "videos" "details $plain" "stats $DAYS" "comments $DAYS $plain"; do
     echo "### $(date -u +%T) $step"
     uv run $step
 done

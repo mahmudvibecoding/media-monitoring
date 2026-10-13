@@ -1,8 +1,9 @@
 """Fetch the details of every video that doesn't have them yet: title, description and upload day, from the
 video's page. Run videos first, so new videos are in youtube_videos.
 
-Video pages come from YouTube's next endpoint, which blocks busy addresses for a while, so it uses the free proxies
-too and lets failed proxies rest longer. Run it while singbox-runner is running (see pool.py).
+Video pages come from YouTube's next endpoint, which blocks busy addresses for a while, so failed proxies rest
+longer. "uv run details --plain" also uses the free proxies (plain-proxies), for many more addresses. Run it while
+singbox-runner is running (see pool.py).
 """
 import re
 from datetime import datetime
@@ -62,7 +63,6 @@ async def fetch(session, video_id, proxy):
 
 
 class Details(Collector):
-    free_proxies = True
     rest = LONG_REST
     item_name = "videos"
     saved_name = "with details"

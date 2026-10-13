@@ -19,8 +19,8 @@ On October 13, 2026:
 `run.sh` runs one round and stops; running it again, for example every 15 minutes from cron, keeps the data up
 to date. A round doesn't guess what changed: it checks everything again, in this order.
 
-1. **Fresh proxies.** Download the public lists of VPN configs and free proxies, and start sing-box with the
-   new configs. It stops when the round ends.
+1. **Fresh proxies.** Download the public lists of VPN configs, and start sing-box with the new configs. It
+   stops when the round ends. With `--plain`, also download the lists of free proxies.
 2. **Channels** (`channels`). Refresh every channel's name, handle, description, picture and subscriber
    count. Only the channels whose details changed are written.
 3. **New videos** (`videos`). Read each channel's uploads list, newest first, until reaching a video already

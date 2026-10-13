@@ -18,10 +18,11 @@ YouTube sees the proxy's address instead of the server's.
   proxy on the server itself: about 67,000 of them, 1,000 per sing-box process, each group on its own local
   address (127.1.1.1, 127.1.2.1, and so on). A few thousand of them work at any time.
 - **Free proxies.** `plain-proxies` downloads 26 public lists of free HTTP and SOCKS4 proxies, about 330,000
-  in all. Only about 1% work, but each one is another address, which video pages and comments need (see
-  below). Free SOCKS5 proxies are left out: none of them worked.
+  in all. Only about 1% work, but each one is another address, which video pages and comments can use (see
+  below). They're used only when asked for with `--plain`. Free SOCKS5 proxies are left out: none of them worked.
 
-Every round downloads all the lists again and starts sing-box with the new configs.
+Every round downloads the VPN lists again and starts sing-box with the new configs; `./run.sh --plain` also
+downloads the free-proxy lists again.
 
 ## How the collectors use them
 
@@ -54,12 +55,12 @@ like one: a 400 error, for example, only if it's YouTube's own error message.
 
 Video pages and comments come from a different YouTube endpoint (`next`). It blocks an address after a few
 minutes of heavy use: every request from it then gets a "Sorry, unusual traffic" page, which takes 20 to 25
-seconds to arrive. So the details and comments steps also use the free proxies, for as many addresses as
-possible, and a proxy that fails there rests 15 minutes instead of 30 seconds.
+seconds to arrive. So a proxy that fails there rests 15 minutes instead of 30 seconds, and with `--plain` the
+details and comments steps also use the free proxies, for as many addresses as possible.
 
 The comments step can run for hours (`comments all`), so it also takes in refreshed lists while it runs:
-new free proxies join when `plain-proxies` runs again, and sing-box's proxies are tested again when it
-restarts with new configs. When every proxy rests at once, it waits for them instead of stopping.
+sing-box's proxies are tested again when it restarts with new configs, and with `--plain`, new free proxies
+join when `plain-proxies` runs again. When every proxy rests at once, it waits for them instead of stopping.
 
 ## What we've learned
 
@@ -81,7 +82,8 @@ restarts with new configs. When every proxy rests at once, it waits for them ins
 ## Checking the lists
 
 `uv run check-vpn` sends one real request through every VPN proxy and reports how many work, by protocol and
-by list. The collectors don't need it; it shows which lists are worth keeping.
+by list. `uv run check-plain` does the same for the free proxies, by type and by list, with a video page, since
+that's what they're used for. The collectors don't need either; they show which lists are worth keeping.
 
 ## Weak points
 

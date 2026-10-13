@@ -1,10 +1,14 @@
-"""Download public lists of free HTTP and SOCKS proxies into data/plain_proxies.txt, one proxy per line. They give video
-pages and comments (YouTube's next endpoint, which blocks an address after heavy use) many more addresses than the
-VPN configs. Most of them don't work; the pool finds the ones that do by itself (see pool.py).
+"""Download public lists of free HTTP and SOCKS proxies into data/plain_proxies.txt, one proxy per line, and which
+lists each came from into data/plain_sources.txt. Collectors run with --plain use them besides the VPN proxies: they
+give video pages and comments (YouTube's next endpoint, which blocks an address after heavy use) many more
+addresses. Most of them don't work; the pool finds the ones that do by itself (see pool.py), and check-plain reports
+which lists work best.
 """
 import asyncio
 import ipaddress
 import os
+from collections import defaultdict
+from urllib.parse import urlsplit
 
 from curl_cffi import AsyncSession
 
@@ -42,6 +46,7 @@ SOURCES = [
     (G + "xyzs996/free-proxy-health-list/HEAD/http.txt", "http"),
 ]
 OUTPUT = "data/plain_proxies.txt"
+SOURCES_OUTPUT = "data/plain_sources.txt"  # one line per proxy: "<proxy> <source> <source> ..."
 
 
 def parse_line(line, default_type):
@@ -77,21 +82,30 @@ async def download_all():
         return await asyncio.gather(*(download(session, url) for url, _ in SOURCES), return_exceptions=True)
 
 
+def source_name(url):
+    """A list's name in the reports: its path on GitHub, or the site it comes from."""
+    return url.removeprefix(G) if url.startswith(G) else urlsplit(url).netloc
+
+
 def main():
     results = asyncio.run(download_all())
-    proxies = set()
+    sources = defaultdict(set)  # {proxy: {list it was in, ...}}
     for (url, default_type), result in zip(SOURCES, results):
+        name = source_name(url)
         if isinstance(result, Exception):
-            print(f"FAILED   {url}: {result}")
+            print(f"FAILED   {name}: {result}")
             continue
         found = {proxy for line in result.splitlines() if (proxy := parse_line(line, default_type))}
-        print(f"{len(found):>7}  {url}")
-        proxies |= found
+        print(f"{len(found):>7}  {name}")
+        for proxy in found:
+            sources[proxy].add(name)
     os.makedirs("data", exist_ok=True)
+    with open(SOURCES_OUTPUT, "w") as f:
+        f.writelines(f"{proxy} {' '.join(sorted(names))}\n" for proxy, names in sources.items())
     with open(OUTPUT + ".tmp", "w") as f:
-        f.writelines(proxy + "\n" for proxy in proxies)
+        f.writelines(proxy + "\n" for proxy in sources)
     os.replace(OUTPUT + ".tmp", OUTPUT)  # all at once: a collector reading it never sees half a list
-    print(f"{len(proxies):>7}  saved to {OUTPUT}")
+    print(f"{len(sources):>7}  saved to {OUTPUT} and {SOURCES_OUTPUT}")
 
 
 if __name__ == "__main__":

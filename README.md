@@ -13,10 +13,11 @@ On a Debian or Ubuntu machine, as root or as a user with sudo:
 ```
 
 It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, the database and its
-tables, and the channels from `channels.txt`. Then it runs one round: fresh proxies, then each collector in turn.
+tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN proxies, then each collector in turn.
 
 ```bash
 DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (90 by default)
+./run.sh --plain   # video pages and comments also go through fresh free proxies
 ./run.sh setup     # only set the machine up
 ```
 
@@ -29,7 +30,9 @@ To keep the data up to date, run it again and again: for example every 15 minute
 
 ## The steps
 
-Each step can also run on its own, while `singbox-runner` runs:
+Each step can also run on its own, while `singbox-runner` runs. Every step goes through the VPN proxies; add
+`--plain` to also use the free proxies from `plain-proxies` (like `uv run comments 90 --plain`). They're many more
+addresses, which helps `details` and `comments`, since their endpoint blocks busy addresses for a while.
 
 | Command | What it does |
 |---|---|
@@ -42,6 +45,7 @@ Each step can also run on its own, while `singbox-runner` runs:
 | `uv run plain-proxies` | downloads the public lists of free proxies |
 | `uv run singbox-runner` | runs the VPN configs as local proxies |
 | `uv run check-vpn` | reports which VPN lists work best (optional) |
+| `uv run check-plain` | reports which free proxy lists work best, with a video page (optional) |
 
 The database is `media_monitoring`; set `DATABASE_URL` to use another.
 

@@ -23,7 +23,7 @@ import zlib
 from collections import Counter, deque
 
 PROXY_FILE = "data/vpn_proxies.txt"  # from singbox-runner: one line per local proxy, "proxy link"
-PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from plain-proxies: free HTTP and SOCKS4 proxies, for pages and comments
+PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from plain-proxies: free HTTP and SOCKS4 proxies, used with --plain
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
 HEDGE_AFTER = 1  # seconds without an answer before a request through an untested proxy (or any, when draining)
                  # also goes out through a working proxy, if one has a free slot
