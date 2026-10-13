@@ -29,8 +29,8 @@ saves the results and stops. There are no schedules: every round simply checks e
 
 1. **Fresh proxies:** download the public VPN lists and start sing-box. There's no separate
    test: each program below finds the working proxies through its own real requests.
-2. **Channel details:** fill in the name, handle, description, picture and subscriber count of
-   channels we don't have details for yet.
+2. **Channel details:** refresh the name, handle, description, picture and subscriber count
+   of every channel. Only the channels whose details changed are written.
 3. **New videos:** read each channel's list of uploads, newest first, until reaching a video we
    already have. The list gives each video's ID and length. The first round reads every
    channel's whole history.
@@ -69,7 +69,6 @@ so even frequent rounds use a small part of its capacity.
 ## Still to decide
 
 - How often rounds run.
-- Whether to refresh every channel's subscriber count regularly.
 
 ## Still unknown
 

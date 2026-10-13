@@ -1,5 +1,5 @@
-"""Fill youtube_channels (title, handle, description, avatar_url, subscriber_count) from InnerTube,
-as fast as the proxies answer, through the working VPN configs.
+"""Refresh every channel's details in youtube_channels (title, handle, description, avatar_url, subscriber_count)
+from InnerTube, as fast as the proxies answer. Only channels whose details changed are written.
 
 Run it while singbox_runner.py is running: the pool tests the proxies by itself (see pool.py).
 """
@@ -34,9 +34,23 @@ FIELD_MASK = ",".join([
     f"{PROFILE}.interactionStatistic",
     "alerts",  # YouTube's message when a channel doesn't exist
 ])
-SAVE = """UPDATE youtube_channels
-          SET title = %s, handle = %s, description = %s, avatar_url = %s, subscriber_count = %s
-          WHERE channel_id = %s"""
+CHANNELS = """CREATE TEMP TABLE channels (title text, handle text, description text, avatar_url text,
+              subscriber_count bigint, channel_id text) ON COMMIT DELETE ROWS"""
+# Only rows whose details changed are written: the others would just be rewritten with the same values
+SAVE = """UPDATE youtube_channels AS c
+          SET title = n.title, handle = n.handle, description = n.description, avatar_url = n.avatar_url,
+              subscriber_count = n.subscriber_count
+          FROM channels AS n
+          WHERE c.channel_id = n.channel_id
+            AND (c.title, c.handle, c.description, c.avatar_url, c.subscriber_count)
+                IS DISTINCT FROM (n.title, n.handle, n.description, n.avatar_url, n.subscriber_count)"""
+
+done = None  # in each worker process: [channels finished, channels changed], counted by all processes together
+
+
+def text(value):
+    """Text as PostgreSQL can store it: without NUL characters."""
+    return value.replace("\x00", "") if value else value
 
 
 def parse(data):
@@ -50,7 +64,8 @@ def parse(data):
     stats = profile.get("interactionStatistic") or []
     subscribers = int(stats[0]["userInteractionCount"]) if stats else None  # hidden counts are missing
     avatars = (meta.get("avatar") or {}).get("thumbnails") or [{}]
-    return meta.get("title"), profile.get("alternateName"), meta.get("description"), avatars[0].get("url"), subscribers
+    return (text(meta.get("title")), text(profile.get("alternateName")), text(meta.get("description")),
+            avatars[0].get("url"), subscribers)
 
 
 async def fetch(session, channel_id, proxy):
@@ -74,13 +89,17 @@ async def fetch(session, channel_id, proxy):
 
 
 async def save_rows(conn, pending):
-    """Write the collected rows to the database and empty the list."""
-    if pending:
-        rows = pending[:]
-        pending.clear()
-        async with conn.cursor() as cur:
-            await cur.executemany(SAVE, rows)
-        await conn.commit()
+    """Write the collected rows to the database and empty the list. Returns how many channels changed."""
+    if not pending:
+        return 0
+    rows = pending[:]
+    pending.clear()
+    async with conn.transaction(), conn.cursor() as cur:
+        async with cur.copy("COPY channels FROM STDIN") as copy:
+            for row in rows:
+                await copy.write_row(row)
+        await cur.execute(SAVE)
+        return cur.rowcount
 
 
 async def collect_share(channel_ids, proxies):
@@ -88,7 +107,8 @@ async def collect_share(channel_ids, proxies):
     raise_open_files_limit()
     pool = Pool(proxies)
     results, pending = Counter(), []
-    async with await psycopg.AsyncConnection.connect(DATABASE_URL, options=NO_WAIT) as conn:
+    async with await psycopg.AsyncConnection.connect(DATABASE_URL, autocommit=True, options=NO_WAIT) as conn:
+        await conn.execute(CHANNELS)
         # verify=False: no certificate checks through proxies (all the data is public)
         async with AsyncSession(impersonate="chrome", verify=False, max_clients=CONCURRENCY * ATTEMPTS) as session:
             remaining = iter(channel_ids)
@@ -109,13 +129,20 @@ async def collect_share(channel_ids, proxies):
             async def saver():
                 """Saves every 2 seconds until stopped, then once more. Only this touches the database, so a save
                 is never interrupted halfway."""
+                counted = 0
                 while True:
                     try:
                         await asyncio.wait_for(stop.wait(), timeout=2)
                     except TimeoutError:
                         pass
                     stopped = stop.is_set()  # checked before saving: rows added during this save get the next one
-                    await save_rows(conn, pending)
+                    finished = results["ok"] + results["gone"] + results["failed"]
+                    changed = await save_rows(conn, pending)
+                    results["changed"] += changed
+                    with done.get_lock():
+                        done[0] += finished - counted
+                        done[1] += changed
+                    counted = finished
                     if stopped:
                         return
 
@@ -129,6 +156,12 @@ async def collect_share(channel_ids, proxies):
     return results, pool.outcomes, len(pool.proven)
 
 
+def share_counter(counter):
+    """Runs first in each worker process."""
+    global done
+    done = counter
+
+
 def run_share(channel_ids, proxies):
     """Entry point of each worker process: it runs its own event loop."""
     return asyncio.run(collect_share(channel_ids, proxies))
@@ -137,31 +170,35 @@ def run_share(channel_ids, proxies):
 def main():
     sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
     with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
-        channel_ids = [row[0] for row in conn.execute("SELECT channel_id FROM youtube_channels WHERE title IS NULL")]
+        channel_ids = [row[0] for row in conn.execute("SELECT channel_id FROM youtube_channels")]
     proxies = load_proxies()
-    print(f"{len(channel_ids)} channels to fetch, {len(proxies)} proxies")
+    print(f"{len(channel_ids)} channels to refresh, {len(proxies)} proxies")
     if not channel_ids or not proxies:
         return
 
     # Each process gets a share of the channels and of the proxies
     processes = max(1, min(PROCESSES, len(proxies) // 50, math.ceil(len(channel_ids) / 1000)))
     print(f"fetching with {processes} processes...")
+    context = get_context("spawn")
+    counter = context.Array("q", 2)  # [channels finished, channels changed], counted by the worker processes
     started = time.monotonic()
     results, outcomes, working = Counter(), Counter(), 0
-    with ProcessPoolExecutor(processes, mp_context=get_context("spawn")) as executor:
+    with ProcessPoolExecutor(processes, mp_context=context, initializer=share_counter,
+                             initargs=(counter,)) as executor:
         futures = [executor.submit(run_share, channel_ids[i::processes], proxies[i::processes])
                    for i in range(processes)]
-        with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
-            while not all(f.done() for f in futures):
-                wait(futures, timeout=2)
-                left = conn.execute("SELECT count(*) FROM youtube_channels WHERE title IS NULL").fetchone()[0]
-                print(f"{time.monotonic() - started:5.0f} s  {len(channel_ids) - left} of {len(channel_ids)} filled")
+        while not all(f.done() for f in futures):
+            wait(futures, timeout=2)
+            finished, changed = counter[:]
+            print(f"{time.monotonic() - started:5.0f} s  {finished} of {len(channel_ids)} channels refreshed, "
+                  f"{changed} changed")
         for future in futures:
             share_results, share_outcomes, share_working = future.result()
             results += share_results
             outcomes += share_outcomes
             working += share_working
-    print(f"\nfinished in {time.monotonic() - started:.0f} s: {dict(results)}")
+    print(f"\nfinished in {time.monotonic() - started:.0f} s: {results['ok']} channels refreshed ({results['changed']} "
+          f"changed), {results['gone']} gone (YouTube says they don't exist), {results['failed']} failed")
     print(f"requests: {dict(outcomes)}")
     print(f"{working} proxies working at the end")
 
