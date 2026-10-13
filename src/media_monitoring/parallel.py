@@ -28,7 +28,8 @@ PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few co
 SAVE_EVERY = 2  # seconds
 FOLLOW_EVERY = 60  # seconds between looks at the proxy lists, for collectors that follow them
 
-progress = None  # in each worker process: [items finished, items saved], counted by all processes together
+# In each worker process: [items finished, items saved, processes ready], counted by all processes together
+progress = None
 
 
 class Collector:
@@ -87,6 +88,8 @@ async def work(collector, items, share, shares, plain):
     finished = 0
     async with await db.connect() as conn:
         await collector.prepare(conn, items)
+        with progress.get_lock():
+            progress[2] += 1  # ready: what's already saved is loaded, and the work starts
         # verify=False: no certificate checks through proxies (all the data is public)
         async with AsyncSession(impersonate="chrome", verify=False,
                                 max_clients=collector.concurrency * ATTEMPTS) as session:
@@ -184,7 +187,7 @@ def run(collector_class):
     processes = max(1, min(PROCESSES, (len(free) + len(vpn)) // 50, math.ceil(len(items) / 1000)))
     print(f"working with {processes} processes...")
     context = get_context("spawn")
-    counter = context.Array("q", 2)  # [items finished, items saved], counted by the worker processes
+    counter = context.Array("q", 3)  # [items finished, items saved, processes ready], counted by the processes
     started = time.monotonic()
     results, outcomes, working = Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=context, initializer=start, initargs=(counter,)) as executor:
@@ -193,9 +196,13 @@ def run(collector_class):
         before, then = 0, started
         while not all(future.done() for future in futures):
             wait(futures, timeout=collector.report_every)
-            now, (finished, saved) = time.monotonic(), counter[:]
+            now, (finished, saved, ready) = time.monotonic(), counter[:]
+            # Before its work, each process loads what's already saved for its items (comments' IDs, for example),
+            # which for a big run takes a while: say so, or the line would look stuck at 0
+            loading = (f"  ({processes - ready} of {processes} processes still loading what's already saved)"
+                       if ready < processes else "")
             print(f"{now - started:5.0f} s  {finished} of {len(items)} {collector.item_name} done, {saved} "
-                  f"{collector.saved_name}, {(finished - before) / max(now - then, 0.001):,.0f}/s")
+                  f"{collector.saved_name}, {(finished - before) / max(now - then, 0.001):,.0f}/s{loading}")
             before, then = finished, now
         for future in futures:
             share_results, share_outcomes, share_working = future.result()
