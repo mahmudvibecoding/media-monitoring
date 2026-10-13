@@ -81,5 +81,5 @@ so even frequent rounds use a small part of its capacity.
 2. New videos (done).
 3. Video details (done).
 4. Views and likes (built).
-5. Comments (built).
-6. One script that runs the rounds.
+5. Comments (built). A read that stops partway continues from there next time.
+6. One script that runs the rounds: run.sh (built).

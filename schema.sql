@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS youtube_video_stats (
     likes       bigint,                     -- NULL when likes are off, e.g. on videos made for kids
     updated_at  timestamptz NOT NULL,       -- when stats.py refreshed views and likes
     comments    bigint,                     -- the total YouTube shows, replies included (comments.py)
-    comments_complete boolean NOT NULL DEFAULT false  -- the whole comment list has been read once
+    comments_complete boolean NOT NULL DEFAULT false, -- the whole comment list has been read once
+    comments_resume   text                  -- where a read of the comment list stopped partway: the next page
 ) WITH (fillfactor = 50);
 
 -- Top-level comments only (no replies), collected by comments.py. video_id isn't declared a reference to

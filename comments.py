@@ -1,5 +1,6 @@
 """Collect the comments of videos, newest first, top level only (no replies). The first time, a video's whole
 comment list is read; after that, only the new comments, down to the first page that ends with one we already have.
+A read that stops partway (a page fails, or the run stops) continues next time from where it stopped.
 
 "uv run comments.py" covers the videos uploaded in the last DAYS days, "uv run comments.py 30" the last 30 days,
 "uv run comments.py all" every video, and "uv run comments.py unread" every video whose whole list hasn't been read
@@ -36,6 +37,8 @@ PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few co
 CONCURRENCY = 500  # videos in progress at a time, per process
 DAYS = 90  # by default, the videos uploaded in the last DAYS days
 EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
+SAVE_EVERY = 20  # during a long read, every this many pages note where to continue, in case the run stops
+END, KNOWN, INVALID = object(), object(), object()  # how a read of pages ended (see read_video)
 # Saving normally keeps up, so a process holds a few thousand unsaved comments. Only if it falls this far behind do
 # its videos wait before their next page, so the server can't run out of memory (which would crash PostgreSQL)
 MAX_UNSAVED = 250_000
@@ -59,13 +62,19 @@ NEW_COMMENTS = """CREATE TEMP TABLE new_comments (video_id text, comment_id text
 SAVE_COMMENTS = """INSERT INTO youtube_comments (video_id, comment_id, author_channel_id, author_name, text,
                                                 published_text, published_at)
                    SELECT * FROM new_comments ON CONFLICT DO NOTHING"""
-VIDEO_COUNTS = "CREATE TEMP TABLE video_counts (video_id text, comments bigint, complete boolean) ON COMMIT DELETE ROWS"
+VIDEO_COUNTS = """CREATE TEMP TABLE video_counts (video_id text, comments bigint, complete boolean, resume text)
+                  ON COMMIT DELETE ROWS"""
 # A failed read keeps the count it had
 SAVE_COUNTS = """UPDATE youtube_video_stats AS s
-                 SET comments = coalesce(c.comments, s.comments), comments_complete = c.complete
+                 SET comments = coalesce(c.comments, s.comments), comments_complete = c.complete,
+                     comments_resume = c.resume
                  FROM video_counts AS c WHERE s.video_id = c.video_id"""
+VIDEO_PROGRESS = "CREATE TEMP TABLE video_progress (video_id text, resume text) ON COMMIT DELETE ROWS"
+SAVE_PROGRESS = """UPDATE youtube_video_stats AS s SET comments_resume = p.resume
+                   FROM video_progress AS p WHERE s.video_id = p.video_id"""
 LOAD_KNOWN = "SELECT video_id, comment_id FROM youtube_comments WHERE video_id = ANY(%s)"
-LOAD_COMPLETE = "SELECT video_id FROM youtube_video_stats WHERE comments_complete AND video_id = ANY(%s)"
+LOAD_STATE = """SELECT video_id, comments_complete, comments_resume FROM youtube_video_stats
+                WHERE (comments_complete OR comments_resume IS NOT NULL) AND video_id = ANY(%s)"""
 
 done = None  # in each worker process: [videos finished, new comments], counted by all processes together
 
@@ -128,43 +137,66 @@ async def fetch_page(session, token, proxy):
         return "youtube error", None  # an answer in an unexpected shape; the next try gets it
 
 
-async def read_video(pool, session, video_id, known, complete, pending, counts):
-    """Read one video's comments, newest first, adding the new ones to pending: all of them if its whole list hasn't
-    been read yet, else down to the first page that ends with a comment we already have. Adds (video_id, count,
-    complete) to counts once done. Returns "ok" or "failed"."""
-    token, count, first, seen, empty_tries = first_token(video_id), None, True, set(), 0
-    now = datetime.now(timezone.utc)
-    while token:
-        while len(pending) > MAX_UNSAVED:
-            await asyncio.sleep(0.5)
-        result, page = await pool.run(partial(fetch_page, session, token))
-        if result != "ok":
-            counts.append((video_id, count, False))  # its whole list is read again next time, so nothing is missed
-            return "failed"
-        page_count, comments, next_token = page
-        if not first and not comments and not next_token and empty_tries < EMPTY_PAGE_TRIES:
-            empty_tries += 1
-            continue  # ask for the same page again
-        if first:
-            count, first = page_count, False
-        for comment in comments:
-            if comment[0] not in known and comment[0] not in seen:  # a comment can show up again on the next page
-                seen.add(comment[0])
-                pending.append((video_id, *comment, published(comment[4], now)))
-        if complete and comments and comments[-1][0] in known:
-            break  # reached the comments we already have (a pinned one comes first, so it can't end a page)
-        token = next_token
-    counts.append((video_id, count, True))
-    return "ok"
+async def read_video(pool, session, video_id, known, complete, resume, pending, counts, progress):
+    """Read one video's comments, newest first, adding the new ones to pending. First from the top: down to the first
+    page that ends with a comment we already have if its whole list was read before (complete) or an earlier read
+    left a place to continue from (resume), else the whole list. Then, with resume, from that place on: to the end,
+    or for a complete video (where the place marks a gap) down to comments we already have. Adds (video_id, count,
+    complete, resume) to counts once done: if a page failed, resume is where to continue next time.
+    Returns "ok" or "failed"."""
+    now, seen, count = datetime.now(timezone.utc), set(), None
+
+    async def read(token, stop_at_known, top):
+        """Pages from token on. Returns END or KNOWN when done, INVALID if a saved token no longer works, or the
+        token of the page that failed, to continue from later."""
+        nonlocal count
+        pages = empty_tries = 0
+        while token:
+            while len(pending) > MAX_UNSAVED:
+                await asyncio.sleep(0.5)
+            result, page = await pool.run(partial(fetch_page, session, token))
+            if result != "ok":
+                return token
+            page_count, comments, next_token = page
+            if not comments and not next_token and (pages or not top):
+                # An empty page where the list should go on is usually an odd answer: ask again. A saved token that
+                # keeps getting one no longer works (YouTube answers {} to those too).
+                if empty_tries < EMPTY_PAGE_TRIES:
+                    empty_tries += 1
+                    continue
+                if not pages:
+                    return INVALID
+            if top and not pages:
+                count = page_count
+            for comment in comments:
+                if comment[0] not in known and comment[0] not in seen:  # a comment can show up again on the next page
+                    seen.add(comment[0])
+                    pending.append((video_id, *comment, published(comment[4], now)))
+            if stop_at_known and comments and comments[-1][0] in known:
+                return KNOWN  # reached the comments we already have (a pinned one comes first: it can't end a page)
+            token, pages = next_token, pages + 1
+            if token and pages % SAVE_EVERY == 0:
+                progress.append((video_id, token))  # where to continue if this run stops before the video is done
+        return END
+
+    left = await read(first_token(video_id), stop_at_known=complete or resume is not None, top=True)
+    if left is KNOWN and resume:
+        left = await read(resume, stop_at_known=complete, top=False)
+        if left is INVALID:  # the saved place no longer works: read the whole list again
+            left = await read(first_token(video_id), stop_at_known=False, top=True)
+    finished = left is END or left is KNOWN
+    counts.append((video_id, count, True, None) if finished else (video_id, count, complete, left))
+    return "ok" if finished else "failed"
 
 
-async def save_rows(conn, pending, counts):
-    """Write the new comments and the finished videos' counts to the database and empty the lists. A video's count
-    is saved with or after all of its comments."""
-    rows, finished = pending[:], counts[:]
+async def save_rows(conn, pending, counts, progress):
+    """Write the new comments, the places to continue long reads from, and the finished videos' counts to the
+    database, and empty the lists. A video's count is saved with or after all of its comments."""
+    rows, finished, places = pending[:], counts[:], dict(progress)  # the latest place for each video
     pending.clear()
     counts.clear()
-    if rows or finished:
+    progress.clear()
+    if rows or finished or places:
         async with conn.transaction(), conn.cursor() as cur:
             if rows:
                 try:
@@ -177,7 +209,12 @@ async def save_rows(conn, pending, counts):
                         for row in rows:
                             await copy.write_row(row)
                     await cur.execute(SAVE_COMMENTS)
-            if finished:
+            if places:
+                async with cur.copy("COPY video_progress FROM STDIN") as copy:
+                    for row in places.items():
+                        await copy.write_row(row)
+                await cur.execute(SAVE_PROGRESS)
+            if finished:  # after the places: a finished read's state wins
                 async with cur.copy("COPY video_counts FROM STDIN") as copy:
                     for row in finished:
                         await copy.write_row(row)
@@ -206,17 +243,20 @@ async def collect_share(video_ids, share, shares):
     # requests wait for one to come back or for new ones from the refreshed lists.
     pool = Pool(load_share(PLAIN_PROXY_FILE, share, shares) + load_share(PROXY_FILE, share, shares), rest=LONG_REST,
                 give_up=False)
-    results, pending, counts = Counter(), [], []
+    results, pending, counts, progress = Counter(), [], [], []
     async with await psycopg.AsyncConnection.connect(DATABASE_URL, autocommit=True, options=NO_WAIT) as conn:
         known = defaultdict(set)  # the comments already saved for this process's videos, loaded once
         async with conn.cursor() as cur:
             await cur.execute(LOAD_KNOWN, (video_ids,))
             async for video_id, comment_id in cur:
                 known[video_id].add(comment_id)
-            await cur.execute(LOAD_COMPLETE, (video_ids,))
-            complete = {row[0] for row in await cur.fetchall()}
+            await cur.execute(LOAD_STATE, (video_ids,))
+            state = await cur.fetchall()
+        complete = {video_id for video_id, whole, _ in state if whole}  # their whole list was read once
+        resume = {video_id: token for video_id, _, token in state if token}  # where a read stopped partway
         await conn.execute(NEW_COMMENTS)
         await conn.execute(VIDEO_COUNTS)
+        await conn.execute(VIDEO_PROGRESS)
         # verify=False: no certificate checks through proxies (all the data is public)
         async with AsyncSession(impersonate="chrome", verify=False, max_clients=CONCURRENCY * ATTEMPTS) as session:
             remaining = iter(video_ids)
@@ -225,7 +265,8 @@ async def collect_share(video_ids, share, shares):
                 for video_id in remaining:  # all workers share one iterator
                     try:
                         result = await read_video(pool, session, video_id, known.get(video_id, ()),
-                                                  video_id in complete, pending, counts)
+                                                  video_id in complete, resume.get(video_id), pending, counts,
+                                                  progress)
                     except NoProxiesLeft:
                         return  # this process's proxies all broke; its other videos wait for the next run
                     results[result] += 1
@@ -242,7 +283,7 @@ async def collect_share(video_ids, share, shares):
                     except TimeoutError:
                         pass
                     stopped = stop.is_set()  # checked before saving: rows added during this save get the next one
-                    comments, videos = await save_rows(conn, pending, counts)
+                    comments, videos = await save_rows(conn, pending, counts, progress)
                     results["new comments"] += comments
                     with done.get_lock():
                         done[0] += videos
@@ -296,7 +337,7 @@ def main():
     days = sys.argv[1] if len(sys.argv) > 1 else str(DAYS)
     # "unread" leaves out videos without views and likes (stats.py found them removed or private): their count row,
     # where a finished read is recorded, doesn't exist
-    where = {"all": "", "unread": "WHERE NOT s.comments_complete"}.get(
+    where = {"all": "", "unread": "WHERE NOT s.comments_complete OR s.comments_resume IS NOT NULL"}.get(
         days, "WHERE v.upload_date >= current_date - %s::int")
     with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
         # Most viewed first: their long comment lists start early instead of holding up the end of the run
