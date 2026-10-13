@@ -3,7 +3,7 @@ items and of the proxies, works through its items `concurrency` at a time, and s
 SAVE_EVERY seconds. A collector (channels, videos, details, stats, comments) only describes its own part: see
 Collector.
 
-Every collector goes through the VPN proxies from singbox-runner. With --plain it also uses the free proxies from
+Every collector goes through the VPN proxies from singbox. With --plain it also uses the free proxies from
 plain-proxies: many more addresses, which helps with YouTube's next endpoint (details, comments) since it blocks
 busy addresses for a while.
 """

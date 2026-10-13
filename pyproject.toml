@@ -18,7 +18,7 @@ stats = "media_monitoring.collectors.stats:main"
 comments = "media_monitoring.collectors.comments:main"
 vpn-proxies = "media_monitoring.proxies.vpn_proxies:main"
 plain-proxies = "media_monitoring.proxies.plain_proxies:main"
-singbox-runner = "media_monitoring.proxies.singbox_runner:main"
+singbox = "media_monitoring.proxies.singbox:main"
 check-vpn = "media_monitoring.proxies.check:check_vpn"
 check-plain = "media_monitoring.proxies.check:check_plain"
 

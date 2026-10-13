@@ -1,5 +1,5 @@
 """Download the public lists of free VPN configs (vless, vmess, trojan, ss, hysteria2) into data/vpn_configs.txt,
-and which lists each config came from into data/vpn_sources.txt. singbox-runner then runs each config as a local
+and which lists each config came from into data/vpn_sources.txt. singbox then runs each config as a local
 proxy, listed in data/vpn_proxies.txt: the VPN proxies every collector goes through."""
 import asyncio
 import base64

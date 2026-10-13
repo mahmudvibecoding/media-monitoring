@@ -11,7 +11,7 @@
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
 # packages), creates the database and its tables, and loads the channels to monitor from channels.txt (any file
 # with channel IDs in it, like a CSV export; new IDs are added at every start). Run it as root or as a user with
-# sudo. It starts its own sing-box (stop any other singbox-runner first) and stops it when the round ends, or on
+# sudo. It starts its own sing-box (stop any other singbox first) and stops it when the round ends, or on
 # Ctrl+C or kill. Downloaded and generated files (proxy lists, sing-box configs and logs) go in data/.
 set -u
 cd "$(dirname "$0")"
@@ -127,10 +127,10 @@ stop_singbox() {
 
 start_singbox() {
     mkdir -p data/singbox
-    setsid uv run singbox-runner > "$RUNNER_LOG" 2>&1 < /dev/null &
+    setsid uv run singbox > "$RUNNER_LOG" 2>&1 < /dev/null &
     runner=$!
     # Ready once the local proxies are saved, even if a group of configs failed to start. If the runner ends
-    # before that, none started (e.g. another singbox-runner holds the ports).
+    # before that, none started (e.g. another singbox holds the ports).
     until grep -q "local proxies saved" "$RUNNER_LOG" 2> /dev/null; do
         if ! kill -0 "$runner" 2> /dev/null; then
             tail -3 "$RUNNER_LOG"

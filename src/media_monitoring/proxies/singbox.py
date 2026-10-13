@@ -93,7 +93,7 @@ def start_groups(configs, processes):
         if taken:
             host, port = taken[0]
             print(f"group {number} skipped: {len(taken)} of its ports are in use, e.g. {host}:{port} "
-                  "(is another singbox-runner running?)")
+                  "(is another singbox running?)")
             continue
         path = FOLDER / f"group-{number}.json"
         path.write_text(json.dumps(group_config(group)))

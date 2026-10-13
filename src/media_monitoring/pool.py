@@ -22,7 +22,7 @@ import time
 import zlib
 from collections import Counter, deque
 
-PROXY_FILE = "data/vpn_proxies.txt"  # from singbox-runner: one line per local proxy, "proxy link"
+PROXY_FILE = "data/vpn_proxies.txt"  # from singbox: one line per local proxy, "proxy link"
 PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from plain-proxies: free HTTP and SOCKS4 proxies, used with --plain
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
 HEDGE_AFTER = 1  # seconds without an answer before a request through an untested proxy (or any, when draining)
@@ -54,7 +54,7 @@ class BadRequest(Exception):
 
 
 def load_proxies(path=PROXY_FILE):
-    """Every proxy in a list, in random order: by default the local ones from sing-box (run singbox-runner first).
+    """Every proxy in a list, in random order: by default the local ones from sing-box (run singbox first).
     None if the list doesn't exist."""
     try:
         with open(path) as f:

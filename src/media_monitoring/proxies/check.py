@@ -1,7 +1,7 @@
 """Check every proxy with one real YouTube request, and count what works per protocol and per source list. Only a
 report: the collectors find working proxies by themselves (see pool.py).
 
-    uv run check-vpn      the local VPN proxies from singbox-runner (keep it running in another terminal)
+    uv run check-vpn      the local VPN proxies from singbox (keep it running in another terminal)
     uv run check-plain    the free proxies from plain-proxies
 
 A VPN proxy is checked with a channel page, the lightest request the collectors make. Free proxies are only used for
