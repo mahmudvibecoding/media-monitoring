@@ -136,7 +136,8 @@ async def read_video(pool, session, video_id, known, newest, complete, resume, p
     left a place to continue from (resume), else the whole list. Then, with resume, from that place on: to the end,
     or for a complete video (where the place marks a gap) down to comments we already have. Adds (video_id, count,
     complete, resume, newest) to counts once done: if a page failed, resume is where to continue next time; if the
-    read finished and its newest comments changed, newest lists them (else None).
+    read finished and its newest comments changed, newest lists them (else None). newest is None for a video that has
+    no list yet: even an empty one is saved then, so a video without comments needn't load anything next time.
     Returns "ok" or "failed"."""
     now, seen, count, on_top = datetime.now(timezone.utc), set(), None, []
 
@@ -185,7 +186,7 @@ async def read_video(pool, session, video_id, known, newest, complete, resume, p
     finished = left is END or left is KNOWN
     if finished:
         # This read's newest comments, then the earlier newest below them, where it stopped
-        latest = list(dict.fromkeys(on_top + newest))[:NEWEST]
+        latest = list(dict.fromkeys(on_top + (newest or [])))[:NEWEST]
         counts.append((video_id, count, True, None, latest if latest != newest else None))
     else:
         counts.append((video_id, count, complete, left, None))
@@ -272,7 +273,7 @@ class Comments(Collector):
     async def handle(self, pool, session, item):
         video_id, complete, resume, newest = item
         known = self.known.get(video_id) or set(newest or ())
-        return await read_video(pool, session, video_id, known, newest or [], complete, resume, self.pending,
+        return await read_video(pool, session, video_id, known, newest, complete, resume, self.pending,
                                 self.counts, self.places)
 
     async def save(self, conn):
