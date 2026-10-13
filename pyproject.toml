@@ -1,10 +1,26 @@
 [project]
-name = "media-monitoring-v2"
+name = "media-monitoring"
 version = "0.1.0"
-description = "Add your description here"
+description = "Monitors YouTube channels: their new videos, the videos' details, views and likes, and comments."
 readme = "README.md"
 requires-python = ">=3.15"
 dependencies = [
     "curl-cffi>=0.16.3",
     "psycopg[binary]>=3.3.6",
 ]
+
+# The steps of a round (run.sh runs them in this order), and the proxy tools
+[project.scripts]
+channels = "media_monitoring.collectors.channels:main"
+videos = "media_monitoring.collectors.videos:main"
+details = "media_monitoring.collectors.details:main"
+stats = "media_monitoring.collectors.stats:main"
+comments = "media_monitoring.collectors.comments:main"
+vpn-configs = "media_monitoring.proxies.vpn_configs:main"
+plain-proxies = "media_monitoring.proxies.plain_proxies:main"
+singbox-runner = "media_monitoring.proxies.singbox_runner:main"
+check-vpn = "media_monitoring.proxies.check_vpn:main"
+
+[build-system]
+requires = ["uv_build>=0.11,<0.14"]
+build-backend = "uv_build"

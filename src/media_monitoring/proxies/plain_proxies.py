@@ -1,4 +1,4 @@
-"""Download public lists of free HTTP and SOCKS proxies into plain_proxies.txt, one proxy per line. They give video
+"""Download public lists of free HTTP and SOCKS proxies into data/plain_proxies.txt, one proxy per line. They give video
 pages and comments (YouTube's next endpoint, which blocks an address after heavy use) many more addresses than the
 VPN configs. Most of them don't work; the pool finds the ones that do by itself (see pool.py).
 """
@@ -41,7 +41,7 @@ SOURCES = [
     (G + "Bes-js/public-proxy-list/HEAD/proxies.txt", None),
     (G + "xyzs996/free-proxy-health-list/HEAD/http.txt", "http"),
 ]
-OUTPUT = "plain_proxies.txt"
+OUTPUT = "data/plain_proxies.txt"
 
 
 def parse_line(line, default_type):
@@ -83,6 +83,7 @@ async def main():
         found = {proxy for line in result.splitlines() if (proxy := parse_line(line, default_type))}
         print(f"{len(found):>7}  {url}")
         proxies |= found
+    os.makedirs("data", exist_ok=True)
     with open(OUTPUT + ".tmp", "w") as f:
         f.writelines(proxy + "\n" for proxy in proxies)
     os.replace(OUTPUT + ".tmp", OUTPUT)  # all at once: a collector reading it never sees half a list

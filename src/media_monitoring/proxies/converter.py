@@ -5,10 +5,10 @@ import subprocess
 from collections import Counter
 from urllib.parse import parse_qsl
 
-from vpn_configs import decode_base64, split_address, ss_credentials
+from media_monitoring.proxies.vpn_configs import decode_base64, split_address, ss_credentials
 
-INPUT = "vpn_configs.txt"
-OUTPUT = "outbounds.json"
+INPUT = "data/vpn_configs.txt"
+OUTPUT = "data/outbounds.json"
 HOSTNAME = re.compile(r"[A-Za-z0-9._-]+")
 REALITY_KEY = re.compile(r"[A-Za-z0-9_-]{43}")  # 32 bytes in unpadded URL-safe base64
 SHORT_ID = re.compile(r"(?:[0-9a-fA-F]{2}){0,8}")  # 0 to 8 bytes in hex

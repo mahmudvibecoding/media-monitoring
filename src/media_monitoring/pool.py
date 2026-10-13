@@ -11,8 +11,8 @@ failure doesn't count against the request's tries; if it has no answer within HE
 goes out through a working proxy, when one has a free slot. Once YouTube answers through a proxy, it gets
 START_LIMIT slots, and one more after each answer that found all of them busy, up to MAX_LIMIT: with few proxies
 each one carries more, with many each carries less. Each failure takes one slot away; at zero the proxy rests and
-is then tested again, so proxies that recover come back even during long runs. channels.py and the other
-collectors all send their requests this way.
+is then tested again, so proxies that recover come back even during long runs. The collectors all send their
+requests this way (youtube.call sends each one).
 """
 import asyncio
 import itertools
@@ -22,12 +22,9 @@ import time
 import zlib
 from collections import Counter, deque
 
-API = "https://www.youtube.com/youtubei/v1/"  # InnerTube: the API behind YouTube's own website
-CONTEXT = {"client": {"clientName": "WEB", "clientVersion": "2.20251001.01.00", "hl": "en", "gl": "US"}}
-PROXY_FILE = "vpn_proxies.txt"  # from singbox_runner.py: one line per local proxy, "proxy link"
-PLAIN_PROXY_FILE = "plain_proxies.txt"  # from plain_proxies.py: free HTTP and SOCKS4 proxies, for pages and comments
+PROXY_FILE = "data/vpn_proxies.txt"  # from singbox-runner: one line per local proxy, "proxy link"
+PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from plain-proxies: free HTTP and SOCKS4 proxies, for pages and comments
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
-TIMEOUT = 5  # seconds; a proxy that hasn't answered by then has failed
 HEDGE_AFTER = 1  # seconds without an answer before a request through an untested proxy (or any, when draining)
                  # also goes out through a working proxy, if one has a free slot
 ATTEMPTS = 5  # requests per answer at most, not counting failures of proxies that were being tested
@@ -57,7 +54,7 @@ class BadRequest(Exception):
 
 
 def load_proxies(path=PROXY_FILE):
-    """Every proxy in a list, in random order: by default the local ones from sing-box (run singbox_runner.py first).
+    """Every proxy in a list, in random order: by default the local ones from sing-box (run singbox-runner first).
     None if the list doesn't exist."""
     try:
         with open(path) as f:
@@ -83,28 +80,6 @@ def raise_open_files_limit():
             return
         except (ValueError, OSError):
             continue
-
-
-async def call(session, proxy, method, url, **kwargs):
-    """One HTTP request through one proxy. Returns (problem, response): problem is None when YouTube
-    answered normally, else "broken" (the proxy failed), "blocked" (403 or 429), "bad request" (400) or
-    "youtube error" (500 and up), and response is None."""
-    try:
-        response = await session.request(method, url, proxy=proxy, timeout=TIMEOUT, **kwargs)
-    except Exception:
-        return "broken", None  # the proxy didn't get us an answer
-    if response.status_code == 400:
-        # YouTube's own 400 is a JSON error; any other came from the proxy (we don't check certificates)
-        try:
-            from_youtube = response.json()["error"]["code"] == 400
-        except Exception:
-            from_youtube = False
-        return ("bad request" if from_youtube else "broken"), None
-    if response.status_code in (403, 429):
-        return "blocked", None
-    if response.status_code >= 500:
-        return "youtube error", None
-    return None, response
 
 
 class Pool:
@@ -157,7 +132,7 @@ class Pool:
 
     async def run(self, request):
         """Get one answer. request(proxy) sends one request through that proxy and returns (outcome, result),
-        where outcome is "ok", "gone" or a problem from call(). A failed request goes out again through
+        where outcome is "ok", "gone" or a problem from youtube.call(). A failed request goes out again through
         another proxy, up to ATTEMPTS times. A request without an answer after HEDGE_AFTER seconds also goes out
         through a working proxy with a free slot if it only went through untested proxies, or always when draining;
         the first useful answer wins. Returns ("ok", result), ("gone", result) or ("failed", None)."""

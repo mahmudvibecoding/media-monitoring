@@ -10,11 +10,11 @@ import sys
 import time
 from pathlib import Path
 
-from converter import Unusable, to_outbound
+from media_monitoring.proxies.converter import Unusable, to_outbound
 
-INPUT = "vpn_configs.txt"
-OUTPUT = "vpn_proxies.txt"  # one line per config: "socks5h://127.1.1.1:20000 <link>"
-FOLDER = Path("singbox")  # the generated sing-box configs and logs
+INPUT = "data/vpn_configs.txt"  # from vpn-configs
+OUTPUT = "data/vpn_proxies.txt"  # one line per config: "socks5h://127.1.1.1:20000 <link>"
+FOLDER = Path("data/singbox")  # the generated sing-box configs and logs
 GROUP_SIZE = 1000  # configs per sing-box process
 FIRST_PORT = 20000
 LIMIT = None  # use only this many random configs; None uses all on Linux and 1000 on macOS
@@ -85,7 +85,7 @@ def start_groups(configs, processes):
     Each process is added to `processes` as soon as it starts, so all of them can be stopped even if
     this is interrupted halfway.
     """
-    FOLDER.mkdir(exist_ok=True)
+    FOLDER.mkdir(parents=True, exist_ok=True)
     groups = [configs[g:g + GROUP_SIZE] for g in range(0, len(configs), GROUP_SIZE)]
     started = {}
     for number, group in enumerate(groups, 1):
@@ -93,7 +93,7 @@ def start_groups(configs, processes):
         if taken:
             host, port = taken[0]
             print(f"group {number} skipped: {len(taken)} of its ports are in use, e.g. {host}:{port} "
-                  "(is another singbox_runner.py running?)")
+                  "(is another singbox-runner running?)")
             continue
         path = FOLDER / f"group-{number}.json"
         path.write_text(json.dumps(group_config(group)))

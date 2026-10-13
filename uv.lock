@@ -70,9 +70,9 @@ wheels = [
 ]
 
 [[package]]
-name = "media-monitoring-v2"
+name = "media-monitoring"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "curl-cffi" },
     { name = "psycopg", extra = ["binary"] },

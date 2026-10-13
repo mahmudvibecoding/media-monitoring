@@ -4,7 +4,7 @@ SET client_min_messages = warning;  -- don't list everything that already exists
 
 CREATE TABLE IF NOT EXISTS youtube_channels (
     channel_id        text PRIMARY KEY,     -- "UC" and 22 more characters
-    title             text,                 -- NULL until channels.py has fetched the channel's details
+    title             text,                 -- NULL until the channels collector has fetched the channel's details
     handle            text,
     description       text,
     avatar_url        text,
@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS youtube_channels (
 CREATE TABLE IF NOT EXISTS youtube_videos (
     video_id          text PRIMARY KEY,
     channel_id        text NOT NULL REFERENCES youtube_channels,
-    title             text,                 -- NULL until details.py has fetched the video's details
+    title             text,                 -- NULL until the details collector has fetched the video's details
     description       text,
-    duration_seconds  integer,              -- from the uploads list (videos.py)
+    duration_seconds  integer,              -- from the uploads list (the videos collector)
     first_seen_at     timestamptz NOT NULL DEFAULT now(),
     status            text NOT NULL DEFAULT 'available',  -- 'unavailable' when its page shows no video
     upload_date       date,                 -- the day only: the video page doesn't show the time
@@ -32,13 +32,13 @@ CREATE TABLE IF NOT EXISTS youtube_video_stats (
     video_id    text PRIMARY KEY REFERENCES youtube_videos,
     views       bigint,                     -- NULL while a stream is live or upcoming: YouTube shows viewers then
     likes       bigint,                     -- NULL when likes are off, e.g. on videos made for kids
-    updated_at  timestamptz NOT NULL,       -- when stats.py refreshed views and likes
-    comments    bigint,                     -- the total YouTube shows, replies included (comments.py)
+    updated_at  timestamptz NOT NULL,       -- when the stats collector refreshed views and likes
+    comments    bigint,                     -- the total YouTube shows, replies included
     comments_complete boolean NOT NULL DEFAULT false, -- the whole comment list has been read once
     comments_resume   text                  -- where a read of the comment list stopped partway: the next page
 ) WITH (fillfactor = 50);
 
--- Top-level comments only (no replies), collected by comments.py. video_id isn't declared a reference to
+-- Top-level comments only (no replies), collected by the comments collector. video_id isn't declared a reference to
 -- youtube_videos: checking that would make each save also lock and write the video's row. For the first full
 -- collection, the table can be made UNLOGGED (much faster saves, but a crash empties it) and switched back with
 -- ALTER TABLE youtube_comments SET LOGGED once it's done.
@@ -51,5 +51,5 @@ CREATE TABLE IF NOT EXISTS youtube_comments (
     published_text    text,                 -- as YouTube shows it: "2 hours ago"
     published_at      timestamptz,          -- estimated from published_text
     first_seen_at     timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (video_id, comment_id)      -- a video's comments sit together, so comments.py loads them quickly
+    PRIMARY KEY (video_id, comment_id)      -- a video's comments sit together, so they load quickly
 );

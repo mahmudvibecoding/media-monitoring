@@ -1,7 +1,10 @@
+"""Download the public lists of free VPN configs (vless, vmess, trojan, ss, hysteria2) into data/vpn_configs.txt,
+and which lists each config came from into data/vpn_sources.txt. singbox-runner then runs them."""
 import asyncio
 import base64
 import binascii
 import json
+import os
 import re
 from collections import Counter, defaultdict
 from urllib.parse import parse_qsl, unquote, urlsplit
@@ -48,8 +51,8 @@ SS_METHODS = {  # the Shadowsocks ciphers sing-box supports
     "aes-128-ctr", "aes-192-ctr", "aes-256-ctr", "aes-128-cfb", "aes-192-cfb", "aes-256-cfb",
     "rc4-md5", "chacha20-ietf", "xchacha20", "none",
 }
-OUTPUT = "vpn_configs.txt"
-SOURCES_OUTPUT = "vpn_sources.txt"  # one line per config: "<link> <source> <source> ..."
+OUTPUT = "data/vpn_configs.txt"
+SOURCES_OUTPUT = "data/vpn_sources.txt"  # one line per config: "<link> <source> <source> ..."
 
 
 def decode_base64(text):
@@ -182,6 +185,7 @@ async def collect():
 
 def main():
     configs, sources = asyncio.run(collect())
+    os.makedirs("data", exist_ok=True)
     with open(OUTPUT, "w") as f:
         f.write("".join(f"{link}\n" for _, link in sorted(configs.values())))
     with open(SOURCES_OUTPUT, "w") as f:

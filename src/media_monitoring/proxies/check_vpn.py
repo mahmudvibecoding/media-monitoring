@@ -1,7 +1,7 @@
-"""Check every local VPN proxy from vpn_proxies.txt with one real YouTube request, and count what works per
+"""Check every local VPN proxy from data/vpn_proxies.txt with one real YouTube request, and count what works per
 protocol and per source. Only a report: the collectors find working proxies by themselves (see pool.py).
 
-Keep singbox_runner.py running in another terminal while this runs.
+Keep singbox-runner running in another terminal while this runs.
 """
 import asyncio
 import time
@@ -11,10 +11,11 @@ from multiprocessing import get_context
 
 from curl_cffi import AsyncSession
 
-from pool import API, CONTEXT, raise_open_files_limit
+from media_monitoring.pool import raise_open_files_limit
+from media_monitoring.youtube import API, CONTEXT
 
-INPUT = "vpn_proxies.txt"  # from singbox_runner.py: "<local proxy> <link>"
-SOURCES_FILE = "vpn_sources.txt"  # from vpn_configs.py: "<link> <source> <source> ..."
+INPUT = "data/vpn_proxies.txt"  # from singbox-runner: "<local proxy> <link>"
+SOURCES_FILE = "data/vpn_sources.txt"  # from vpn-configs: "<link> <source> <source> ..."
 # Tuned on a 52-core server. PROCESSES x CHECKS_PER_PROCESS should cover all proxies, so everything is checked
 # in one wave. On a laptop, use far fewer (e.g. 4 processes x 500).
 PROCESSES = 96
@@ -99,7 +100,8 @@ def print_table(title, counts):
     print(f"\n{title:52} {'checked':>7} {'works':>6} {'rate':>5} {'only here':>9}")
     for name, c in sorted(counts.items(), key=lambda item: -item[1]["works"]):
         checked = c["works"] + c["fails"]
-        print(f"{name[:52]:52} {checked:>7} {c['works']:>6} {100 * c['works'] / checked:>4.0f}% {c['only here'] or '':>9}")
+        share = 100 * c["works"] / checked
+        print(f"{name[:52]:52} {checked:>7} {c['works']:>6} {share:>4.0f}% {c['only here'] or '':>9}")
 
 
 def main():

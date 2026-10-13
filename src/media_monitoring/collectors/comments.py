@@ -2,42 +2,31 @@
 comment list is read; after that, only the new comments, down to the first page that ends with one we already have.
 A read that stops partway (a page fails, or the run stops) continues next time from where it stopped.
 
-"uv run comments.py" covers the videos uploaded in the last DAYS days, "uv run comments.py 30" the last 30 days,
-"uv run comments.py all" every video, and "uv run comments.py unread" every video whose whole list hasn't been read
-yet. Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run stats.py first.
+"uv run comments" covers the videos uploaded in the last DAYS days, "uv run comments 30" the last 30 days,
+"uv run comments all" every video, and "uv run comments unread" every video whose whole list hasn't been read yet.
+Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run stats first.
 
-It uses the free proxies (plain_proxies.py) and the VPN ones from sing-box, and follows both lists while it runs:
-refresh them (the proxy refresher does, every 15 minutes) and new proxies join within a minute.
+Comments come from YouTube's next endpoint, which blocks busy addresses for a while, so it uses the free proxies
+(plain-proxies) as well as the VPN ones from sing-box, lets failed proxies rest longer, and takes in proxy lists
+refreshed while it runs.
 """
 import asyncio
 import base64
-import math
-import os
 import re
-import sys
-import time
-from collections import Counter, defaultdict
-from concurrent.futures import ProcessPoolExecutor, wait
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import partial
-from multiprocessing import get_context
 from urllib.parse import quote
 
 import psycopg
-from curl_cffi import AsyncSession
 
-from pool import (API, ATTEMPTS, CONTEXT, LONG_REST, PLAIN_PROXY_FILE, PROXY_FILE, NoProxiesLeft, Pool, call,
-                  load_proxies, load_share, raise_open_files_limit)
+from media_monitoring.parallel import Collector, run
+from media_monitoring.pool import LONG_REST
+from media_monitoring.youtube import API, CONTEXT, call
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "dbname=media_monitoring")
-# Saves don't wait for the disk to confirm them: a crash loses at most the last second of saves, which the next
-# run fetches again
-NO_WAIT = "-c synchronous_commit=off"
-PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few cores stay free for sing-box
-CONCURRENCY = 500  # videos in progress at a time, per process
 DAYS = 90  # by default, the videos uploaded in the last DAYS days
 EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
-SAVE_EVERY = 20  # during a long read, every this many pages note where to continue, in case the run stops
+NOTE_EVERY = 20  # during a long read, every this many pages note where to continue, in case the run stops
 END, KNOWN, INVALID = object(), object(), object()  # how a read of pages ended (see read_video)
 # Saving normally keeps up, so a process holds a few thousand unsaved comments. Only if it falls this far behind do
 # its videos wait before their next page, so the server can't run out of memory (which would crash PostgreSQL)
@@ -75,9 +64,6 @@ SAVE_PROGRESS = """UPDATE youtube_video_stats AS s SET comments_resume = p.resum
 LOAD_KNOWN = "SELECT video_id, comment_id FROM youtube_comments WHERE video_id = ANY(%s)"
 LOAD_STATE = """SELECT video_id, comments_complete, comments_resume FROM youtube_video_stats
                 WHERE (comments_complete OR comments_resume IS NOT NULL) AND video_id = ANY(%s)"""
-
-done = None  # in each worker process: [videos finished, new comments], counted by all processes together
-
 
 def first_token(video_id):
     """The token for the first page of a video's comments, newest first, built from its ID: what the video's page
@@ -175,7 +161,7 @@ async def read_video(pool, session, video_id, known, complete, resume, pending, 
             if stop_at_known and comments and comments[-1][0] in known:
                 return KNOWN  # reached the comments we already have (a pinned one comes first: it can't end a page)
             token, pages = next_token, pages + 1
-            if token and pages % SAVE_EVERY == 0:
+            if token and pages % NOTE_EVERY == 0:
                 progress.append((video_id, token))  # where to continue if this run stops before the video is done
         return END
 
@@ -222,163 +208,56 @@ async def save_rows(conn, pending, counts, progress):
     return len(rows), len(finished)
 
 
-def list_changed(path, seen):
-    """Whether a proxy list was replaced since it was last seen (seen: {path: modification time})."""
-    try:
-        modified = os.path.getmtime(path)
-    except FileNotFoundError:
-        return False
-    changed, seen[path] = seen.get(path) != modified, modified
-    return changed
+class Comments(Collector):
+    free_proxies = True
+    rest = LONG_REST
+    give_up = False  # when every proxy rests, wait for one to come back or for refreshed lists
+    follow_lists = True
+    item_name = "videos"
+    saved_name = "new comments"
 
+    def load(self, conn, argument):
+        days = argument or str(DAYS)
+        # "unread" leaves out videos without views and likes (stats found them removed or private): their count row,
+        # where a finished read is recorded, doesn't exist
+        where = {"all": "", "unread": "WHERE NOT s.comments_complete OR s.comments_resume IS NOT NULL"}.get(
+            days, "WHERE v.upload_date >= current_date - %s::int")
+        # Most viewed first: their long comment lists start early instead of holding up the end of the run
+        return [row[0] for row in conn.execute(
+            f"""SELECT v.video_id FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)
+                {where} ORDER BY s.views DESC NULLS LAST""", () if days in ("all", "unread") else (int(days),))]
 
-async def collect_share(video_ids, share, shares):
-    """One process: read its share of the videos through its share of the proxies, saving every 2 seconds."""
-    raise_open_files_limit()
-    lists = {}
-    for path in (PLAIN_PROXY_FILE, PROXY_FILE):
-        list_changed(path, lists)
-    # Free proxies first: the VPN ones are often blocked from next, and untested proxies are tried in order. Every
-    # failed proxy rests 15 minutes (YouTube blocks busy addresses from next for a while), and when all of them rest,
-    # requests wait for one to come back or for new ones from the refreshed lists.
-    pool = Pool(load_share(PLAIN_PROXY_FILE, share, shares) + load_share(PROXY_FILE, share, shares), rest=LONG_REST,
-                give_up=False)
-    results, pending, counts, progress = Counter(), [], [], []
-    async with await psycopg.AsyncConnection.connect(DATABASE_URL, autocommit=True, options=NO_WAIT) as conn:
-        known = defaultdict(set)  # the comments already saved for this process's videos, loaded once
+    def describe(self, argument):
+        days = argument or str(DAYS)
+        window = {"all": "every video", "unread": "not read in full yet"}.get(days, f"uploaded in the last {days} days")
+        return f"videos to read comments of ({window})"
+
+    async def prepare(self, conn, video_ids):
+        self.pending, self.counts, self.places = [], [], []
+        self.known = defaultdict(set)  # the comments already saved for this process's videos, loaded once
         async with conn.cursor() as cur:
             await cur.execute(LOAD_KNOWN, (video_ids,))
             async for video_id, comment_id in cur:
-                known[video_id].add(comment_id)
+                self.known[video_id].add(comment_id)
             await cur.execute(LOAD_STATE, (video_ids,))
             state = await cur.fetchall()
-        complete = {video_id for video_id, whole, _ in state if whole}  # their whole list was read once
-        resume = {video_id: token for video_id, _, token in state if token}  # where a read stopped partway
-        await conn.execute(NEW_COMMENTS)
-        await conn.execute(VIDEO_COUNTS)
-        await conn.execute(VIDEO_PROGRESS)
-        # verify=False: no certificate checks through proxies (all the data is public)
-        async with AsyncSession(impersonate="chrome", verify=False, max_clients=CONCURRENCY * ATTEMPTS) as session:
-            remaining = iter(video_ids)
+        self.complete = {video_id for video_id, whole, _ in state if whole}  # their whole list was read once
+        self.resume = {video_id: token for video_id, _, token in state if token}  # where a read stopped partway
+        for table in (NEW_COMMENTS, VIDEO_COUNTS, VIDEO_PROGRESS):
+            await conn.execute(table)
 
-            async def worker():
-                for video_id in remaining:  # all workers share one iterator
-                    try:
-                        result = await read_video(pool, session, video_id, known.get(video_id, ()),
-                                                  video_id in complete, resume.get(video_id), pending, counts,
-                                                  progress)
-                    except NoProxiesLeft:
-                        return  # this process's proxies all broke; its other videos wait for the next run
-                    results[result] += 1
-                pool.draining = True  # no new videos left: idle capacity goes to the slowest requests
+    async def handle(self, pool, session, video_id):
+        return await read_video(pool, session, video_id, self.known.get(video_id, ()), video_id in self.complete,
+                                self.resume.get(video_id), self.pending, self.counts, self.places)
 
-            stop = asyncio.Event()
+    async def save(self, conn):
+        """Returns how many new comments were saved."""
+        comments, _ = await save_rows(conn, self.pending, self.counts, self.places)
+        return comments
 
-            async def saver():
-                """Saves every 2 seconds until stopped, then once more. Only this touches the database, so a save
-                is never interrupted halfway."""
-                while True:
-                    try:
-                        await asyncio.wait_for(stop.wait(), timeout=2)
-                    except TimeoutError:
-                        pass
-                    stopped = stop.is_set()  # checked before saving: rows added during this save get the next one
-                    comments, videos = await save_rows(conn, pending, counts, progress)
-                    results["new comments"] += comments
-                    with done.get_lock():
-                        done[0] += videos
-                        done[1] += comments
-                    if stopped:
-                        return
-
-            async def follow_lists():
-                """Every minute: proxies new to the free list join the pool, and when sing-box has restarted with new
-                configs, its local proxies are tested again."""
-                while not stop.is_set():
-                    try:
-                        await asyncio.wait_for(stop.wait(), timeout=60)
-                    except TimeoutError:
-                        pass
-                    if list_changed(PLAIN_PROXY_FILE, lists):
-                        pool.add(load_share(PLAIN_PROXY_FILE, share, shares))
-                    if list_changed(PROXY_FILE, lists):
-                        pool.renew(load_share(PROXY_FILE, share, shares))
-
-            saving = asyncio.create_task(saver())
-            following = asyncio.create_task(follow_lists())
-            try:
-                await asyncio.gather(*(worker() for _ in range(min(CONCURRENCY, len(video_ids)))))
-            finally:
-                await pool.close()
-                stop.set()  # also on Ctrl+C or an error: save what we have
-                await saving
-                await following
-    return results, pool.outcomes, len(pool.proven)
-
-
-def share_counter(counter):
-    """Runs first in each worker process."""
-    global done
-    done = counter
-
-
-def run_share(video_ids, share, shares):
-    """Entry point of each worker process: it runs its own event loop."""
-    try:  # if memory runs out, Linux ends a worker first, never PostgreSQL (a crash would empty unlogged tables)
-        with open("/proc/self/oom_score_adj", "w") as f:
-            f.write("1000")
-    except OSError:
-        pass  # not Linux
-    return asyncio.run(collect_share(video_ids, share, shares))
+    def summary(self, results, saved):
+        return f"{results['ok']} videos read, {results['failed']} failed (they continue next run), {saved} new comments"
 
 
 def main():
-    sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
-    days = sys.argv[1] if len(sys.argv) > 1 else str(DAYS)
-    # "unread" leaves out videos without views and likes (stats.py found them removed or private): their count row,
-    # where a finished read is recorded, doesn't exist
-    where = {"all": "", "unread": "WHERE NOT s.comments_complete OR s.comments_resume IS NOT NULL"}.get(
-        days, "WHERE v.upload_date >= current_date - %s::int")
-    with psycopg.connect(DATABASE_URL, autocommit=True) as conn:
-        # Most viewed first: their long comment lists start early instead of holding up the end of the run
-        video_ids = [row[0] for row in conn.execute(
-            f"""SELECT v.video_id FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)
-                {where} ORDER BY s.views DESC NULLS LAST""", () if days in ("all", "unread") else (int(days),))]
-    plain, vpn = load_proxies(PLAIN_PROXY_FILE), load_proxies()
-    window = {"all": "every video", "unread": "not read in full yet"}.get(days, f"uploaded in the last {days} days")
-    print(f"{len(video_ids)} videos to read comments of ({window}), {len(plain)} free proxies and "
-          f"{len(vpn)} VPN proxies")
-    if not video_ids or not plain + vpn:
-        return
-
-    processes = max(1, min(PROCESSES, (len(plain) + len(vpn)) // 50, math.ceil(len(video_ids) / 1000)))
-    print(f"reading with {processes} processes...")
-    context = get_context("spawn")
-    counter = context.Array("q", 2)  # [videos finished, new comments], counted by the worker processes
-    started = time.monotonic()
-    results, outcomes, working = Counter(), Counter(), 0
-    with ProcessPoolExecutor(processes, mp_context=context, initializer=share_counter,
-                             initargs=(counter,)) as executor:
-        futures = [executor.submit(run_share, video_ids[i::processes], i, processes) for i in range(processes)]
-        before, then = 0, started
-        while not all(f.done() for f in futures):
-            wait(futures, timeout=10)
-            now, (videos, comments) = time.monotonic(), counter[:]
-            print(f"{now - started:5.0f} s  {videos} of {len(video_ids)} videos done, {comments} new comments, "
-                  f"{(videos - before) / (now - then):,.0f} videos/s")
-            before, then = videos, now
-        for future in futures:
-            share_results, share_outcomes, share_working = future.result()
-            results += share_results
-            outcomes += share_outcomes
-            working += share_working
-    took = time.monotonic() - started
-    print(f"\nfinished in {took:.0f} s: {results['ok']} videos read, {results['failed']} failed (read in full next "
-          f"run), {results['new comments']} new comments")
-    print(f"requests: {dict(outcomes)}")
-    print(f"{working} proxies working at the end")
-
-
-# Needed for multiple processes: each worker process imports this file and must not run main() again.
-if __name__ == "__main__":
-    main()
+    run(Comments)

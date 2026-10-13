@@ -11,14 +11,15 @@
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
 # packages), creates the database and its tables, and loads the channels to monitor from channels.txt (any file
 # with channel IDs in it, like a CSV export; new IDs are added at every start). Run it as root or as a user with
-# sudo. It starts its own sing-box (stop any other singbox_runner.py first) and stops it on Ctrl+C or kill.
+# sudo. It starts its own sing-box (stop any other singbox-runner first) and stops it on Ctrl+C or kill. Downloaded
+# and generated files (proxy lists, sing-box configs and logs) go in data/.
 set -u
 cd "$(dirname "$0")"
 ROUND_MINUTES=${ROUND_MINUTES:-15}
 DAYS=${DAYS:-90}
 DATABASE=media_monitoring
 SING_BOX_VERSION=1.14.3  # the version the VPN configs were tested with
-RUNNER_LOG=singbox/runner.log
+RUNNER_LOG=data/singbox/runner.log
 export PATH="$HOME/.local/bin:$PATH"  # where uv installs itself
 runner=""
 
@@ -116,10 +117,10 @@ stop_singbox() {
 }
 
 start_singbox() {
-    mkdir -p singbox
-    setsid uv run singbox_runner.py > "$RUNNER_LOG" 2>&1 < /dev/null &
+    mkdir -p data/singbox
+    setsid uv run singbox-runner > "$RUNNER_LOG" 2>&1 < /dev/null &
     runner=$!
-    ready="local proxies saved\|Traceback\|failed to start\|another singbox_runner"
+    ready="local proxies saved\|Traceback\|failed to start\|another singbox-runner"
     until grep -q "$ready" "$RUNNER_LOG" 2> /dev/null; do
         kill -0 "$runner" 2> /dev/null || break
         sleep 1
@@ -138,15 +139,15 @@ trap 'stop_singbox; exit' INT TERM
 while true; do
     started=$(date +%s)
     echo "### $(date -u '+%F %T') round"
-    uv run vpn_configs.py | tail -1
-    uv run plain_proxies.py | tail -1
+    uv run vpn-configs | tail -1
+    uv run plain-proxies | tail -1
     stop_singbox
     if ! start_singbox; then
         echo "### sing-box didn't start; trying again in a minute"
         sleep 60
         continue
     fi
-    for step in "channels.py" "videos.py" "details.py" "stats.py $DAYS" "comments.py $DAYS"; do
+    for step in "channels" "videos" "details" "stats $DAYS" "comments $DAYS"; do
         echo "### $(date -u +%T) $step"
         uv run $step
     done
