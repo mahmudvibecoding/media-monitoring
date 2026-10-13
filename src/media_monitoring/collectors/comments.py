@@ -1,6 +1,8 @@
 """Collect the comments of videos, newest first, top level only (no replies). The first time, a video's whole
 comment list is read; after that, only the new comments, down to the first page that ends with one we already have.
-A read that stops partway (a page fails, or the run stops) continues next time from where it stopped.
+To recognize those, each video keeps the IDs of its newest comments (youtube_comments_newest): a run reads them with
+the list of videos, instead of loading every saved comment. A read that stops partway (a page fails, or the run
+stops) continues next time from where it stopped.
 
 "uv run comments" covers the videos uploaded in the last DAYS days, "uv run comments 30" the last 30 days,
 "uv run comments all" every video, and "uv run comments unread" every video whose whole list hasn't been read yet.
@@ -28,6 +30,9 @@ DAYS = 90  # by default, the videos uploaded in the last DAYS days
 EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
 NOTE_EVERY = 20  # during a long read, every this many pages note where to continue, in case the run stops
 END, KNOWN, INVALID = object(), object(), object()  # how a read of pages ended (see read_video)
+# Comment IDs each video keeps, newest first. A page holds about 20 comments, so the page a read stops at ends with
+# one of the newest 20 it already has; the other 20 cover comments deleted since.
+NEWEST = 40
 # Saving normally keeps up, so a process holds a few thousand unsaved comments. Only if it falls this far behind do
 # its videos wait before their next page, so the server can't run out of memory (which would crash PostgreSQL)
 MAX_UNSAVED = 250_000
@@ -51,8 +56,8 @@ NEW_COMMENTS = """CREATE TEMP TABLE new_comments (video_id text, comment_id text
 SAVE_COMMENTS = """INSERT INTO youtube_comments (video_id, comment_id, author_channel_id, author_name, text,
                                                 published_text, published_at)
                    SELECT * FROM new_comments ON CONFLICT DO NOTHING"""
-VIDEO_COUNTS = """CREATE TEMP TABLE video_counts (video_id text, comments bigint, complete boolean, resume text)
-                  ON COMMIT DELETE ROWS"""
+VIDEO_COUNTS = """CREATE TEMP TABLE video_counts (video_id text, comments bigint, complete boolean, resume text,
+                                                  newest text[]) ON COMMIT DELETE ROWS"""
 # A failed read keeps the count it had
 SAVE_COUNTS = """UPDATE youtube_video_stats AS s
                  SET comments = coalesce(c.comments, s.comments), comments_complete = c.complete,
@@ -61,9 +66,11 @@ SAVE_COUNTS = """UPDATE youtube_video_stats AS s
 VIDEO_PROGRESS = "CREATE TEMP TABLE video_progress (video_id text, resume text) ON COMMIT DELETE ROWS"
 SAVE_PROGRESS = """UPDATE youtube_video_stats AS s SET comments_resume = p.resume
                    FROM video_progress AS p WHERE s.video_id = p.video_id"""
+# Only a finished read whose newest comments changed brings a list, so unchanged videos aren't written at all
+SAVE_NEWEST = """INSERT INTO youtube_comments_newest (video_id, newest)
+                 SELECT video_id, newest FROM video_counts WHERE newest IS NOT NULL
+                 ON CONFLICT (video_id) DO UPDATE SET newest = excluded.newest"""
 LOAD_KNOWN = "SELECT video_id, comment_id FROM youtube_comments WHERE video_id = ANY(%s)"
-LOAD_STATE = """SELECT video_id, comments_complete, comments_resume FROM youtube_video_stats
-                WHERE (comments_complete OR comments_resume IS NOT NULL) AND video_id = ANY(%s)"""
 
 def first_token(video_id):
     """The token for the first page of a video's comments, newest first, built from its ID: what the video's page
@@ -123,20 +130,23 @@ async def fetch_page(session, token, proxy):
         return "youtube error", None  # an answer in an unexpected shape; the next try gets it
 
 
-async def read_video(pool, session, video_id, known, complete, resume, pending, counts, progress):
+async def read_video(pool, session, video_id, known, newest, complete, resume, pending, counts, progress):
     """Read one video's comments, newest first, adding the new ones to pending. First from the top: down to the first
     page that ends with a comment we already have if its whole list was read before (complete) or an earlier read
     left a place to continue from (resume), else the whole list. Then, with resume, from that place on: to the end,
     or for a complete video (where the place marks a gap) down to comments we already have. Adds (video_id, count,
-    complete, resume) to counts once done: if a page failed, resume is where to continue next time.
+    complete, resume, newest) to counts once done: if a page failed, resume is where to continue next time; if the
+    read finished and its newest comments changed, newest lists them (else None).
     Returns "ok" or "failed"."""
-    now, seen, count = datetime.now(timezone.utc), set(), None
+    now, seen, count, on_top = datetime.now(timezone.utc), set(), None, []
 
     async def read(token, stop_at_known, top):
         """Pages from token on. Returns END or KNOWN when done, INVALID if a saved token no longer works, or the
         token of the page that failed, to continue from later."""
         nonlocal count
         pages = empty_tries = 0
+        if top:
+            on_top.clear()  # a read from the top meets the newest comments first
         while token:
             while len(pending) > MAX_UNSAVED:
                 await asyncio.sleep(0.5)
@@ -155,6 +165,8 @@ async def read_video(pool, session, video_id, known, complete, resume, pending, 
             if top and not pages:
                 count = page_count
             for comment in comments:
+                if top and len(on_top) < NEWEST and comment[0] not in on_top:
+                    on_top.append(comment[0])
                 if comment[0] not in known and comment[0] not in seen:  # a comment can show up again on the next page
                     seen.add(comment[0])
                     pending.append((video_id, *comment, published(comment[4], now)))
@@ -171,7 +183,12 @@ async def read_video(pool, session, video_id, known, complete, resume, pending, 
         if left is INVALID:  # the saved place no longer works: read the whole list again
             left = await read(first_token(video_id), stop_at_known=False, top=True)
     finished = left is END or left is KNOWN
-    counts.append((video_id, count, True, None) if finished else (video_id, count, complete, left))
+    if finished:
+        # This read's newest comments, then the earlier newest below them, where it stopped
+        latest = list(dict.fromkeys(on_top + newest))[:NEWEST]
+        counts.append((video_id, count, True, None, latest if latest != newest else None))
+    else:
+        counts.append((video_id, count, complete, left, None))
     return "ok" if finished else "failed"
 
 
@@ -205,6 +222,7 @@ async def save_rows(conn, pending, counts, progress):
                     for row in finished:
                         await copy.write_row(row)
                 await cur.execute(SAVE_COUNTS)
+                await cur.execute(SAVE_NEWEST)
     return len(rows), len(finished)
 
 
@@ -221,33 +239,41 @@ class Comments(Collector):
         # where a finished read is recorded, doesn't exist
         where = {"all": "", "unread": "WHERE NOT s.comments_complete OR s.comments_resume IS NOT NULL"}.get(
             days, "WHERE v.upload_date >= current_date - %s::int")
-        # Most viewed first: their long comment lists start early instead of holding up the end of the run
-        return [row[0] for row in conn.execute(
-            f"""SELECT v.video_id FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)
-                {where} ORDER BY s.views DESC NULLS LAST""", () if days in ("all", "unread") else (int(days),))]
+        # Each video with what its read needs: whether its whole list was read, where a read stopped partway, and
+        # its newest comments, all in one pass over the tables. Most viewed first: their long comment lists start
+        # early instead of holding up the end of the run.
+        return conn.execute(
+            f"""SELECT v.video_id, coalesce(s.comments_complete, false), s.comments_resume, n.newest
+                FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)
+                     LEFT JOIN youtube_comments_newest AS n USING (video_id)
+                {where} ORDER BY s.views DESC NULLS LAST""", () if days in ("all", "unread") else (int(days),)
+        ).fetchall()
 
     def describe(self, argument):
         days = argument or str(DAYS)
         window = {"all": "every video", "unread": "not read in full yet"}.get(days, f"uploaded in the last {days} days")
         return f"videos to read comments of ({window})"
 
-    async def prepare(self, conn, video_ids):
+    async def prepare(self, conn, items):
         self.pending, self.counts, self.places = [], [], []
-        self.known = defaultdict(set)  # the comments already saved for this process's videos, loaded once
-        async with conn.cursor() as cur:
-            await cur.execute(LOAD_KNOWN, (video_ids,))
-            async for video_id, comment_id in cur:
-                self.known[video_id].add(comment_id)
-            await cur.execute(LOAD_STATE, (video_ids,))
-            state = await cur.fetchall()
-        self.complete = {video_id for video_id, whole, _ in state if whole}  # their whole list was read once
-        self.resume = {video_id: token for video_id, _, token in state if token}  # where a read stopped partway
+        # A video's newest comments are enough to find where its read stops. A read that stopped partway also needs
+        # the ones further down, and a video read before the newest were kept has none: those load every comment
+        # saved for them, which is slow for many videos at once (random reads all over the comments' index)
+        whole = [video_id for video_id, complete, resume, newest in items if resume or (complete and newest is None)]
+        self.known = defaultdict(set)
+        if whole:
+            async with conn.cursor() as cur:
+                await cur.execute(LOAD_KNOWN, (whole,))
+                async for video_id, comment_id in cur:
+                    self.known[video_id].add(comment_id)
         for table in (NEW_COMMENTS, VIDEO_COUNTS, VIDEO_PROGRESS):
             await conn.execute(table)
 
-    async def handle(self, pool, session, video_id):
-        return await read_video(pool, session, video_id, self.known.get(video_id, ()), video_id in self.complete,
-                                self.resume.get(video_id), self.pending, self.counts, self.places)
+    async def handle(self, pool, session, item):
+        video_id, complete, resume, newest = item
+        known = self.known.get(video_id) or set(newest or ())
+        return await read_video(pool, session, video_id, known, newest or [], complete, resume, self.pending,
+                                self.counts, self.places)
 
     async def save(self, conn):
         """Returns how many new comments were saved."""

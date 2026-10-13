@@ -65,6 +65,7 @@ half minutes, and reading every video's comments the first time took hours.
   read, and where an unfinished read continues.
 - **`youtube_comments`:** top-level comments, no replies: the author's channel and name, the text, the time
   as YouTube shows it ("2 hours ago"), the time estimated from that, and when we first saw the comment.
+- **`youtube_comments_newest`:** each video's 40 newest comment IDs as of its last finished read, newest first.
 
 `schema.sql` creates the tables. `run.sh` runs it at every start, and it only adds what's missing.
 
@@ -86,6 +87,10 @@ half minutes, and reading every video's comments the first time took hours.
 - **Long comment lists continue where they stopped.** Some videos have hundreds of thousands of comments.
   Every 20 pages a read notes where it is, so if it stops (a page keeps failing, or the run ends), the next
   run continues from there instead of starting over.
+- **A run loads only each video's newest comments.** To find where a read stops, a run has to recognize the
+  comments it already has at the top of each list. A page holds about 20 comments, so those are among the video's
+  40 newest, which a run reads with the list of videos. Loading every saved comment instead would take a 360-day
+  run a minute or more of scattered disk reads before its first page.
 - **Fast saving.** Each process saves what it has collected every 2 seconds, with COPY, PostgreSQL's fastest
   way to add rows. Saves don't wait for the disk: a crash could lose the last second of them, which the next
   round collects again. `run.sh` also sets PostgreSQL up for heavy writing: a quarter of the memory as its

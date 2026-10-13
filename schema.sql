@@ -53,3 +53,11 @@ CREATE TABLE IF NOT EXISTS youtube_comments (
     first_seen_at     timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (video_id, comment_id)      -- a video's comments sit together, so they load quickly
 );
+
+-- Each video's newest comments as of its last finished read, newest first (YouTube's order): what the next read
+-- recognizes to stop at, so a run loads these few IDs instead of every saved comment. Written by the comments
+-- collector only when they change, and kept out of youtube_video_stats so its rows stay narrow.
+CREATE TABLE IF NOT EXISTS youtube_comments_newest (
+    video_id  text PRIMARY KEY,
+    newest    text[] NOT NULL
+);
