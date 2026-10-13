@@ -20,7 +20,7 @@ from curl_cffi import AsyncSession
 from media_monitoring.pool import PLAIN_PROXY_FILE, PROXY_FILE, raise_open_files_limit
 from media_monitoring.youtube import API, CONTEXT
 
-VPN_SOURCES = "data/vpn_sources.txt"  # from vpn-configs: "<link> <source> <source> ..."
+VPN_SOURCES = "data/vpn_sources.txt"  # from vpn-proxies: "<link> <source> <source> ..."
 PLAIN_SOURCES = "data/plain_sources.txt"  # from plain-proxies: "<proxy> <source> <source> ..."
 # Tuned on a 52-core server. PROCESSES x CHECKS_PER_PROCESS should cover all VPN proxies, so they're checked in one
 # wave; the free ones take a few. On a laptop, use far fewer (e.g. 4 processes x 500).

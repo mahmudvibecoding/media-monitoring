@@ -13,7 +13,7 @@ YouTube sees the proxy's address instead of the server's.
 ## Where they come from
 
 - **VPN configs.** People share free VPN configurations publicly, mostly to help others get around internet
-  censorship, and many GitHub projects collect them from Telegram channels into lists. `vpn-configs`
+  censorship, and many GitHub projects collect them from Telegram channels into lists. `vpn-proxies`
   downloads 24 of those lists, from 19 projects. `singbox-runner` then runs every config with sing-box, as a
   proxy on the server itself: about 67,000 of them, 1,000 per sing-box process, each group on its own local
   address (127.1.1.1, 127.1.2.1, and so on). A few thousand of them work at any time.

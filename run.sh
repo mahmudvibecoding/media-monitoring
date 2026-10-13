@@ -152,7 +152,7 @@ trap 'exit 143' TERM
 
 started=$(date +%s)
 echo "### $(date -u '+%F %T') round"
-uv run vpn-configs | tail -1
+uv run vpn-proxies | tail -1
 if [ -n "$plain" ]; then
     uv run plain-proxies | tail -1
 fi

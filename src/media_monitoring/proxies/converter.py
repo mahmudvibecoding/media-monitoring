@@ -5,7 +5,7 @@ import subprocess
 from collections import Counter
 from urllib.parse import parse_qsl
 
-from media_monitoring.proxies.vpn_configs import decode_base64, split_address, ss_credentials
+from media_monitoring.proxies.vpn_proxies import decode_base64, split_address, ss_credentials
 
 INPUT = "data/vpn_configs.txt"
 OUTPUT = "data/outbounds.json"

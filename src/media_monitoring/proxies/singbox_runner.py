@@ -12,7 +12,7 @@ from pathlib import Path
 
 from media_monitoring.proxies.converter import Unusable, to_outbound
 
-INPUT = "data/vpn_configs.txt"  # from vpn-configs
+INPUT = "data/vpn_configs.txt"  # from vpn-proxies
 OUTPUT = "data/vpn_proxies.txt"  # one line per config: "socks5h://127.1.1.1:20000 <link>"
 FOLDER = Path("data/singbox")  # the generated sing-box configs and logs
 GROUP_SIZE = 1000  # configs per sing-box process

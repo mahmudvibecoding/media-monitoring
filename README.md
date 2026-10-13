@@ -41,7 +41,7 @@ addresses, which helps `details` and `comments`, since their endpoint blocks bus
 | `uv run details` | fetches the title, description and upload day of videos that don't have them yet |
 | `uv run stats [days\|all]` | refreshes views and likes (videos from the last 90 days by default) |
 | `uv run comments [days\|all\|unread]` | collects new comments (videos from the last 90 days by default) |
-| `uv run vpn-configs` | downloads the public lists of VPN configs |
+| `uv run vpn-proxies` | downloads the public lists of VPN configs, which `singbox-runner` runs as proxies |
 | `uv run plain-proxies` | downloads the public lists of free proxies |
 | `uv run singbox-runner` | runs the VPN configs as local proxies |
 | `uv run check-vpn` | reports which VPN lists work best (optional) |
