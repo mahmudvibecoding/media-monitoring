@@ -5,16 +5,14 @@ report: the collectors find working proxies by themselves (see pool.py).
     uv run proxies check vpn      the local VPN proxies run by sing-box (after uv run proxies)
     uv run proxies check plain    the free proxies (downloaded by uv run proxies)
 
-A VPN proxy is checked with a channel page, the lightest request the collectors make. Free proxies come in when the VPN
-ones stop working, which YouTube's next endpoint (video pages and comments) does most, so a free proxy is checked
-with a video page.
+Every proxy, VPN or free, is checked the same way: with a channel page, asking only for its title, the lightest
+request the collectors make.
 """
 import asyncio
 import sys
 import time
 from collections import Counter, defaultdict
 from concurrent.futures import ProcessPoolExecutor
-from functools import partial
 from multiprocessing import get_context
 
 from curl_cffi import AsyncSession
@@ -29,35 +27,21 @@ PLAIN_SOURCES = "data/plain_sources.txt"  # from plain_proxies.py: "<proxy> <sou
 PROCESSES = 96
 CHECKS_PER_PROCESS = 1500  # checks in flight in each process; 1500-2000 is safe
 TIMEOUT = 5  # seconds per check, like a request in the collectors: slower proxies barely do any work there
-# The request each kind of proxy is checked with: (url, body, headers). Both ask only for a title.
-TESTS = {
-    "vpn": (API + "browse?prettyPrint=false", {"browseId": "UCVPst_iSyaVYpuOP4ogRhlw"},  # KunUZ
-            {"X-Goog-FieldMask": "metadata.channelMetadataRenderer.title"}),
-    "plain": (API + "next?prettyPrint=false&fields=contents/twoColumnWatchNextResults/results/results/contents/"
-              "videoPrimaryInfoRenderer/title/runs/text", {"videoId": "dQw4w9WgXcQ"}, {}),  # up since 2009
-}
+# The request every proxy is checked with: a channel page, asking only for its title
+URL = API + "browse?prettyPrint=false"
+BODY = {"browseId": "UCVPst_iSyaVYpuOP4ogRhlw"}  # KunUZ
+HEADERS = {"X-Goog-FieldMask": "metadata.channelMetadataRenderer.title"}
 
 
-def title(kind, data):
-    """The title in a test's answer, or None."""
-    if kind == "vpn":
-        return data["metadata"]["channelMetadataRenderer"]["title"]
-    for item in data["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"]:
-        if "videoPrimaryInfoRenderer" in item:
-            return "".join(run["text"] for run in item["videoPrimaryInfoRenderer"]["title"]["runs"])
-    return None
-
-
-async def check(session, proxy, kind):
+async def check(session, proxy):
     """Check one proxy. Returns (seconds, outcome); seconds is None if the proxy failed."""
-    url, body, headers = TESTS[kind]
     start = time.monotonic()
     try:
-        response = await session.post(url, json={"context": CONTEXT, **body}, headers=headers, proxy=proxy,
+        response = await session.post(URL, json={"context": CONTEXT, **BODY}, headers=HEADERS, proxy=proxy,
                                       timeout=TIMEOUT)
         if response.status_code != 200:
             return None, f"HTTP {response.status_code}"
-        found = title(kind, response.json())
+        found = response.json()["metadata"]["channelMetadataRenderer"]["title"]
     except Exception as error:
         # Proxies fail in many ways, so any error counts as a failed check. The summary counts each error
         # type, so a mistake in this code would still show up (e.g. "2000  NameError").
@@ -67,7 +51,7 @@ async def check(session, proxy, kind):
     return time.monotonic() - start, "works"
 
 
-async def check_share(proxies, kind):
+async def check_share(proxies):
     """Check one process's share of the proxies, CHECKS_PER_PROCESS at a time."""
     raise_open_files_limit()
     working, outcomes = [], Counter()
@@ -75,7 +59,7 @@ async def check_share(proxies, kind):
 
     async def worker():
         for proxy in remaining:  # all workers share one iterator, so each proxy is checked once
-            seconds, outcome = await check(session, proxy, kind)
+            seconds, outcome = await check(session, proxy)
             outcomes[outcome] += 1
             if seconds is not None:
                 working.append((seconds, proxy))
@@ -86,19 +70,19 @@ async def check_share(proxies, kind):
     return working, outcomes
 
 
-def run_share(proxies, kind):
+def run_share(proxies):
     """Entry point of each worker process: it runs its own event loop."""
-    return asyncio.run(check_share(proxies, kind))
+    return asyncio.run(check_share(proxies))
 
 
-def check_all(proxies, kind):
+def check_all(proxies):
     """Split the proxies between processes and check them in parallel."""
     # only as many processes as one wave needs (up to PROCESSES): 1,000 proxies need just one
     processes = max(1, min(PROCESSES, -(-len(proxies) // CHECKS_PER_PROCESS)))
     shares = [proxies[i::processes] for i in range(processes)]
     # "spawn" starts each process fresh, which works the same on macOS and Linux
     with ProcessPoolExecutor(processes, mp_context=get_context("spawn")) as pool:
-        results = list(pool.map(partial(run_share, kind=kind), shares))
+        results = list(pool.map(run_share, shares))
     working = sorted(w for share_working, _ in results for w in share_working)
     outcomes = sum((share_outcomes for _, share_outcomes in results), Counter())
     return working, outcomes
@@ -130,7 +114,7 @@ def report(kind, proxies, group_name):
     """Check the proxies, given as {proxy: (group, [source, ...])}, and print what works per group and source."""
     print(f"checking {len(proxies)} {'local VPN' if kind == 'vpn' else 'free'} proxies...")
     started = time.monotonic()
-    working, outcomes = check_all(list(proxies), kind)
+    working, outcomes = check_all(list(proxies))
     print(f"\n{len(working)} of {len(proxies)} work ({time.monotonic() - started:.0f} s)")
     for outcome, count in outcomes.most_common():
         print(f"{count:>7}  {outcome}")

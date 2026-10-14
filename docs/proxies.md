@@ -85,8 +85,8 @@ for them instead of stopping.
 ## Checking the lists
 
 `uv run proxies check` sends one real request through every proxy and reports how many work: the VPN ones by
-protocol and by list, and the free ones by type and by list, checked with a video page, since that's what they're
-used for. `uv run proxies check vpn` or `check plain` checks one kind. The collectors don't need it; it shows which
+protocol and by list, and the free ones by type and by list. Both kinds are checked the same way, with a channel
+page. `uv run proxies check vpn` or `check plain` checks one kind. The collectors don't need it; it shows which
 lists are worth keeping.
 
 ## Weak points
