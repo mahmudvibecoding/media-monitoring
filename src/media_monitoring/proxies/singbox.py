@@ -93,28 +93,6 @@ def stop_old():
     return len(old)
 
 
-def convert(links):
-    """In a worker process: each link as a sing-box outbound, tagged later, or None where sing-box can't use it."""
-    outbounds = []
-    for link in links:
-        try:
-            outbounds.append(to_outbound(link, None))
-        except Unusable:
-            outbounds.append(None)
-    return outbounds
-
-
-def convert_all(links):
-    """Every link as a sing-box outbound or None, in order, the work split between processes: on one core it takes
-    about 4 seconds."""
-    shares = max(1, min(os.cpu_count(), len(links) // 1000))
-    size = -(-len(links) // shares)
-    # "spawn" starts each process fresh, which works the same on macOS and Linux
-    with ProcessPoolExecutor(shares, mp_context=get_context("spawn")) as pool:
-        parts = pool.map(convert, [links[i:i + size] for i in range(0, len(links), size)])
-        return [outbound for part in parts for outbound in part]
-
-
 def group_config(group):
     """A sing-box config for one group: one SOCKS5 inbound per config, routed to its outbound."""
     inbounds, outbounds, rules = [], [], []
@@ -151,33 +129,48 @@ def wait_until_ready(process, host, port, timeout=60):
     return False
 
 
-def start_groups(configs, processes):
-    """Start one sing-box process per group. Returns {group number: (process, group)} for those that started.
+def build_group(number, first, links):
+    """In a worker process: one group's sing-box config, written to its file. Config number first + k is links[k],
+    on that number's address and port; a link sing-box can't use leaves its port unused. Returns
+    [(config number, link), ...] for the configs in the group."""
+    group = []
+    for i, link in enumerate(links, first):
+        try:
+            group.append((i, to_outbound(link, f"out-{i}"), link))
+        except Unusable:
+            continue
+    if group:
+        (FOLDER / f"group-{number}.json").write_text(json.dumps(group_config([(i, out) for i, out, _ in group])))
+    return [(i, link) for i, _, link in group]
+
+
+def start_groups(groups, processes):
+    """Start one sing-box process per group, given as [(group number, [(config number, link), ...]), ...] from
+    build_group. Returns {group number: (process, configs)} for those that started.
 
     Each process is added to `processes` as soon as it starts, so all of them can be stopped even if
     this is interrupted halfway.
     """
-    FOLDER.mkdir(parents=True, exist_ok=True)
-    groups = [configs[g:g + GROUP_SIZE] for g in range(0, len(configs), GROUP_SIZE)]
     started = {}
-    for number, group in enumerate(groups, 1):
-        taken = [address_and_port(i) for i, _ in group if not port_is_free(*address_and_port(i))]
-        if taken:
-            host, port = taken[0]
-            print(f"group {number} skipped: {len(taken)} of its ports are in use, e.g. {host}:{port} "
-                  "(is another singbox running?)")
+    for number, configs in groups:
+        if not configs:
             continue
-        path = FOLDER / f"group-{number}.json"
-        path.write_text(json.dumps(group_config(group)))
+        # Another singbox on these addresses would hold the group's ports: one of them shows it. Nothing else takes
+        # ports here (outgoing connections get ports from 32768 up).
+        host, port = address_and_port(configs[0][0])
+        if not port_is_free(host, port):
+            print(f"group {number} skipped: its ports are in use, e.g. {host}:{port} (is another singbox running?)")
+            continue
         log = open(FOLDER / f"group-{number}.log", "w")
-        process = subprocess.Popen(["sing-box", "run", "-c", str(path)], stdout=log, stderr=log)
+        process = subprocess.Popen(["sing-box", "run", "-c", str(FOLDER / f"group-{number}.json")], stdout=log,
+                                   stderr=log)
         processes.append(process)
-        started[number] = (process, group)
+        started[number] = (process, configs)
 
     running = {}
-    for number, (process, group) in started.items():
-        if wait_until_ready(process, *address_and_port(group[-1][0])):
-            running[number] = (process, group)
+    for number, (process, configs) in started.items():
+        if wait_until_ready(process, *address_and_port(configs[-1][0])):
+            running[number] = (process, configs)
         else:
             process.terminate()
             log = (FOLDER / f"group-{number}.log").read_text().strip().splitlines()
@@ -194,32 +187,32 @@ def main():
     if limit:
         links = random.sample(links, min(limit, len(links)))
 
-    configs, links_by_index = [], {}
-    for link, outbound in zip(links, convert_all(links)):
-        if outbound is None:
-            continue
-        outbound["tag"] = f"out-{len(configs)}"
-        links_by_index[len(configs)] = link
-        configs.append((len(configs), outbound))
-
-    stop_old()
+    # Each group's configs are converted and written by a process of its own, while the old sing-box stops
+    FOLDER.mkdir(parents=True, exist_ok=True)
+    starts = range(0, len(links), GROUP_SIZE)
+    # "spawn" starts each process fresh, which works the same on macOS and Linux
+    with ProcessPoolExecutor(max(1, min(len(starts), os.cpu_count())), mp_context=get_context("spawn")) as pool:
+        built = pool.map(build_group, range(1, len(starts) + 1), starts, [links[g:g + GROUP_SIZE] for g in starts])
+        stop_old()  # its ports are needed next
+        groups = list(enumerate(built, 1))
+    usable = sum(len(configs) for _, configs in groups)
     # Stop the sing-box processes on Ctrl+C and on "kill", so they don't keep holding the ports.
     signal.signal(signal.SIGINT, signal.default_int_handler)  # Ctrl+C, even if started in the background
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     processes = []
     try:
-        print(f"starting {len(configs)} configs in {-(-len(configs) // GROUP_SIZE)} sing-box processes...")
+        print(f"starting {usable} configs in {sum(bool(configs) for _, configs in groups)} sing-box processes...")
         began = time.monotonic()
-        running = start_groups(configs, processes)
+        running = start_groups(groups, processes)
         print(f"{len(running)} processes running after {time.monotonic() - began:.0f} s")
         if not running:
             return
 
         with open(f"{OUTPUT}.tmp", "w") as f:
-            for _, group in running.values():
-                for i, _ in group:
+            for _, configs in running.values():
+                for i, link in configs:
                     host, port = address_and_port(i)
-                    f.write(f"socks5h://{host}:{port} {links_by_index[i]}\n")
+                    f.write(f"socks5h://{host}:{port} {link}\n")
         os.replace(f"{OUTPUT}.tmp", OUTPUT)  # all at once: a collector reading it never sees half a list
         print(f"{sum(len(g) for _, g in running.values())} local proxies saved to {OUTPUT}")
 
