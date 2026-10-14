@@ -83,7 +83,9 @@ for them instead of stopping.
   proxy for good, a long run slowed from 8,000 videos a second to 80; now failed proxies rest and come back.
 - **Testing more proxies at once slows the work.** With 500 tests at a time in each process instead of 100, a
   channels run found about 6,500 working proxies instead of 1,600, but took 14 to 15 seconds instead of 8 to 10
-  (with another run keeping the server busy).
+  (with another run keeping the server busy). Testing 500 at a time only while requests waited for a free proxy
+  was slower too, on a quiet server: channels took 11 seconds instead of 7 to 8, uploads lists 14 to 15 instead of
+  11 to 12, and views and likes 10 instead of 6, while comments were no faster.
 - **Bandwidth isn't a limit.** A video page takes about 700 bytes down and 530 up, so even 12,000 a second
   use only about 65 Mbit/s down and 50 up.
 
