@@ -6,7 +6,7 @@ Run it after "uv run proxies": the pool tests the proxies by itself (see pool.py
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
-from media_monitoring.youtube import API, CONTEXT, call
+from media_monitoring.youtube import API, CONTEXT, TEST_CHANNEL, call
 
 URL = API + "browse?prettyPrint=false"
 PROFILE = "microformat.microformatDataRenderer.channelProfileMicroformatDetails.profilePage.mainEntity"
@@ -83,6 +83,9 @@ class Channels(Collector):
     async def prepare(self, conn, channel_ids):
         self.pending = []
         await conn.execute(CHANNELS)
+
+    async def test(self, session, proxy):
+        return await fetch(session, TEST_CHANNEL, proxy)
 
     async def handle(self, pool, session, channel_id):
         outcome, row = await pool.run(partial(fetch, session, channel_id))

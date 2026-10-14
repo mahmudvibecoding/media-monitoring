@@ -18,7 +18,7 @@ from multiprocessing import get_context
 from curl_cffi import AsyncSession
 
 from media_monitoring.pool import PLAIN_PROXY_FILE, PROXY_FILE, raise_open_files_limit
-from media_monitoring.youtube import API, CONTEXT
+from media_monitoring.youtube import API, CONTEXT, TEST_CHANNEL
 
 VPN_SOURCES = "data/vpn_sources.txt"  # from vpn_proxies.py: "<link> <source> <source> ..."
 PLAIN_SOURCES = "data/plain_sources.txt"  # from plain_proxies.py: "<proxy> <source> <source> ..."
@@ -29,7 +29,7 @@ CHECKS_PER_PROCESS = 1500  # checks in flight in each process; 1500-2000 is safe
 TIMEOUT = 5  # seconds per check, like a request in the collectors: slower proxies barely do any work there
 # The request every proxy is checked with: a channel page, asking only for its title
 URL = API + "browse?prettyPrint=false"
-BODY = {"browseId": "UCVPst_iSyaVYpuOP4ogRhlw"}  # KunUZ
+BODY = {"browseId": TEST_CHANNEL}
 HEADERS = {"X-Goog-FieldMask": "metadata.channelMetadataRenderer.title"}
 
 

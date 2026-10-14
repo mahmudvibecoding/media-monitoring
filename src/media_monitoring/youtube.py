@@ -3,6 +3,9 @@ one proxy. The collectors ask it for channels, uploads lists, video pages, count
 API = "https://www.youtube.com/youtubei/v1/"
 CONTEXT = {"client": {"clientName": "WEB", "clientVersion": "2.20251001.01.00", "hl": "en", "gl": "US"}}
 TIMEOUT = 5  # seconds; a proxy that hasn't answered by then has failed
+# What proxies are tested with (see pool.py): a channel and a video that have been up for years
+TEST_CHANNEL = "UCVPst_iSyaVYpuOP4ogRhlw"  # KunUZ
+TEST_VIDEO = "dQw4w9WgXcQ"  # up since 2009
 
 
 async def call(session, proxy, method, url, **kwargs):

@@ -18,14 +18,15 @@ import time
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, wait
 from concurrent.futures.process import BrokenProcessPool
+from functools import partial
 from multiprocessing import get_context
 
 import psycopg
 from curl_cffi import AsyncSession
 
 from media_monitoring import db
-from media_monitoring.pool import (ATTEMPTS, PLAIN_PROXY_FILE, PROXY_FILE, NoProxiesLeft, Pool, load_proxies,
-                                   load_share, raise_open_files_limit)
+from media_monitoring.pool import (ATTEMPTS, PLAIN_PROXY_FILE, PROXY_FILE, TESTS_AT_ONCE, NoProxiesLeft, Pool,
+                                   load_proxies, load_share, raise_open_files_limit)
 
 PROCESSES = max(1, os.cpu_count() - 4)  # each runs its own event loop; a few cores stay free for sing-box
 SAVE_EVERY = 2  # seconds
@@ -68,6 +69,11 @@ class Collector:
     async def prepare(self, conn, items):
         """In each worker process, before the work: e.g. temporary tables, or what's already saved."""
 
+    async def test(self, session, proxy):
+        """One test of a proxy (see Pool): the collector's own kind of request, on an item that has been up for years.
+        Returns (outcome, result) like a request."""
+        raise NotImplementedError
+
     async def handle(self, pool, session, item):
         """One item: fetch it through pool.run and keep what should be saved. Returns its outcome, e.g. "ok"."""
         raise NotImplementedError
@@ -108,7 +114,8 @@ async def work(collector, items, share, shares):
         progress[mine + READY] = 1  # what's already saved is loaded, and the work starts
         # verify=False: no certificate checks through proxies (all the data is public)
         async with AsyncSession(impersonate="chrome", verify=False,
-                                max_clients=collector.concurrency * ATTEMPTS) as session:
+                                max_clients=collector.concurrency * ATTEMPTS + TESTS_AT_ONCE) as session:
+            pool.start_testing(partial(collector.test, session))
             remaining, stop, halted = iter(items), asyncio.Event(), False
 
             async def worker():
@@ -175,7 +182,7 @@ async def work(collector, items, share, shares):
                 await pool.close()
                 stop.set()  # also when stopping early or on an error: save what we have
                 await asyncio.gather(*tasks)
-    return results, pool.outcomes, len(pool.proven)
+    return results, pool.outcomes, pool.test_outcomes, len(pool.proven)
 
 
 def start(counter, main):
@@ -284,7 +291,7 @@ def run(collector_class):
     # until they ignore them (see start), and here they arrive once the workers are running
     signal.pthread_sigmask(signal.SIG_BLOCK, handled)
     started = time.monotonic()
-    results, outcomes, working = Counter(), Counter(), 0
+    results, outcomes, tests, working = Counter(), Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=context, initializer=start,
                              initargs=(counter, os.getpid())) as executor:
         futures = [executor.submit(run_share, collector_class, items[i::processes], i, processes)
@@ -307,12 +314,13 @@ def run(collector_class):
         broken = False  # a worker process ended unexpectedly (killed, or out of memory): the pool ends the others
         for future in futures:
             try:
-                share_results, share_outcomes, share_working = future.result()
+                share_results, share_outcomes, share_tests, share_working = future.result()
             except BrokenProcessPool:
                 broken = True
                 continue
             results += share_results
             outcomes += share_outcomes
+            tests += share_tests
             working += share_working
     took = time.monotonic() - started
     finished, saved, _, reserve = totals()
@@ -324,6 +332,7 @@ def run(collector_class):
         print(f"\n{'stopped after' if asked else 'finished in'} {took:.0f} s ({rate}): "
               f"{collector.summary(results, saved)}")
         print(f"requests: {dict(outcomes)}")
+        print(f"proxy tests: {dict(tests)}")
     if reserve:
         print(f"free proxies were brought in by {reserve} of {processes} processes, when their VPN proxies stopped "
               "working")

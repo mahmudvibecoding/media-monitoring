@@ -29,24 +29,22 @@ does all of it in one command, and `uv run proxies stop` stops sing-box.
 
 ## How the collectors use them
 
-There's no separate test: the collectors' real requests show which proxies work. Each run starts with every
-proxy untested, in random order, because proxies stop working within minutes: a list of the ones that worked
-in an earlier run wouldn't help.
+Each run starts with every proxy untested, in random order, because proxies stop working within minutes: a list
+of the ones that worked in an earlier run wouldn't help.
 
-1. An untested proxy gets one request. If there's no answer within a second, the request also goes out
-   through a proxy that already works, if one is free, so nothing waits long on a dead proxy. A failed test
-   doesn't count against the request.
-2. Once YouTube answers through a proxy, it carries 8 requests at a time, and one more each time it answers
-   while all of them are busy, up to 64. With few working proxies each one carries more, and with many each
-   carries less.
+1. Testing runs apart from the work. Each collector process tests 100 proxies at a time, each with one request
+   of the collector's own kind, for a channel or video that has been up for years. A dead proxy's test costs
+   little: a connection attempt that gets nothing back.
+2. Real requests only go through proxies that passed their test, so none waits on a dead one. A proxy that
+   passed carries 8 requests at a time, and one more each time it answers while all of them are busy, up to
+   64. With few working proxies each one carries more, and with many each carries less.
 3. Each failure (no answer within 5 seconds, or an answer that isn't YouTube's) takes one request off the
-   proxy's share. At zero the proxy rests for 60 seconds, then gets one request again. So proxies that
-   come back are used again, even in long runs.
-4. A failed request is sent again, up to 5 times.
-5. Working proxies always come first: untested ones only get requests that would otherwise wait.
-6. Near the end of a run, when there's no new work left, a slow request also goes out through a second
-   working proxy, so the last few don't hold up the run.
-7. YouTube refuses a request now and then (403 or 429). That alone changes nothing: the request is retried
+   proxy's share. At zero the proxy rests for 60 seconds, then is tested again, and so is a proxy that failed
+   its test. So proxies that come back are used again within a minute or two, even in long runs.
+4. A failed request is sent again through another proxy, up to 5 times.
+5. Near the end of a run, when there's no new work left, a request without an answer after a second also goes
+   out through a second working proxy, so the last few don't hold up the run.
+6. YouTube refuses a request now and then (403 or 429). That alone changes nothing: the request is retried
    elsewhere. Only if 8 of a proxy's last 10 answers are refusals does that proxy pause for 60 seconds.
 
 Each process has its own share of the proxies. Certificates aren't checked through proxies, since all the
@@ -59,8 +57,8 @@ Video pages and comments come from a different YouTube endpoint (`next`). It blo
 minutes of heavy use: every request from it then gets a "Sorry, unusual traffic" page, which takes 20 to 25
 seconds to arrive, so it shows up as failures, and the proxy rests like any other. And once the working VPN
 proxies of a collector process fall to a quarter of the most it had (or all of them rest), the process brings in its
-share of the free proxies: many more addresses. Proxies that already work still come first, so when the VPN ones
-come back from their rest they carry the load again.
+share of the free proxies: many more addresses. They're tested like the VPN ones, and the VPN ones that come back
+from their rest carry work again next to them.
 
 The comments step can run for hours (`comments all`), so it also takes in refreshed lists while it runs:
 sing-box's proxies are tested again when it restarts with new configs, and new free proxies join when `uv run
@@ -81,6 +79,9 @@ for them instead of stopping.
   lasts, and how fast one address can go without one, isn't measured yet.
 - **Proxies come and go.** In a long run most of them fail now and then. When a single failure dropped a
   proxy for good, a long run slowed from 8,000 videos a second to 80; now failed proxies rest and come back.
+- **Testing more proxies at once slows the work.** With 500 tests at a time in each process instead of 100, a
+  channels run found about 6,500 working proxies instead of 1,600, but took 14 to 15 seconds instead of 8 to 10
+  (with another run keeping the server busy).
 - **Bandwidth isn't a limit.** A video page takes about 700 bytes down and 530 up, so even 12,000 a second
   use only about 65 Mbit/s down and 50 up.
 

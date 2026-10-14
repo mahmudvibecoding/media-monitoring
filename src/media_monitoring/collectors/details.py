@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
-from media_monitoring.youtube import API, CONTEXT, call
+from media_monitoring.youtube import API, CONTEXT, TEST_VIDEO, call
 
 FIELDS = ("playabilityStatus(status,reason),videoDetails(title,shortDescription,lengthSeconds),"
           "microformat/playerMicroformatRenderer(publishDate,isShortsEligible)")
@@ -109,6 +109,9 @@ class Details(Collector):
     async def prepare(self, conn, video_ids):
         self.pending, self.unavailable = [], []
         await conn.execute(DETAILS)
+
+    async def test(self, session, proxy):
+        return await fetch(session, TEST_VIDEO, proxy)
 
     async def handle(self, pool, session, video_id):
         outcome, row = await pool.run(partial(fetch, session, video_id))

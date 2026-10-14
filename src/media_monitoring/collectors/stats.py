@@ -8,7 +8,7 @@ sing-box is running ("uv run proxies"): the pool tests the proxies by itself (se
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
-from media_monitoring.youtube import API, CONTEXT, call
+from media_monitoring.youtube import API, CONTEXT, TEST_VIDEO, call
 
 DAYS = 90  # by default, refresh the videos published in the last DAYS days
 # updated_metadata is what a watch page calls to refresh its counts: the lightest answer, with exact numbers
@@ -80,6 +80,9 @@ class Stats(Collector):
     async def prepare(self, conn, video_ids):
         self.pending = []
         await conn.execute(STATS)
+
+    async def test(self, session, proxy):
+        return await fetch(session, TEST_VIDEO, proxy)
 
     async def handle(self, pool, session, video_id):
         outcome, row = await pool.run(partial(fetch, session, video_id))

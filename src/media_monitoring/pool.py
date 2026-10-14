@@ -1,21 +1,19 @@
 """Send YouTube requests through the local VPN proxies from sing-box, as fast as the proxies answer.
 
-Real requests test the proxies, so there's no separate check, and each run starts fresh with every proxy in random
-order: proxies stop working within minutes, so a list from an earlier run wouldn't help. Each proxy has slots in a
-queue: a request takes the best free slot and puts it back when it ends, so fast proxies come back sooner and carry
-more of the work. Working proxies' slots always go first: untested proxies only get requests that would otherwise
-wait.
+Each run starts fresh with every proxy untested, in random order: proxies stop working within minutes, so a list
+from an earlier run wouldn't help. Testing runs on its own, apart from the work: up to TESTS_AT_ONCE proxies at a
+time get a test request, the collector's own kind on an item that has been up for years, and a proxy YouTube answers
+through starts carrying work at once. Real requests only go through proxies that work, so none waits on a dead one.
 
-Each proxy finds its own pace. An untested proxy has one slot, so a dead one holds up a single request, and its
-failure doesn't count against the request's tries; if it has no answer within HEDGE_AFTER seconds, the request also
-goes out through a working proxy, when one has a free slot. Once YouTube answers through a proxy, it gets
-START_LIMIT slots, and one more after each answer that found all of them busy, up to MAX_LIMIT: with few proxies
-each one carries more, with many each carries less. Each failure takes one slot away; at zero the proxy rests and
-is then tested again, so proxies that recover come back even during long runs. The collectors all send their
-requests this way (youtube.call sends each one).
+Each working proxy has slots in a queue: a request takes the next free slot and puts it back when it ends, so fast
+proxies come back sooner and carry more of the work. A proxy starts with START_LIMIT slots and gets one more after
+each answer that found all of them busy, up to MAX_LIMIT: with few proxies each one carries more, with many each
+carries less. Each failure takes one slot away; at zero the proxy rests and is then tested again, as is one that
+failed its test, so proxies that recover come back within a minute or so, even during long runs. A dead proxy's test
+costs little: a connection attempt, nothing to download or read. The collectors all send their requests this way
+(youtube.call sends each one).
 """
 import asyncio
-import itertools
 import random
 import resource
 import time
@@ -23,11 +21,11 @@ import zlib
 from collections import Counter, deque
 
 PROXY_FILE = "data/vpn_proxies.txt"  # from sing-box (uv run proxies): one line per local proxy, "proxy link"
-PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from uv run proxies: free HTTP and SOCKS4 proxies, the reserve
+PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from uv run proxies: free HTTP and SOCKS proxies, the reserve
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
-HEDGE_AFTER = 1  # seconds without an answer before a request through an untested proxy (or any, when draining)
-                 # also goes out through a working proxy, if one has a free slot
-ATTEMPTS = 5  # requests per answer at most, not counting failures of proxies that were being tested
+HEDGE_AFTER = 1  # when draining: seconds without an answer before a request also goes out through another proxy
+ATTEMPTS = 5  # requests per answer at most
+TESTS_AT_ONCE = 100  # proxy tests in flight at a time, in each process (500 found more proxies but slowed the work)
 # YouTube's own 400s in a row, with no good answer between, that stop the run: a field mask is probably out of date.
 # A single one only fails its request.
 BAD_REQUESTS = 20
@@ -40,9 +38,7 @@ STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, 60
 # most it had working at once, which YouTube blocking their addresses does, or once every proxy rests. Below this
 # many, a peak is too small to say.
 MIN_PEAK = 8
-# Which free slot a request gets first: a working proxy's; else a test of a proxy that answered earlier in this
-# run; else a test of any other
-WORKING, ANSWERED_BEFORE, OTHER = range(3)
+ANSWERED = ("ok", "gone", "blocked", "youtube error", "bad request")  # outcomes of a request YouTube answered
 
 
 class NoProxiesLeft(Exception):
@@ -83,10 +79,10 @@ def raise_open_files_limit():
 
 
 class Pool:
-    """One process's share of the proxies (see the top of this file), in the order to test them. reserve is more proxies
-    (the free ones), brought in once the working proxies collapse (see MIN_PEAK); on_reserve is called when they are.
-    With give_up=False, requests wait when every proxy rests at once, for one to come back or for add() to bring new
-    ones."""
+    """One process's share of the proxies (see the top of this file), in the order to test them; start_testing()
+    starts the tests. reserve is more proxies (the free ones), brought in once the working proxies collapse (see
+    MIN_PEAK); on_reserve is called when they are. With give_up=False, requests wait when every proxy rests at once,
+    for one to come back or for add() to bring new ones."""
 
     def __init__(self, proxies, give_up=True, reserve=(), on_reserve=None):
         self.give_up = give_up
@@ -95,36 +91,43 @@ class Pool:
         self.on_reserve = on_reserve
         self.peak = 0  # the most proxies working at once in this run
         self.known = set(proxies)
-        self.slots = asyncio.PriorityQueue()  # free slots: (rank, order, proxy, generation)
-        self.order = itertools.count()  # slots of the same rank are taken in the order they were freed
+        self.slots = asyncio.Queue()  # working proxies' free slots, in the order they were freed: (proxy, generation)
+        self.to_test = asyncio.Queue()  # proxies waiting for a test: (proxy, generation)
+        self.test, self.testers = None, []  # the test request (see start_testing), and the tasks that test them
         self.generation = Counter()  # raised when a proxy starts resting, so the slots it had are thrown away
         self.limit = Counter()  # how many slots each proxy may have
         self.held = Counter()  # each proxy's slots, free or in use
         self.busy = Counter()  # each proxy's slots in use
-        self.proven = set()  # proxies that answered and haven't rested since
-        self.answered = set()  # proxies that answered at least once in this run
-        self.resting = set()  # proxies waiting for their next test
+        self.proven = set()  # proxies that work: they answered their test and haven't rested since
+        self.resting = set()  # proxies resting before their next test
         self.recent = {}  # each proxy's last answers: True = blocked
         self.paused_until = {}  # proxies resting after a storm: {proxy: time}
         self.count = len(proxies)
         self.draining = False  # set it when no new work is left: then slow requests also go out elsewhere
         self.outcomes = Counter()  # how every request ended
+        self.test_outcomes = Counter()  # how every test ended
         self.background = set()  # slower copies of requests that already got their answer
         self.bad_requests = 0  # YouTube's 400s since its last good answer
         for proxy in proxies:
-            self._test(proxy)
+            self._queue_test(proxy)
         if not proxies:
             self._bring_reserve()
         if not self.count and give_up:
             self._give_up()
 
+    def start_testing(self, test):
+        """Start testing the proxies, TESTS_AT_ONCE at a time. test(proxy) sends one test request through the proxy and
+        returns (outcome, result) like a request: the proxy works if YouTube answered."""
+        self.test = test
+        self.testers = [asyncio.create_task(self._tester()) for _ in range(TESTS_AT_ONCE)]
+
     def add(self, proxies):
-        """Proxies that joined the lists while the pool runs: each gets one slot, so its next request tests it."""
+        """Proxies that joined the lists while the pool runs: each is tested."""
         for proxy in proxies:
             if proxy not in self.known:
                 self.known.add(proxy)
                 self.count += 1
-                self._test(proxy)
+                self._queue_test(proxy)
 
     def renew(self, proxies):
         """Proxies whose address now leads somewhere else (sing-box restarted with new configs): what we knew about
@@ -133,30 +136,26 @@ class Pool:
         for proxy in set(proxies) & self.known:
             self.generation[proxy] += 1  # its slots, and a rest it was taking, are thrown away
             self.proven.discard(proxy)
-            self.answered.discard(proxy)
-            self._test(proxy)
+            self._queue_test(proxy)
         self.peak = len(self.proven)  # what worked before says nothing about the new ones
 
     async def run(self, request):
         """Get one answer. request(proxy) sends one request through that proxy and returns (outcome, result),
         where outcome is "ok", "gone" or a problem from youtube.call(). A failed request goes out again through
-        another proxy, up to ATTEMPTS times. A request without an answer after HEDGE_AFTER seconds also goes out
-        through a working proxy with a free slot if it only went through untested proxies, or always when draining;
-        the first useful answer wins. Returns ("ok", result), ("gone", result) or ("failed", None)."""
-        tries, tests, sent, slow = set(), set(), 0, False
+        another proxy, up to ATTEMPTS times. When draining, a request without an answer after HEDGE_AFTER seconds
+        also goes out through another proxy with a free slot; the first useful answer wins. Returns ("ok", result),
+        ("gone", result) or ("failed", None)."""
+        tries, sent, slow = set(), 0, False
         try:
             while True:
                 slot = None
                 if sent < ATTEMPTS and not tries:
                     slot = await self._take()
-                elif sent < ATTEMPTS and slow and (self.draining or tries <= tests):
-                    slot = self._take_working()  # a copy only goes through a proxy that already works
+                elif sent < ATTEMPTS and slow and self.draining:
+                    slot = self._take_free()
                 if slot:
                     proxy, generation = slot
-                    task = asyncio.create_task(self._send(request, proxy, generation))
-                    tries.add(task)
-                    if proxy not in self.proven:
-                        tests.add(task)  # this request also tests the proxy
+                    tries.add(asyncio.create_task(self._send(request, proxy, generation)))
                     sent += 1
                 elif not tries:
                     return "failed", None
@@ -168,18 +167,17 @@ class Pool:
                         raise BadRequest("YouTube keeps answering 400: a field mask is probably out of date")
                     if outcome in ("ok", "gone"):
                         return outcome, result
-                    if outcome == "broken" and task in tests:
-                        sent -= 1  # a proxy's test failed, not this request
         finally:
             for task in tries:  # left to finish, so their proxies are judged by how they answer
                 self.background.add(task)
                 task.add_done_callback(self.background.discard)
 
     async def close(self):
-        """Cancel the slower copies of requests that are still running."""
-        for task in list(self.background):
+        """Stop the tests, and cancel the slower copies of requests that are still running."""
+        tasks = self.testers + list(self.background)
+        for task in tasks:
             task.cancel()
-        await asyncio.gather(*self.background, return_exceptions=True)
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _send(self, request, proxy, generation):
         outcome = result = None
@@ -191,23 +189,21 @@ class Pool:
         return outcome, result
 
     async def _take(self):
-        """Wait for the best free slot; return its proxy and generation."""
+        """Wait for a free slot; return its proxy and generation."""
         while True:
-            entry = await self.slots.get()
-            _, _, proxy, generation = entry
+            proxy, generation = await self.slots.get()
             if proxy is None:  # every proxy is resting
-                self.slots.put_nowait(entry)  # tell the next waiting request too
+                self.slots.put_nowait((proxy, generation))  # tell the next waiting request too
                 raise NoProxiesLeft
             if self._claim(proxy, generation):
                 return proxy, generation
 
-    def _take_working(self):
-        """A free slot of a working proxy if there's one right now, else None; returns its proxy and generation."""
+    def _take_free(self):
+        """A free slot if there's one right now, else None; returns its proxy and generation."""
         while not self.slots.empty():
-            entry = self.slots.get_nowait()
-            rank, _, proxy, generation = entry
-            if rank != WORKING:
-                self.slots.put_nowait(entry)  # the best free slot isn't a working proxy's: leave it
+            proxy, generation = self.slots.get_nowait()
+            if proxy is None:
+                self.slots.put_nowait((proxy, generation))
                 return None
             if self._claim(proxy, generation):
                 return proxy, generation
@@ -225,8 +221,7 @@ class Pool:
 
     def _free(self, proxy, generation):
         """Put a slot of the proxy in the queue."""
-        rank = WORKING if proxy in self.proven else ANSWERED_BEFORE if proxy in self.answered else OTHER
-        self.slots.put_nowait((rank, next(self.order), proxy, generation))
+        self.slots.put_nowait((proxy, generation))
 
     def _give_back(self, proxy, generation, outcome):
         """After a request: set the proxy's slots by how it did, and free this one again. outcome is None if the
@@ -240,14 +235,9 @@ class Pool:
             if not self.limit[proxy]:
                 self._rest(proxy)
                 return
-        elif outcome in ("ok", "gone", "blocked", "youtube error", "bad request"):  # YouTube answered
+        elif outcome in ANSWERED:
             self.bad_requests = self.bad_requests + 1 if outcome == "bad request" else 0
-            self.answered.add(proxy)
-            if proxy not in self.proven:
-                self.proven.add(proxy)
-                self.peak = max(self.peak, len(self.proven))
-                self.limit[proxy] = START_LIMIT
-            elif all_busy and outcome in ("ok", "gone"):  # it could carry more
+            if all_busy and outcome in ("ok", "gone"):  # it could carry more
                 self.limit[proxy] = min(MAX_LIMIT, self.limit[proxy] + 1)
             recent = self.recent.setdefault(proxy, deque(maxlen=STORM_WINDOW))
             recent.append(outcome == "blocked")
@@ -266,15 +256,40 @@ class Pool:
             else:
                 self._free(proxy, generation)
 
-    def _test(self, proxy):
-        """One slot, so the proxy's next request tests it."""
+    def _queue_test(self, proxy):
+        """Put the proxy in line for a test."""
         self.resting.discard(proxy)
-        self.limit[proxy] = self.held[proxy] = 1
+        self.to_test.put_nowait((proxy, self.generation[proxy]))
+
+    async def _tester(self):
+        """Test the proxies waiting for it, one at a time (there are TESTS_AT_ONCE of these)."""
+        while True:
+            proxy, generation = await self.to_test.get()
+            if generation != self.generation[proxy]:
+                continue  # renew() tested it again meanwhile
+            try:
+                outcome, _ = await self.test(proxy)
+            except Exception:  # a test that went wrong in an unexpected way: the proxy failed it
+                outcome = "broken"
+            self.test_outcomes[outcome] += 1
+            if generation != self.generation[proxy]:
+                continue
+            if outcome in ANSWERED:
+                self._start_work(proxy)
+            else:
+                self._rest(proxy)
+
+    def _start_work(self, proxy):
+        """The proxy passed its test: it gets START_LIMIT slots."""
+        self.proven.add(proxy)
+        self.peak = max(self.peak, len(self.proven))
+        self.limit[proxy] = self.held[proxy] = START_LIMIT
         self.busy[proxy] = 0
-        self._free(proxy, self.generation[proxy])
+        for _ in range(START_LIMIT):
+            self._free(proxy, self.generation[proxy])
 
     def _rest(self, proxy):
-        """The proxy failed with its last slot: it rests, then is tested again."""
+        """The proxy failed its test, or failed with its last slot: it rests, then is tested again."""
         self.generation[proxy] += 1  # its slots still out are thrown away
         self.held[proxy] = self.busy[proxy] = 0
         self.proven.discard(proxy)
@@ -287,7 +302,7 @@ class Pool:
             self._give_up()
 
     def _bring_reserve(self):
-        """Bring in the reserve, once: each of its proxies gets one slot, tested by the requests that need one."""
+        """Bring in the reserve, once: each of its proxies is tested."""
         if self.reserve_used or not self.reserve:
             return
         self.reserve_used = True
@@ -298,8 +313,8 @@ class Pool:
     def _wake(self, proxy, generation):
         """The proxy's rest is over: test it again, unless renew() already did."""
         if generation == self.generation[proxy]:
-            self._test(proxy)
+            self._queue_test(proxy)
 
     def _give_up(self):
         """Every proxy is resting at once (the network is probably down): end the run."""
-        self.slots.put_nowait((-1, next(self.order), None, 0))
+        self.slots.put_nowait((None, 0))

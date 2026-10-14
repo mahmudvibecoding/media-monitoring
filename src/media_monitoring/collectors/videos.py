@@ -9,7 +9,7 @@ from collections import defaultdict
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
-from media_monitoring.youtube import API, CONTEXT, call
+from media_monitoring.youtube import API, CONTEXT, TEST_CHANNEL, call
 
 URL = API + "browse?prettyPrint=false&fields="
 VIDEO = "lockupViewModel/contentId"  # a video in the list: its ID
@@ -130,6 +130,9 @@ class Videos(Collector):
             async for channel_id, video_id in cur:
                 self.known[channel_id].add(video_id)
         await conn.execute(NEW_VIDEOS)
+
+    async def test(self, session, proxy):
+        return await fetch_page(session, FIRST_PAGE, {"browseId": "VLUU" + TEST_CHANNEL[2:]}, proxy)
 
     async def handle(self, pool, session, channel_id):
         first = not self.known[channel_id]

@@ -22,7 +22,7 @@ from urllib.parse import quote
 import psycopg
 
 from media_monitoring.parallel import Collector, run
-from media_monitoring.youtube import API, CONTEXT, call
+from media_monitoring.youtube import API, CONTEXT, TEST_VIDEO, call
 
 DAYS = 90  # by default, the videos published in the last DAYS days
 EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
@@ -291,6 +291,9 @@ class Comments(Collector):
                     self.known[video_id].add(comment_id)
         for table in (NEW_COMMENTS, VIDEO_COUNTS, VIDEO_PROGRESS):
             await conn.execute(table)
+
+    async def test(self, session, proxy):
+        return await fetch_page(session, first_token(TEST_VIDEO), proxy)
 
     async def handle(self, pool, session, video_id):
         complete, resume, newest = self.state[video_id]
