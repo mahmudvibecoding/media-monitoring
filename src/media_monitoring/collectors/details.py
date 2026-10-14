@@ -1,32 +1,30 @@
-"""Fetch the details of every video that doesn't have them yet: title, description and upload day, from the
-video's page. Run videos first, so new videos are in youtube_videos.
+"""Fetch the details of every video that doesn't have them yet, from the player answer YouTube's own video page
+uses: its title and description as the creator wrote them (not a translation), its upload day, its exact length, and
+whether it's a Short. Run videos first, so new videos are in youtube_videos.
 
-Video pages come from YouTube's next endpoint, which blocks busy addresses for a while, so failed proxies rest
-longer, and once the VPN proxies are blocked the free ones come in (see Pool). Run it after "uv run proxies"
-(see pool.py).
+YouTube checks for bots when that request comes in bulk, so it suits the new videos of each round, a few thousand a
+day: a refused request goes out again through another proxy, and a video refused every time is tried again next
+round. Failed proxies rest longer, and once the VPN proxies are blocked the free ones come in (see Pool). Run it after
+"uv run proxies" (see pool.py).
 """
-import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
 from media_monitoring.pool import LONG_REST
 from media_monitoring.youtube import API, CONTEXT, call
 
-FIELDS = ("contents/twoColumnWatchNextResults/results/results/contents(videoPrimaryInfoRenderer(title/runs/text,"
-          "dateText/simpleText),videoSecondaryInfoRenderer/attributedDescription/content)")
-URL = API + "next?prettyPrint=false&fields=" + FIELDS
-# The day in "Oct 11, 2026", "Premiered Mar 3, 2026", "Streamed live on Sep 4, 2022", "Scheduled for ..."
-DAY = re.compile(r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2}, \d{4}")
-# Streams and premieres of the last day show how long ago they started instead: "Started streaming 12 minutes ago",
-# "Streamed live 3 hours ago", "Premiered 45 minutes ago", "Premiere in progress. Started 5 minutes ago"
-AGO = re.compile(r"(\d+) (second|minute|hour|day|week)s? ago")
-SECONDS = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 7 * 86400}
+FIELDS = ("playabilityStatus(status,reason),videoDetails(title,shortDescription,lengthSeconds),"
+          "microformat/playerMicroformatRenderer(publishDate,isShortsEligible)")
+URL = API + "player?prettyPrint=false&fields=" + FIELDS
 
-DETAILS = """CREATE TEMP TABLE details (video_id text, title text, description text, upload_date date)
-             ON COMMIT DELETE ROWS"""
+DETAILS = """CREATE TEMP TABLE details (video_id text, title text, description text, upload_date date,
+                                        duration_seconds integer, kind text) ON COMMIT DELETE ROWS"""
+# The length from the player answer is exact: the uploads list's badge is rounded, and Shorts have none there
 SAVE = """UPDATE youtube_videos AS v
-          SET title = d.title, description = d.description, upload_date = d.upload_date, status = 'available'
+          SET title = d.title, description = d.description, upload_date = d.upload_date,
+              duration_seconds = coalesce(d.duration_seconds, v.duration_seconds), kind = d.kind,
+              status = 'available'
           FROM details AS d WHERE v.video_id = d.video_id"""
 # Still retried every run: a video can be blocked only where one proxy is, or come back later
 MARK_UNAVAILABLE = "UPDATE youtube_videos SET status = 'unavailable' WHERE video_id = ANY(%s)"
@@ -37,40 +35,49 @@ def text(value):
     return value.replace("\x00", "") if value else value
 
 
-def upload_day(date_text):
-    """The day written on the video page, or counted back from "... ago" (in UTC); None if the page shows neither
-    (e.g. "Live stream currently offline")."""
-    match = DAY.search(date_text or "")
-    if match:
-        return datetime.strptime(match.group(), "%b %d, %Y").date()
-    match = AGO.search(date_text or "")
-    if match:
-        return (datetime.now(timezone.utc) - timedelta(seconds=int(match.group(1)) * SECONDS[match.group(2)])).date()
-    return None
+def upload_day(published):
+    """The day of the upload time YouTube gives ("2026-10-13T04:51:23-07:00"), in UTC; None if it gives none."""
+    try:
+        moment = datetime.fromisoformat(published)
+    except (TypeError, ValueError):
+        return None
+    return (moment.astimezone(timezone.utc) if moment.tzinfo else moment).date()
+
+
+def parse(video_id, data):
+    """(video_id, title, description, upload day, length, kind) from a player answer with the video's details. They
+    come even when YouTube won't play the video to us (UNPLAYABLE)."""
+    details = data["videoDetails"]
+    micro = (data.get("microformat") or {}).get("playerMicroformatRenderer") or {}
+    shorts = micro.get("isShortsEligible")  # YouTube's own word: it matches whether youtube.com/shorts/<id> opens
+    return (video_id, text(details.get("title")), text(details.get("shortDescription")),
+            upload_day(micro.get("publishDate")),
+            int(details.get("lengthSeconds") or 0) or None,  # 0 while a stream is live or upcoming
+            None if shorts is None else "short" if shorts else "video")
 
 
 async def fetch(session, video_id, proxy):
-    """One video's page through one proxy. Returns (outcome, (video_id, title, description, upload_day))."""
-    problem, response = await call(session, proxy, "POST", URL, json={"context": CONTEXT, "videoId": video_id})
+    """One video's player answer through one proxy. Returns (outcome, row); row is set for "ok" (see parse)."""
+    problem, response = await call(session, proxy, "POST", URL, json={
+        "context": CONTEXT, "videoId": video_id, "contentCheckOk": True, "racyCheckOk": True})
     if problem:
         return problem, None
     try:
         data = response.json()
     except Exception:
         return "broken", None  # not YouTube's answer: the proxy mangled it
+    if not data.get("videoDetails"):
+        playability = data.get("playabilityStatus") or {}
+        status, reason = playability.get("status"), playability.get("reason") or ""
+        if status == "LOGIN_REQUIRED" and "bot" in reason:
+            return "blocked", None  # "confirm you're not a bot": another proxy usually gets through
+        if status in ("ERROR", "LOGIN_REQUIRED", "UNPLAYABLE"):
+            return "gone", None  # removed, private, or blocked where the proxy is
+        return "youtube error", None  # an answer in an unexpected shape; the next try gets it
     try:
-        # A private video's page has no contents at all
-        items = data["contents"]["twoColumnWatchNextResults"]["results"]["results"].get("contents") or []
-    except (KeyError, TypeError, AttributeError):
-        return "youtube error", None  # now and then YouTube answers without the page; the next try gets it
-    primary = next((item["videoPrimaryInfoRenderer"] for item in items if "videoPrimaryInfoRenderer" in item), None)
-    if primary is None:
-        return "gone", None  # removed, private, or blocked where the proxy is
-    secondary = next((item["videoSecondaryInfoRenderer"] for item in items if "videoSecondaryInfoRenderer" in item), {})
-    title = "".join(run.get("text", "") for run in (primary.get("title") or {}).get("runs", []))
-    description = (secondary.get("attributedDescription") or {}).get("content")
-    day = upload_day((primary.get("dateText") or {}).get("simpleText"))
-    return "ok", (video_id, text(title), text(description), day)
+        return "ok", parse(video_id, data)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return "youtube error", None
 
 
 class Details(Collector):

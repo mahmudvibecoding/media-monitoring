@@ -26,11 +26,10 @@ everything again, in this order.
    count. Only the channels whose details changed are written.
 3. **New videos** (`videos`). Read each channel's uploads list, newest first, until reaching a video already
    saved. The list gives each video's ID and length. A channel's first run reads its whole history.
-4. **Video details** (`details`). Open the page of each video that has no title yet, for its title,
-   description and upload day. Streams and premieres of the last day show how long ago they started ("Streamed
-   live 3 hours ago"), which is counted back from now; a stream that hasn't started shows no day. A video whose
-   page shows no video (removed, private, or blocked where the proxy is) is marked unavailable and tried again
-   every round.
+4. **Video details** (`details`). For each video that has no title yet, ask for the details YouTube's own
+   player gets: the title and description as the creator wrote them (others are shown a translation when the
+   creator added one), the upload day, the exact length, and whether it's a Short. A video YouTube shows nothing
+   for (removed, private, or blocked where the proxy is) is marked unavailable and tried again every round.
 5. **Views and likes** (`stats 90`). Ask for the current views and likes of every video uploaded in the last
    90 days, with the lightest request YouTube's own video page makes to refresh its counts. A video without an
    upload day counts from the day it was found.
@@ -62,8 +61,9 @@ half minutes, and reading every video's comments the first time took hours.
 
 - **`youtube_channels`:** each channel's name, handle, description, picture and subscriber count (empty when
   hidden).
-- **`youtube_videos`:** each video's channel, title, description, length, upload day, whether its page shows
-  a video, and when a round first found it. The thumbnail's address is built from the video's ID.
+- **`youtube_videos`:** each video's channel, title, description, length, upload day, kind (`video` or
+  `short`), whether YouTube shows it, and when a round first found it. The thumbnail's address is built from the
+  video's ID.
 - **`youtube_video_stats`:** one small row per video: its latest views and likes and when they were
   refreshed, the comment count YouTube shows (replies included), whether its whole comment list has been
   read, and where an unfinished read continues.
@@ -77,9 +77,12 @@ half minutes, and reading every video's comments the first time took hours.
 
 - **Every round checks everything.** It takes about three minutes, and it's simpler and more complete than
   guessing what changed. A new video is found within one round of its upload.
-- **Only the upload day.** The only request that gives a video's exact upload time is refused by YouTube at
-  our volume ("confirm you're not a bot"). The video page works without limits, but shows only the day. With a
-  round every 15 minutes, the time a round first found a video is within about 15 minutes of its upload.
+- **Details only for new videos.** The player's answer is the only one with the original title, the exact length
+  and the Shorts flag, but YouTube checks for bots when it's asked in bulk: tens of thousands of requests in
+  minutes are mostly refused ("confirm you're not a bot"), while a round's new videos get through. A first run
+  on a channel list with millions of saved videos therefore takes many rounds to fill in their details.
+- **Only the upload day.** The upload time is kept as its day (UTC). With a round every 15 minutes, the time a
+  round first found a video is within about 15 minutes of its upload.
 - **Only the latest views and likes.** Each video has one row, overwritten at every refresh, so the table
   doesn't grow with every round. It's kept apart from the videos table, so a refresh rewrites a few bytes
   instead of the title and description, and half of each table page stays free, so the new row fits next to
