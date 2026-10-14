@@ -1,16 +1,17 @@
 """Download the public lists of free VPN configs (vless, vmess, trojan, ss, hysteria2) into data/vpn_configs.txt,
 and which lists each config came from into data/vpn_sources.txt. singbox then runs each config as a local
 proxy, listed in data/vpn_proxies.txt: the VPN proxies every collector goes through."""
-import asyncio
 import base64
 import binascii
 import json
 import os
 import re
 from collections import Counter, defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 from urllib.parse import parse_qsl, unquote, urlsplit
 
-from curl_cffi import AsyncSession
+from curl_cffi import requests
 
 GITHUB = "https://raw.githubusercontent.com/"
 SOURCES = [
@@ -65,6 +66,7 @@ SOURCES = [
 # A link starts with one of these protocols; (?<!\w) stops "ss://" matching inside "vless://".
 LINK = re.compile(r"(?<!\w)(?:vless|vmess|trojan|ss|hysteria2|hy2)://[^\s\"'<>`]+", re.IGNORECASE)
 UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE)
+CONTROL = re.compile(r"[\x00-\x1f\x7f]")  # control characters, which only a damaged link has
 UNSUPPORTED_TRANSPORTS = {"xhttp", "splithttp", "kcp"}  # sing-box can't run these
 SS_METHODS = {  # the Shadowsocks ciphers sing-box supports
     "2022-blake3-aes-128-gcm", "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305",
@@ -136,7 +138,7 @@ def parse(link):
     The key identifies a config: the same server and settings give the same key, whatever
     its #name, because the aggregators rename configs they copy from each other.
     """
-    if any(ord(ch) < 32 or ord(ch) == 127 for ch in link):  # control characters: a damaged link
+    if CONTROL.search(link):
         return None
     scheme, rest = link.split("://", 1)
     protocol = "hysteria2" if scheme.lower() == "hy2" else scheme.lower()
@@ -166,37 +168,46 @@ def parse(link):
     return protocol, key, f"{protocol}://{rest}"
 
 
-async def download(session, url):
-    response = await session.get(url, timeout=300)  # the biggest list is about 11 MB
-    response.raise_for_status()
-    return response.content.decode("utf-8", "replace")
+def fetch(url):
+    """In a worker process: download one list and parse its links. Returns ([(protocol, key, clean_link), ...], how
+    many links were skipped), or the error as text if the download failed."""
+    try:
+        response = requests.get(url, timeout=300)  # the biggest list is about 21 MB
+        response.raise_for_status()
+    except Exception as error:
+        return str(error) or type(error).__name__
+    found, skipped = [], 0
+    for link in find_links(response.content.decode("utf-8", "replace")):
+        parsed = parse(link)
+        if parsed is None:
+            skipped += 1
+        else:
+            found.append(parsed)
+    return found, skipped
 
 
-async def collect():
-    """Download all sources. Returns {key: (protocol, clean_link)} for the unique configs, and
-    {key: {source, ...}} with every list each config appeared in."""
-    async with AsyncSession() as session:
-        results = await asyncio.gather(*(download(session, url) for url in SOURCES), return_exceptions=True)
+def collect():
+    """Download and parse all sources, each in a process of its own: parsing takes about a minute on one core.
+    Returns {key: (protocol, clean_link)} for the unique configs, and {key: {source, ...}} with every list each
+    config appeared in."""
+    # "spawn" starts each process fresh, which works the same on macOS and Linux
+    with ProcessPoolExecutor(min(len(SOURCES), os.cpu_count()), mp_context=get_context("spawn")) as pool:
+        results = list(pool.map(fetch, SOURCES))
 
     configs, sources = {}, defaultdict(set)
     for url, result in zip(SOURCES, results):
         name = url.removeprefix(GITHUB)
-        if isinstance(result, Exception):
+        if isinstance(result, str):
             print(f"FAILED   {name}: {result}")
             continue
-        valid = new = skipped = 0
-        for link in find_links(result):
-            parsed = parse(link)
-            if parsed is None:
-                skipped += 1
-                continue
-            protocol, key, clean_link = parsed
-            valid += 1
+        found, skipped = result
+        new = 0
+        for protocol, key, clean_link in found:
             if key not in configs:
                 configs[key] = (protocol, clean_link)
                 new += 1
             sources[key].add(name)
-        print(f"{valid:>6} valid, {new:>6} new, {skipped:>6} skipped  {name}")
+        print(f"{len(found):>6} valid, {new:>6} new, {skipped:>6} skipped  {name}")
 
     print(f"\n{len(configs):>7}  unique configs in total")
     for protocol, count in Counter(p for p, _ in configs.values()).most_common():
@@ -205,7 +216,7 @@ async def collect():
 
 
 def main():
-    configs, sources = asyncio.run(collect())
+    configs, sources = collect()
     os.makedirs("data", exist_ok=True)
     with open(OUTPUT, "w") as f:
         f.write("".join(f"{link}\n" for _, link in sorted(configs.values())))

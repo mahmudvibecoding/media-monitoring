@@ -5,13 +5,14 @@ they give video pages and comments (YouTube's next endpoint, which blocks an add
 addresses. Most of them don't work; the pool finds the ones that do by itself (see pool.py), and "uv run proxies
 check plain" reports which lists work best.
 """
-import asyncio
 import ipaddress
 import os
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 from urllib.parse import urlsplit
 
-from curl_cffi import AsyncSession
+from curl_cffi import requests
 
 # (url, type): type is None when each line already starts with its type, like "http://...". Chosen by how many of
 # their proxies answered a real comments request (2026-10-12): small checked lists beat the big scraped ones. The
@@ -73,16 +74,16 @@ def parse_line(line, default_type):
     return f"{proxy_type}://{ip}:{port}"
 
 
-async def download(session, url):
-    response = await session.get(url, timeout=30)
-    response.raise_for_status()
-    return response.text
-
-
-async def download_all():
-    async with AsyncSession() as session:
-        # All sources at once; return_exceptions=True keeps one failed download from stopping the others
-        return await asyncio.gather(*(download(session, url) for url, _ in SOURCES), return_exceptions=True)
+def fetch(source):
+    """In a worker process: download one list and parse it. Returns its proxies as a set, or the error as text if the
+    download failed."""
+    url, default_type = source
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+    except Exception as error:
+        return str(error) or type(error).__name__
+    return {proxy for line in response.text.splitlines() if (proxy := parse_line(line, default_type))}
 
 
 def source_name(url):
@@ -90,15 +91,20 @@ def source_name(url):
     return url.removeprefix(G) if url.startswith(G) else urlsplit(url).netloc
 
 
-def main():
-    results = asyncio.run(download_all())
+def collect():
+    """Download and parse every list, each in a process of its own: [(name, its proxies or the error), ...]."""
+    # "spawn" starts each process fresh, which works the same on macOS and Linux
+    with ProcessPoolExecutor(min(len(SOURCES), os.cpu_count()), mp_context=get_context("spawn")) as pool:
+        return [(source_name(url), result) for (url, _), result in zip(SOURCES, pool.map(fetch, SOURCES))]
+
+
+def save(lists):
+    """Report each list from collect(), and save the proxies of them all."""
     sources = defaultdict(set)  # {proxy: {list it was in, ...}}
-    for (url, default_type), result in zip(SOURCES, results):
-        name = source_name(url)
-        if isinstance(result, Exception):
-            print(f"FAILED   {name}: {result}")
+    for name, found in lists:
+        if isinstance(found, str):
+            print(f"FAILED   {name}: {found}")
             continue
-        found = {proxy for line in result.splitlines() if (proxy := parse_line(line, default_type))}
         print(f"{len(found):>7}  {name}")
         for proxy in found:
             sources[proxy].add(name)
@@ -111,5 +117,9 @@ def main():
     print(f"{len(sources):>7}  saved to {OUTPUT} and {SOURCES_OUTPUT}")
 
 
-if __name__ == "__main__":
+def main():
+    save(collect())
+
+
+if __name__ == "__main__":  # only when run directly, not when imported
     main()

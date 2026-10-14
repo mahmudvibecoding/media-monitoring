@@ -11,6 +11,7 @@ sing-box keeps running after this command ends and after its terminal closes. It
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from media_monitoring.proxies import check, plain_proxies, vpn_proxies
 from media_monitoring.proxies.singbox import FOLDER, stop_old
@@ -37,13 +38,15 @@ def start_singbox():
         if runner.poll() is not None:
             print("\n".join(lines[-3:]))
             return None
-        time.sleep(1)
+        time.sleep(0.2)
 
 
 def refresh():
     """Download both lists, and restart sing-box with the new configs in the background."""
-    vpn_proxies.main()
-    plain_proxies.main()
+    with ThreadPoolExecutor(1) as background:
+        free = background.submit(plain_proxies.collect)  # the free lists at the same time as the VPN ones
+        vpn_proxies.main()
+        plain_proxies.save(free.result())
     print("\nstarting sing-box in the background...")
     ready = start_singbox()
     if ready is None:
