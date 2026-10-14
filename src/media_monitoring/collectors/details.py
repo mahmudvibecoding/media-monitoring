@@ -25,8 +25,7 @@ URL = API + "player?prettyPrint=false&fields=" + FIELDS
 DETAILS = """CREATE TEMP TABLE details (video_id text, title text, description text, upload_date date,
                                         published_at timestamptz, duration_seconds integer, kind text)
              ON COMMIT DELETE ROWS"""
-# What an answer lacks keeps its saved value (fetched again, a stream that's live now has no length). The length from
-# the player answer is exact: the uploads list's badge is rounded, and Shorts have none there.
+# What an answer lacks keeps its saved value: fetched again, a stream that's live now has no length, for example
 SAVE = """UPDATE youtube_videos AS v
           SET title = coalesce(d.title, v.title), description = coalesce(d.description, v.description),
               upload_date = coalesce(d.upload_date, v.upload_date),

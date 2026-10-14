@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS youtube_videos (
     channel_id        text NOT NULL REFERENCES youtube_channels,
     title             text,                 -- NULL until the details collector has fetched the video's details
     description       text,
-    duration_seconds  integer,              -- exact from details; until then the uploads list's badge, if any
+    duration_seconds  integer,              -- exact, from details; NULL while a stream is live or upcoming
     first_seen_at     timestamptz NOT NULL DEFAULT now(),
     status            text NOT NULL DEFAULT 'available',  -- 'unavailable' when YouTube shows no video
     upload_date       date,                 -- the day of published_at in UTC (kept by older versions without it)
