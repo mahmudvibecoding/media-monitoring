@@ -10,7 +10,7 @@ from functools import partial
 from media_monitoring.parallel import Collector, run
 from media_monitoring.youtube import API, CONTEXT, TEST_VIDEO, call
 
-DAYS = 90  # by default, refresh the videos published in the last DAYS days
+DAYS = 365  # by default, refresh the videos published in the last DAYS days
 # updated_metadata is what a watch page calls to refresh its counts: the lightest answer, with exact numbers
 FIELDS = ("actions/updateViewershipAction/viewCount/videoViewCountRenderer(originalViewCount,isLive),"
           "frameworkUpdates/entityBatchUpdate/mutations/payload/likeCountEntity/likeCountIfIndifferentNumber")

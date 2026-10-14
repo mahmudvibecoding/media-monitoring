@@ -24,7 +24,7 @@ import psycopg
 from media_monitoring.parallel import Collector, run
 from media_monitoring.youtube import API, CONTEXT, TEST_VIDEO, call
 
-DAYS = 90  # by default, the videos published in the last DAYS days
+DAYS = 365  # by default, the videos published in the last DAYS days
 EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
 NOTE_EVERY = 20  # during a long read, every this many pages note where to continue, in case the run stops
 END, KNOWN, INVALID = object(), object(), object()  # how a read of pages ended (see read_video)

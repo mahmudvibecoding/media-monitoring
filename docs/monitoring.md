@@ -33,11 +33,11 @@ everything again, in this order.
    video YouTube shows nothing for (removed, private, or blocked where the proxy is) is marked unavailable and
    tried again every round. `details all` fetches them again for every saved video without an exact publish
    time, newest first: once, for videos saved before details took them from the player.
-5. **Views and likes** (`stats 90`). Ask for the current views and likes of every video published in the last
-   90 days, with the lightest request YouTube's own video page makes to refresh its counts. A video without an
+5. **Views and likes** (`stats 365`). Ask for the current views and likes of every video published in the last
+   365 days, with the lightest request YouTube's own video page makes to refresh its counts. A video without an
    exact publish time counts by its upload day, and one without either (a stream that hasn't started) from when
    it was found.
-6. **Comments** (`comments 90`). Read the comments of the same videos, newest first, until reaching comments
+6. **Comments** (`comments 365`). Read the comments of the same videos, newest first, until reaching comments
    already saved. The most viewed videos go first, so their long lists don't hold up the end of the run.
 
 Each step loads what it needs from the database, works as fast as the proxies answer, saves as it goes, and
@@ -46,7 +46,8 @@ sing-box), each with up to 500 items in progress at a time.
 
 ## A round in numbers
 
-The round that started at 02:13 UTC on October 13, 2026:
+The round that started at 02:13 UTC on October 13, 2026, when views, likes and comments covered the last 90
+days:
 
 | Step | Work | Time |
 |---|---|---|

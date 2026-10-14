@@ -4,7 +4,7 @@
 # comments. Run it again for the next round, for example every 15 minutes from cron (see README.md). Started while a
 # round is still running, it skips its own.
 #
-#   ./run.sh              one round, through the VPN proxies; views, likes and comments for the last 90 days
+#   ./run.sh              one round, through the VPN proxies; views, likes and comments for the last 365 days
 #   DAYS=30 ./run.sh      the same for the last 30 days
 #   ./run.sh setup        only set the machine up
 #
@@ -15,7 +15,7 @@
 # Ctrl+C or kill. Downloaded and generated files (proxy lists, sing-box configs and logs) go in data/.
 set -u
 cd "$(dirname "$0")"
-DAYS=${DAYS:-90}
+DAYS=${DAYS:-365}
 DATABASE=media_monitoring
 SING_BOX_VERSION=1.14.3  # the version the VPN configs were tested with
 # Where uv and sing-box install themselves; cron's PATH has neither

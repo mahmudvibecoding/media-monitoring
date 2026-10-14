@@ -16,7 +16,7 @@ It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and th
 tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN proxies, then each collector in turn.
 
 ```bash
-DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (90 by default)
+DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (365 by default)
 ./run.sh setup     # only set the machine up
 ```
 
@@ -40,8 +40,8 @@ collected first, and the rest continues next run.
 | `uv run channels` | refreshes every channel's name, handle, description, picture and subscriber count |
 | `uv run videos` | finds new videos in each channel's uploads list (a channel's first run reads its whole history) |
 | `uv run details [all]` | fetches the original title and description, exact publish time, length and kind (video or Short) of new videos (`all`: again for saved videos without an exact publish time) |
-| `uv run stats [days\|all]` | refreshes views and likes (videos from the last 90 days by default) |
-| `uv run comments [days\|all\|unread]` | collects new comments (videos from the last 90 days by default) |
+| `uv run stats [days\|all]` | refreshes views and likes (videos from the last 365 days by default) |
+| `uv run comments [days\|all\|unread]` | collects new comments (videos from the last 365 days by default) |
 | `uv run proxies` | downloads VPN configs and free proxies, and restarts sing-box with them in the background |
 | `uv run proxies stop` | stops sing-box |
 | `uv run proxies check [vpn\|plain]` | reports how many proxies work, by protocol or type and by list (optional) |
