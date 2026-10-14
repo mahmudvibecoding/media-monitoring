@@ -30,8 +30,9 @@ started while the last one is still running is skipped:
 ## The steps
 
 Each step can also run on its own, after `uv run proxies`. Every step goes through the VPN proxies, and brings in
-the free proxies by itself once those stop working: YouTube blocks busy addresses for a while on video pages and
-comments, and the free proxies are many more addresses. Ctrl+C or `kill` stops a step early: it saves what it has
+the free proxies by itself once those stop working, or once it has tested them all and has room for more tests:
+YouTube blocks busy addresses for a while on video pages and comments, and the free proxies are many more
+addresses. Ctrl+C or `kill` stops a step early: it saves what it has
 collected first, and the rest continues next run.
 
 | Command | What it does |

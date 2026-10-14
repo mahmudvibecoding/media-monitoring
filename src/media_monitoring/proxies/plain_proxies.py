@@ -1,8 +1,9 @@
 """Download public lists of free HTTP, SOCKS4 and SOCKS5 proxies into data/plain_proxies.txt, one proxy per line, and
 which lists each came from into data/plain_sources.txt. Each collector process keeps its share of them in reserve
-and brings them in once its VPN proxies stop working: they give video pages and comments (YouTube's next endpoint,
-which blocks an address after heavy use) many more addresses. Most of them don't work; the pool finds the ones that
-do by itself (see pool.py), and "uv run proxies check plain" reports which lists work best.
+and brings them in once its VPN proxies stop working, or once it has tested all of those and has room for more tests:
+they give video pages and comments (YouTube's next endpoint, which blocks an address after heavy use) many more
+addresses. Most of them don't work; the pool finds the ones that do by itself (see pool.py), and "uv run proxies
+check plain" reports which lists work best.
 """
 import asyncio
 import ipaddress
