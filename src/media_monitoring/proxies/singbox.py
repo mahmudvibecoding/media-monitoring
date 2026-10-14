@@ -10,6 +10,8 @@ import socket
 import subprocess
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 from pathlib import Path
 
 from media_monitoring.proxies.converter import Unusable, to_outbound
@@ -89,6 +91,28 @@ def stop_old():
         if alive(pid):  # still there after 30 s
             os.kill(pid, signal.SIGKILL)
     return len(old)
+
+
+def convert(links):
+    """In a worker process: each link as a sing-box outbound, tagged later, or None where sing-box can't use it."""
+    outbounds = []
+    for link in links:
+        try:
+            outbounds.append(to_outbound(link, None))
+        except Unusable:
+            outbounds.append(None)
+    return outbounds
+
+
+def convert_all(links):
+    """Every link as a sing-box outbound or None, in order, the work split between processes: on one core it takes
+    about 4 seconds."""
+    shares = max(1, min(os.cpu_count(), len(links) // 1000))
+    size = -(-len(links) // shares)
+    # "spawn" starts each process fresh, which works the same on macOS and Linux
+    with ProcessPoolExecutor(shares, mp_context=get_context("spawn")) as pool:
+        parts = pool.map(convert, [links[i:i + size] for i in range(0, len(links), size)])
+        return [outbound for part in parts for outbound in part]
 
 
 def group_config(group):
@@ -171,11 +195,10 @@ def main():
         links = random.sample(links, min(limit, len(links)))
 
     configs, links_by_index = [], {}
-    for link in links:
-        try:
-            outbound = to_outbound(link, f"out-{len(configs)}")
-        except Unusable:
+    for link, outbound in zip(links, convert_all(links)):
+        if outbound is None:
             continue
+        outbound["tag"] = f"out-{len(configs)}"
         links_by_index[len(configs)] = link
         configs.append((len(configs), outbound))
 

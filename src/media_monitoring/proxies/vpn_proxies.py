@@ -1,6 +1,7 @@
 """Download the public lists of free VPN configs (vless, vmess, trojan, ss, hysteria2) into data/vpn_configs.txt,
 and which lists each config came from into data/vpn_sources.txt. singbox then runs each config as a local
 proxy, listed in data/vpn_proxies.txt: the VPN proxies every collector goes through."""
+import asyncio
 import base64
 import binascii
 import json
@@ -11,7 +12,7 @@ from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import get_context
 from urllib.parse import parse_qsl, unquote, urlsplit
 
-from curl_cffi import requests
+from curl_cffi import AsyncSession
 
 GITHUB = "https://raw.githubusercontent.com/"
 SOURCES = [
@@ -76,6 +77,7 @@ SS_METHODS = {  # the Shadowsocks ciphers sing-box supports
 }
 OUTPUT = "data/vpn_configs.txt"
 SOURCES_OUTPUT = "data/vpn_sources.txt"  # one line per config: "<link> <source> <source> ..."
+PIECE = 1 << 20  # characters of a list parsed as one piece of work: a big list is parsed by several processes at once
 
 
 def decode_base64(text):
@@ -85,14 +87,6 @@ def decode_base64(text):
         return base64.b64decode(text + "=" * (-len(text) % 4)).decode("utf-8", "replace")
     except (binascii.Error, ValueError):
         return ""
-
-
-def find_links(text):
-    """Find all links in a downloaded list. Some lists are one big base64 block."""
-    links = LINK.findall(text)
-    if len(links) < 3:
-        links += LINK.findall(decode_base64(text))
-    return links
 
 
 def split_address(text):
@@ -168,16 +162,38 @@ def parse(link):
     return protocol, key, f"{protocol}://{rest}"
 
 
-def fetch(url):
-    """In a worker process: download one list and parse its links. Returns ([(protocol, key, clean_link), ...], how
-    many links were skipped), or the error as text if the download failed."""
-    try:
-        response = requests.get(url, timeout=300)  # the biggest list is about 21 MB
-        response.raise_for_status()
-    except Exception as error:
-        return str(error) or type(error).__name__
+async def download(session, url):
+    response = await session.get(url, timeout=300)  # the biggest list is about 21 MB
+    response.raise_for_status()
+    return response.content.decode("utf-8", "replace")
+
+
+async def download_all():
+    async with AsyncSession() as session:
+        # All sources at once; return_exceptions=True keeps one failed download from stopping the others
+        return await asyncio.gather(*(download(session, url) for url in SOURCES), return_exceptions=True)
+
+
+def readable(text):
+    """A downloaded list with its links in plain sight: some lists are one big base64 block, which has no "://"."""
+    return text if "://" in text else decode_base64(text)
+
+
+def pieces(text):
+    """The text in pieces of about PIECE characters, cut at line ends: a link never spans lines."""
+    start = 0
+    while start < len(text):
+        end = text.find("\n", start + PIECE)
+        end = len(text) if end == -1 else end + 1
+        yield text[start:end]
+        start = end
+
+
+def parse_piece(text):
+    """In a worker process: the links in a piece of a list, as ([(protocol, key, clean_link), ...], how many links
+    were skipped)."""
     found, skipped = [], 0
-    for link in find_links(response.content.decode("utf-8", "replace")):
+    for link in LINK.findall(text):
         parsed = parse(link)
         if parsed is None:
             skipped += 1
@@ -187,20 +203,28 @@ def fetch(url):
 
 
 def collect():
-    """Download and parse all sources, each in a process of its own: parsing takes about a minute on one core.
+    """Download all sources, and parse them in pieces spread over processes: on one core it takes about a minute.
     Returns {key: (protocol, clean_link)} for the unique configs, and {key: {source, ...}} with every list each
     config appeared in."""
+    texts = asyncio.run(download_all())
+    work = [(n, piece) for n, text in enumerate(texts) if isinstance(text, str) for piece in pieces(readable(text))]
+    found_in, skipped_in = defaultdict(list), Counter()
     # "spawn" starts each process fresh, which works the same on macOS and Linux
-    with ProcessPoolExecutor(min(len(SOURCES), os.cpu_count()), mp_context=get_context("spawn")) as pool:
-        results = list(pool.map(fetch, SOURCES))
+    with ProcessPoolExecutor(max(1, min(len(work), os.cpu_count())), mp_context=get_context("spawn")) as pool:
+        for (n, _), (found, skipped) in zip(work, pool.map(parse_piece, [piece for _, piece in work])):
+            found_in[n] += found
+            skipped_in[n] += skipped
 
     configs, sources = {}, defaultdict(set)
-    for url, result in zip(SOURCES, results):
+    for n, (url, text) in enumerate(zip(SOURCES, texts)):
         name = url.removeprefix(GITHUB)
-        if isinstance(result, str):
-            print(f"FAILED   {name}: {result}")
+        if isinstance(text, Exception):
+            print(f"FAILED   {name}: {text}")
             continue
-        found, skipped = result
+        found, skipped = found_in[n], skipped_in[n]
+        if len(found) + skipped < 3 and "://" in text:  # hardly any links: the list may be base64 after all
+            more, more_skipped = parse_piece(decode_base64(text))
+            found, skipped = found + more, skipped + more_skipped
         new = 0
         for protocol, key, clean_link in found:
             if key not in configs:
