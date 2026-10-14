@@ -25,7 +25,8 @@ everything again, in this order.
 2. **Channels** (`channels`). Refresh every channel's name, handle, description, picture and subscriber
    count. Only the channels whose details changed are written.
 3. **New videos** (`videos`). Read each channel's uploads list, newest first, until reaching a video already
-   saved. The list gives each video's ID; details fetches the rest. A channel's first run reads its whole history.
+   saved, recognized by the channel's 100 newest saved videos (all a round needs). The list gives each video's ID;
+   details fetches the rest. A channel's first run reads its whole history.
 4. **Video details** (`details`). For each video that has no title yet, ask for the details YouTube's own
    player gets: the title and description as the creator wrote them (others are shown a translation when the
    creator added one), when it was published (to the second), the exact length, and whether it's a Short. A

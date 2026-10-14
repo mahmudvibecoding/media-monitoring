@@ -26,7 +26,13 @@ NEXT_PAGES = URL + ("alerts,onResponseReceivedActions/appendContinuationItemsAct
 # A channel's first run reads its Shorts tab instead, which pages through all of them.
 SHORTS_TAB = "EgZzaG9ydHPyBgUKA5oBAA%3D%3D"
 
-LOAD_KNOWN = "SELECT channel_id, video_id FROM youtube_videos WHERE channel_id = ANY(%s)"
+# Each channel's newest saved videos, which is all a round needs to recognize where to stop: a page of the uploads
+# list holds 100 videos, newest first. An older video taken for new is skipped when saving, as it's already there.
+# The index on (channel_id, upload_date) gives them without reading the table.
+NEWEST = 100
+LOAD_KNOWN = """SELECT c.channel_id, v.video_id FROM unnest(%s::text[]) AS c (channel_id)
+                CROSS JOIN LATERAL (SELECT video_id FROM youtube_videos WHERE channel_id = c.channel_id
+                                    ORDER BY upload_date DESC NULLS FIRST LIMIT %s) AS v"""
 NEW_VIDEOS = "CREATE TEMP TABLE new_videos (video_id text, channel_id text) ON COMMIT DELETE ROWS"
 SAVE = """INSERT INTO youtube_videos (video_id, channel_id) SELECT video_id, channel_id FROM new_videos
           ON CONFLICT (video_id) DO NOTHING"""
@@ -119,8 +125,8 @@ class Videos(Collector):
 
     async def prepare(self, conn, channel_ids):
         self.pending, self.known = [], defaultdict(set)
-        async with conn.cursor() as cur:  # the videos already saved for this process's channels, loaded once
-            await cur.execute(LOAD_KNOWN, (channel_ids,))
+        async with conn.cursor() as cur:  # the newest saved videos of this process's channels, loaded once
+            await cur.execute(LOAD_KNOWN, (channel_ids, NEWEST))
             async for channel_id, video_id in cur:
                 self.known[channel_id].add(video_id)
         await conn.execute(NEW_VIDEOS)
