@@ -14,13 +14,15 @@ YouTube sees the proxy's address instead of the server's.
 
 - **VPN configs.** People share free VPN configurations publicly, mostly to help others get around internet
   censorship, and many GitHub projects collect them from Telegram channels into lists. `uv run proxies`
-  downloads 24 of those lists, from 19 projects, then runs every config with sing-box, as a
-  proxy on the server itself: about 67,000 of them, 1,000 per sing-box process, each group on its own local
-  address (127.1.1.1, 127.1.2.1, and so on). A few thousand of them work at any time.
-- **Free proxies.** `uv run proxies` also downloads 26 public lists of free HTTP and SOCKS4 proxies, about 330,000
-  in all. Only about 1% work, but each one is another address, which video pages and comments can use (see
-  below). Each collector process keeps its share of them in reserve, and brings them in once its VPN proxies stop
-  working. Free SOCKS5 proxies are left out: none of them worked.
+  downloads 50 of those lists, from 31 projects, then runs every config with sing-box, as a
+  proxy on the server itself: about 110,000 of them, 1,000 per sing-box process, each group on its own local
+  address (127.1.1.1, 127.1.2.1, and so on). A few thousand of them work at any time: about 4,200 when the
+  lists were last chosen (2026-10-14), from 969 lists in GitHub projects active that week, by how many working
+  configs each added.
+- **Free proxies.** `uv run proxies` also downloads 28 public lists of free HTTP, SOCKS4 and SOCKS5 proxies, about
+  510,000 in all. Only a few hundred work at a time (224 of 588,000 checked on 2026-10-14, most of them SOCKS5),
+  but each one is another address, which video pages and comments can use (see below). Each collector process
+  keeps its share of them in reserve, and brings them in once its VPN proxies stop working.
 
 Every round downloads both again and restarts sing-box with the new configs, in the background: `uv run proxies`
 does all of it in one command, and `uv run proxies stop` stops sing-box.
@@ -94,7 +96,7 @@ lists are worth keeping.
 - **Lists disappear.** They're run by individuals, and several well-known ones from 2023 no longer exist.
   Most of ours are only a year or two old.
 - **They copy each other.** That helps: most configs appear in several lists, so losing one list costs
-  little. Six lists still carry configs no other list has; losing all six would cost about a third of the
-  working proxies.
+  little. Some still carry working configs no other list has: on 2026-10-14 the biggest such share, OpenRay's,
+  was about a fifth of all the working ones.
 - **If the lists die,** the configs can still be read from the Telegram channels they're collected from, or
   a paid proxy service can take their place.

@@ -40,6 +40,26 @@ SOURCES = [
     GITHUB + "patterniha/Free-Configs/main/configs.txt",
     GITHUB + "roosterkid/openproxylist/main/V2RAY_RAW.txt",
     GITHUB + "MhdiTaheri/V2rayCollector/main/sub/mix",
+    # Added 2026-10-14: of 670 lists in GitHub repositories active that week, those adding the most configs that worked
+    # and that the lists above didn't have, most first (about 2,100 working, next to 1,900 from the lists above)
+    GITHUB + "sakha1370/OpenRay/main/output/all_valid_proxies.txt",
+    GITHUB + "liketolivefree/kobabi/main/sub_all.txt",
+    *(GITHUB + f"Au1rxx/free-vpn-subscriptions/main/output/all-verified/v2ray-base64-{n:04d}.txt"
+      for n in range(1, 11)),  # its checked configs, in 10 parts
+    GITHUB + "10ium/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
+    GITHUB + "10ium/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
+    GITHUB + "10ium/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
+    GITHUB + "wuqb2i4f/xray-config-toolkit/main/output/base64/mix-uri",
+    GITHUB + "Argh94/Proxy-List/main/All_Config.txt",
+    GITHUB + "itsyebekhe/PSG/main/lite/subscriptions/xray/cdn.b64",
+    GITHUB + "shabane/kamaji/master/hub/b64/merged.txt",
+    GITHUB + "Leon406/SubCrawler/main/sub/share/a11",
+    GITHUB + "DukeMehdi/FreeList-V2ray-Configs/main/Configs/All-DukeMehdi-Configs.txt",
+    GITHUB + "whoahaow/rjsxrd/main/githubmirror/bypass/bypass-all.txt",
+    GITHUB + "Barabama/FreeNodes/HEAD/nodes/merged.txt",
+    GITHUB + "0xRadikal/Free-v2ray-Configs/main/all/configs.txt",
+    GITHUB + "Firmfox/Proxify/main/v2ray_configs/separated_by_protocol/mixed.txt",
+    GITHUB + "Mahdi0024/ProxyCollector/master/sub/proxies.txt",
 ]
 
 # A link starts with one of these protocols; (?<!\w) stops "ss://" matching inside "vless://".
