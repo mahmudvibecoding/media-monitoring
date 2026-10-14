@@ -48,7 +48,6 @@ class Collector:
     process's share of the items: prepare() once, then handle() for each item, while save() writes what has been
     collected every SAVE_EVERY seconds. self.results counts the items' outcomes; handle() may add counts of its own."""
     concurrency = 500  # items in progress at a time, per process
-    rest = None  # how long a failed proxy rests (see Pool)
     give_up = True  # end the run when every proxy rests at once (see Pool)
     follow_lists = False  # take in refreshed proxy lists while running
     report_every = 10  # seconds between progress lines
@@ -100,7 +99,7 @@ async def work(collector, items, share, shares):
     def reserve_brought():
         progress[mine + RESERVE] = 1
 
-    pool = Pool(load_share(PROXY_FILE, share, shares), rest=collector.rest, give_up=collector.give_up,
+    pool = Pool(load_share(PROXY_FILE, share, shares), give_up=collector.give_up,
                 reserve=load_share(PLAIN_PROXY_FILE, share, shares), on_reserve=reserve_brought)
     collector.results = results = Counter()
     finished = 0

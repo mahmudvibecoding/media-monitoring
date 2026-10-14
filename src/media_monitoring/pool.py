@@ -31,15 +31,11 @@ ATTEMPTS = 5  # requests per answer at most, not counting failures of proxies th
 # YouTube's own 400s in a row, with no good answer between, that stop the run: a field mask is probably out of date.
 # A single one only fails its request.
 BAD_REQUESTS = 20
-# Seconds a proxy rests when its slots fall to zero: a proxy that has answered in this run comes back sooner, while
-# one that never has (most of them are dead) is tried less often
-REST, REST_IF_NEVER_ANSWERED = 30, 60
-# YouTube blocks an address from video pages and comments (its next endpoint) for a while after heavy use, so the
-# scripts that ask for those let every failed proxy rest this long instead, and then try it again
-LONG_REST = 900
+# Seconds a proxy rests when its slots fall to zero, before it's tested again
+REST = 60
 # YouTube returns a random 403/429 now and then; that alone changes nothing. Only a real storm (8 blocks
-# among a proxy's last 10 answers) pauses that proxy for 30 seconds; then it continues at full speed.
-STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, 30
+# among a proxy's last 10 answers) pauses that proxy for 60 seconds; then it continues at full speed.
+STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, 60
 # A process brings in its reserve (its share of the free proxies) once its working proxies fall to a quarter of the
 # most it had working at once, which YouTube blocking their addresses does, or once every proxy rests. Below this
 # many, a peak is too small to say.
@@ -87,14 +83,12 @@ def raise_open_files_limit():
 
 
 class Pool:
-    """One process's share of the proxies (see the top of this file), in the order to test them. rest, if given, is
-    how long every proxy whose slots fall to zero rests (else REST or REST_IF_NEVER_ANSWERED). reserve is more proxies
+    """One process's share of the proxies (see the top of this file), in the order to test them. reserve is more proxies
     (the free ones), brought in once the working proxies collapse (see MIN_PEAK); on_reserve is called when they are.
     With give_up=False, requests wait when every proxy rests at once, for one to come back or for add() to bring new
     ones."""
 
-    def __init__(self, proxies, rest=None, give_up=True, reserve=(), on_reserve=None):
-        self.rest = rest
+    def __init__(self, proxies, give_up=True, reserve=(), on_reserve=None):
         self.give_up = give_up
         self.reserve = list(reserve)  # replaceable until used, e.g. by a refreshed list
         self.reserve_used = False
@@ -285,8 +279,7 @@ class Pool:
         self.held[proxy] = self.busy[proxy] = 0
         self.proven.discard(proxy)
         self.resting.add(proxy)
-        rest = self.rest or (REST if proxy in self.answered else REST_IF_NEVER_ANSWERED)
-        asyncio.get_running_loop().call_later(rest, self._wake, proxy, self.generation[proxy])
+        asyncio.get_running_loop().call_later(REST, self._wake, proxy, self.generation[proxy])
         collapsed = self.peak >= MIN_PEAK and len(self.proven) * 4 <= self.peak
         if collapsed or len(self.resting) == self.count:
             self._bring_reserve()

@@ -8,14 +8,13 @@ bot checks stopped it partway.
 
 YouTube checks for bots when that request comes in bulk, which suits the new videos of each round, a few thousand a
 day: a refused request goes out again through another proxy, and a video refused every time is tried again next
-round. Failed proxies rest longer, and once the VPN proxies are blocked the free ones come in (see Pool). Run it after
-"uv run proxies" (see pool.py).
+round. Once the VPN proxies are blocked the free ones come in (see Pool). Run it after "uv run proxies" (see
+pool.py).
 """
 from datetime import datetime, timezone
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
-from media_monitoring.pool import LONG_REST
 from media_monitoring.youtube import API, CONTEXT, call
 
 FIELDS = ("playabilityStatus(status,reason),videoDetails(title,shortDescription,lengthSeconds),"
@@ -91,7 +90,6 @@ async def fetch(session, video_id, proxy):
 
 
 class Details(Collector):
-    rest = LONG_REST
     item_name = "videos"
     saved_name = "with details"
     argument = "all, to fetch them again for every saved video without an exact publish time"

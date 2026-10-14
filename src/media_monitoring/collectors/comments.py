@@ -8,9 +8,8 @@ run stops) continues next time from where it stopped.
 "uv run comments all" every video, and "uv run comments unread" every video whose whole list hasn't been read yet.
 Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run stats first.
 
-Comments come from YouTube's next endpoint, which blocks busy addresses for a while, so failed proxies rest longer,
-once the VPN proxies are blocked the free ones come in, for many more addresses (see Pool), and proxy lists refreshed
-while it runs are taken in.
+Comments come from YouTube's next endpoint, which blocks busy addresses for a while: once the VPN proxies are blocked
+the free ones come in, for many more addresses (see Pool), and proxy lists refreshed while it runs are taken in.
 """
 import asyncio
 import base64
@@ -23,7 +22,6 @@ from urllib.parse import quote
 import psycopg
 
 from media_monitoring.parallel import Collector, run
-from media_monitoring.pool import LONG_REST
 from media_monitoring.youtube import API, CONTEXT, call
 
 DAYS = 90  # by default, the videos published in the last DAYS days
@@ -239,7 +237,6 @@ async def save_rows(conn, pending, counts, progress):
 
 
 class Comments(Collector):
-    rest = LONG_REST
     give_up = False  # when every proxy rests, wait for one to come back or for refreshed lists
     follow_lists = True
     item_name = "videos"

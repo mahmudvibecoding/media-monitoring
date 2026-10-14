@@ -38,15 +38,14 @@ in an earlier run wouldn't help.
    while all of them are busy, up to 64. With few working proxies each one carries more, and with many each
    carries less.
 3. Each failure (no answer within 5 seconds, or an answer that isn't YouTube's) takes one request off the
-   proxy's share. At zero the proxy rests for 30 seconds, or 60 if it never answered in this run (most of
-   those are dead), then gets one request again. So proxies that come back are used again, even in long
-   runs.
+   proxy's share. At zero the proxy rests for 60 seconds, then gets one request again. So proxies that
+   come back are used again, even in long runs.
 4. A failed request is sent again, up to 5 times.
 5. Working proxies always come first: untested ones only get requests that would otherwise wait.
 6. Near the end of a run, when there's no new work left, a slow request also goes out through a second
    working proxy, so the last few don't hold up the run.
 7. YouTube refuses a request now and then (403 or 429). That alone changes nothing: the request is retried
-   elsewhere. Only if 8 of a proxy's last 10 answers are refusals does that proxy pause for 30 seconds.
+   elsewhere. Only if 8 of a proxy's last 10 answers are refusals does that proxy pause for 60 seconds.
 
 Each process has its own share of the proxies. Certificates aren't checked through proxies, since all the
 data is public. A proxy can answer in YouTube's place, so an answer only counts as YouTube's if it looks
@@ -56,7 +55,7 @@ like one: a 400 error, for example, only if it's YouTube's own error message.
 
 Video pages and comments come from a different YouTube endpoint (`next`). It blocks an address after a few
 minutes of heavy use: every request from it then gets a "Sorry, unusual traffic" page, which takes 20 to 25
-seconds to arrive. So a proxy that fails there rests 15 minutes instead of 30 seconds. And once the working VPN
+seconds to arrive, so it shows up as failures, and the proxy rests like any other. And once the working VPN
 proxies of a collector process fall to a quarter of the most it had (or all of them rest), the process brings in its
 share of the free proxies: many more addresses. Proxies that already work still come first, so when the VPN ones
 come back from their rest they carry the load again.
