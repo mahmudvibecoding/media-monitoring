@@ -4,7 +4,7 @@ To recognize those, each video keeps the IDs of its newest comments (youtube_com
 those for its videos in one query, instead of every saved comment. A read that stops partway (a page fails, or the
 run stops) continues next time from where it stopped.
 
-"uv run comments" covers the videos uploaded in the last DAYS days, "uv run comments 30" the last 30 days,
+"uv run comments" covers the videos published in the last DAYS days, "uv run comments 30" the last 30 days,
 "uv run comments all" every video, and "uv run comments unread" every video whose whole list hasn't been read yet.
 Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run stats first.
 
@@ -26,7 +26,7 @@ from media_monitoring.parallel import Collector, run
 from media_monitoring.pool import LONG_REST
 from media_monitoring.youtube import API, CONTEXT, call
 
-DAYS = 90  # by default, the videos uploaded in the last DAYS days
+DAYS = 90  # by default, the videos published in the last DAYS days
 EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
 NOTE_EVERY = 20  # during a long read, every this many pages note where to continue, in case the run stops
 END, KNOWN, INVALID = object(), object(), object()  # how a read of pages ended (see read_video)
@@ -246,14 +246,16 @@ class Comments(Collector):
     saved_name = "new comments"
     argument = f"a number of days ({DAYS} by default), all, or unread"
     words = ("all", "unread")
+    days = True
 
     def load(self, conn, argument):
         days = argument or str(DAYS)
         # "unread" leaves out videos without views and likes (stats found them removed or private): their count row,
-        # where a finished read is recorded, doesn't exist. A video whose page shows no day (a stream that hasn't
-        # started yet) counts from the day it was found.
+        # where a finished read is recorded, doesn't exist. A video counts by its exact publish time where it's known,
+        # else its upload day; with neither (a stream that hasn't started yet), from when it was found.
         where = {"all": "", "unread": "WHERE NOT s.comments_complete OR s.comments_resume IS NOT NULL"}.get(
-            days, "WHERE coalesce(v.upload_date, v.first_seen_at::date) >= current_date - %s::int")
+            days, "WHERE coalesce(v.published_at, v.upload_date::timestamptz, v.first_seen_at) "
+                  ">= now() - make_interval(days => %s::int)")
         # Most viewed first: their long comment lists start early instead of holding up the end of the run
         return [row[0] for row in conn.execute(
             f"""SELECT v.video_id FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)
@@ -261,7 +263,8 @@ class Comments(Collector):
 
     def describe(self, argument):
         days = argument or str(DAYS)
-        window = {"all": "every video", "unread": "not read in full yet"}.get(days, f"uploaded in the last {days} days")
+        window = {"all": "every video", "unread": "not read in full yet"}.get(
+            days, f"published in the last {days} days")
         return f"videos to read comments of ({window})"
 
     async def prepare(self, conn, video_ids):

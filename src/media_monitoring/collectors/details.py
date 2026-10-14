@@ -1,8 +1,12 @@
 """Fetch the details of every video that doesn't have them yet, from the player answer YouTube's own video page
-uses: its title and description as the creator wrote them (not a translation), its upload day, its exact length, and
-whether it's a Short. Run videos first, so new videos are in youtube_videos.
+uses: its title and description as the creator wrote them (not a translation), when it was published (to the
+second), its exact length, and whether it's a Short. Run videos first, so new videos are in youtube_videos.
 
-YouTube checks for bots when that request comes in bulk, so it suits the new videos of each round, a few thousand a
+"uv run details all" also fetches them again for every saved video without an exact publish time, newest first:
+once, for the videos saved before details took them from the player answer. Run it again to continue, if YouTube's
+bot checks stopped it partway.
+
+YouTube checks for bots when that request comes in bulk, which suits the new videos of each round, a few thousand a
 day: a refused request goes out again through another proxy, and a video refused every time is tried again next
 round. Failed proxies rest longer, and once the VPN proxies are blocked the free ones come in (see Pool). Run it after
 "uv run proxies" (see pool.py).
@@ -19,11 +23,15 @@ FIELDS = ("playabilityStatus(status,reason),videoDetails(title,shortDescription,
 URL = API + "player?prettyPrint=false&fields=" + FIELDS
 
 DETAILS = """CREATE TEMP TABLE details (video_id text, title text, description text, upload_date date,
-                                        duration_seconds integer, kind text) ON COMMIT DELETE ROWS"""
-# The length from the player answer is exact: the uploads list's badge is rounded, and Shorts have none there
+                                        published_at timestamptz, duration_seconds integer, kind text)
+             ON COMMIT DELETE ROWS"""
+# What an answer lacks keeps its saved value (fetched again, a stream that's live now has no length). The length from
+# the player answer is exact: the uploads list's badge is rounded, and Shorts have none there.
 SAVE = """UPDATE youtube_videos AS v
-          SET title = d.title, description = d.description, upload_date = d.upload_date,
-              duration_seconds = coalesce(d.duration_seconds, v.duration_seconds), kind = d.kind,
+          SET title = coalesce(d.title, v.title), description = coalesce(d.description, v.description),
+              upload_date = coalesce(d.upload_date, v.upload_date),
+              published_at = coalesce(d.published_at, v.published_at),
+              duration_seconds = coalesce(d.duration_seconds, v.duration_seconds), kind = coalesce(d.kind, v.kind),
               status = 'available'
           FROM details AS d WHERE v.video_id = d.video_id"""
 # Still retried every run: a video can be blocked only where one proxy is, or come back later
@@ -35,23 +43,26 @@ def text(value):
     return value.replace("\x00", "") if value else value
 
 
-def upload_day(published):
-    """The day of the upload time YouTube gives ("2026-10-13T04:51:23-07:00"), in UTC; None if it gives none."""
+def publish_time(published):
+    """The publish time YouTube gives ("2026-10-13T04:51:23-07:00") and its day in UTC; (None, None) without one. A
+    stream or premiere that hasn't started has none yet."""
     try:
         moment = datetime.fromisoformat(published)
     except (TypeError, ValueError):
-        return None
-    return (moment.astimezone(timezone.utc) if moment.tzinfo else moment).date()
+        return None, None
+    if not moment.tzinfo:  # only a day
+        return None, moment.date()
+    return moment, moment.astimezone(timezone.utc).date()
 
 
 def parse(video_id, data):
-    """(video_id, title, description, upload day, length, kind) from a player answer with the video's details. They
-    come even when YouTube won't play the video to us (UNPLAYABLE)."""
+    """(video_id, title, description, upload day, publish time, length, kind) from a player answer with the video's
+    details. They come even when YouTube won't play the video to us (UNPLAYABLE)."""
     details = data["videoDetails"]
     micro = (data.get("microformat") or {}).get("playerMicroformatRenderer") or {}
+    published, day = publish_time(micro.get("publishDate"))
     shorts = micro.get("isShortsEligible")  # YouTube's own word: it matches whether youtube.com/shorts/<id> opens
-    return (video_id, text(details.get("title")), text(details.get("shortDescription")),
-            upload_day(micro.get("publishDate")),
+    return (video_id, text(details.get("title")), text(details.get("shortDescription")), day, published,
             int(details.get("lengthSeconds") or 0) or None,  # 0 while a stream is live or upcoming
             None if shorts is None else "short" if shorts else "video")
 
@@ -84,12 +95,19 @@ class Details(Collector):
     rest = LONG_REST
     item_name = "videos"
     saved_name = "with details"
+    argument = "all, to fetch them again for every saved video without an exact publish time"
+    words = ("all",)
 
     def load(self, conn, argument):
+        if argument == "all":
+            # Newest first: if YouTube's bot checks stop the run partway, the most recent videos are done
+            return [row[0] for row in conn.execute(
+                """SELECT video_id FROM youtube_videos WHERE published_at IS NULL AND status = 'available'
+                   ORDER BY coalesce(upload_date, first_seen_at::date) DESC""")]
         return [row[0] for row in conn.execute("SELECT video_id FROM youtube_videos WHERE title IS NULL")]
 
     def describe(self, argument):
-        return "videos without details"
+        return "saved videos without an exact publish time" if argument == "all" else "videos without details"
 
     async def prepare(self, conn, video_ids):
         self.pending, self.unavailable = [], []

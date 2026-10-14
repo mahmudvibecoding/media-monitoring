@@ -1,7 +1,7 @@
 """Refresh the views and likes of recent videos: each video has one row in youtube_video_stats with its latest
 numbers, overwritten on every refresh.
 
-"uv run stats" refreshes the videos uploaded in the last DAYS days, "uv run stats 30" the last 30 days, and
+"uv run stats" refreshes the videos published in the last DAYS days, "uv run stats 30" the last 30 days, and
 "uv run stats all" every video. Run details first, so new videos have their upload day, and run it while
 sing-box is running ("uv run proxies"): the pool tests the proxies by itself (see pool.py).
 """
@@ -10,7 +10,7 @@ from functools import partial
 from media_monitoring.parallel import Collector, run
 from media_monitoring.youtube import API, CONTEXT, call
 
-DAYS = 90  # by default, refresh the videos uploaded in the last DAYS days
+DAYS = 90  # by default, refresh the videos published in the last DAYS days
 # updated_metadata is what a watch page calls to refresh its counts: the lightest answer, with exact numbers
 FIELDS = ("actions/updateViewershipAction/viewCount/videoViewCountRenderer(originalViewCount,isLive),"
           "frameworkUpdates/entityBatchUpdate/mutations/payload/likeCountEntity/likeCountIfIndifferentNumber")
@@ -61,19 +61,21 @@ class Stats(Collector):
     saved_name = "refreshed"
     argument = f"a number of days ({DAYS} by default) or all"
     words = ("all",)
+    days = True
 
     def load(self, conn, argument):
         days = argument or str(DAYS)
         if days == "all":
             return [row[0] for row in conn.execute("SELECT video_id FROM youtube_videos")]
-        # A video whose page shows no day (a stream that hasn't started yet) counts from the day it was found
+        # Its exact publish time where it's known, else its upload day; a video with neither (a stream that hasn't
+        # started yet) counts from when it was found
         return [row[0] for row in conn.execute(
-            """SELECT video_id FROM youtube_videos
-               WHERE coalesce(upload_date, first_seen_at::date) >= current_date - %s::int""", (int(days),))]
+            """SELECT video_id FROM youtube_videos WHERE coalesce(published_at, upload_date::timestamptz, first_seen_at)
+                   >= now() - make_interval(days => %s::int)""", (int(days),))]
 
     def describe(self, argument):
         days = argument or str(DAYS)
-        return "videos to refresh (" + ("every video" if days == "all" else f"uploaded in the last {days} days") + ")"
+        return "videos to refresh (" + ("every video" if days == "all" else f"published in the last {days} days") + ")"
 
     async def prepare(self, conn, video_ids):
         self.pending = []

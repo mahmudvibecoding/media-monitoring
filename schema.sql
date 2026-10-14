@@ -19,12 +19,15 @@ CREATE TABLE IF NOT EXISTS youtube_videos (
     duration_seconds  integer,              -- exact from details; until then the uploads list's badge, if any
     first_seen_at     timestamptz NOT NULL DEFAULT now(),
     status            text NOT NULL DEFAULT 'available',  -- 'unavailable' when YouTube shows no video
-    upload_date       date,                 -- the day (UTC) of the upload time YouTube gives
+    upload_date       date,                 -- the day of published_at in UTC (kept by older versions without it)
     -- Every video's cover image is at this address; it's computed when read, not stored
     thumbnail_url     text GENERATED ALWAYS AS ('https://i.ytimg.com/vi/' || video_id || '/hqdefault.jpg') VIRTUAL,
-    kind              text                  -- 'video' or 'short', YouTube's own word (from details)
+    kind              text,                 -- 'video' or 'short', YouTube's own word (from details)
+    published_at      timestamptz           -- when YouTube published it, to the second (from details); NULL for
+                                            -- a stream or premiere that hasn't started yet
 );
-ALTER TABLE youtube_videos ADD COLUMN IF NOT EXISTS kind text;  -- for databases made before it
+ALTER TABLE youtube_videos ADD COLUMN IF NOT EXISTS kind text;  -- for databases made before them
+ALTER TABLE youtube_videos ADD COLUMN IF NOT EXISTS published_at timestamptz;
 CREATE INDEX IF NOT EXISTS youtube_videos_channel ON youtube_videos (channel_id);
 
 -- Each video's latest views, likes and comment count: one small row per video, overwritten on every refresh.

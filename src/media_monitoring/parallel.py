@@ -55,7 +55,8 @@ class Collector:
     item_name = "items"
     saved_name = "saved"
     argument = None  # what the command line's argument may be, for its help; None if it takes none
-    words = ()  # what the argument may be besides a number of days
+    words = ()  # the words the argument may be
+    days = False  # whether the argument may also be a number of days
 
     def load(self, conn, argument):
         """In the main process: the items to work on. argument is the command line's, or None."""
@@ -239,7 +240,7 @@ def run(collector_class):
     if collector.argument:
         parser.add_argument("argument", nargs="?", help=collector.argument)
     argument = getattr(parser.parse_args(), "argument", None)
-    if argument is not None and not argument.isdigit() and argument not in collector.words:
+    if argument is not None and argument not in collector.words and not (collector.days and argument.isdigit()):
         parser.error(f"the argument should be {collector.argument}, not {argument!r}")
     # The signal that asked the run to stop early and when, if one did; what the processes share
     asked, counter = [], None

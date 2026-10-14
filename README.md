@@ -38,7 +38,7 @@ collected first, and the rest continues next run.
 |---|---|
 | `uv run channels` | refreshes every channel's name, handle, description, picture and subscriber count |
 | `uv run videos` | finds new videos in each channel's uploads list (a channel's first run reads its whole history) |
-| `uv run details` | fetches the original title and description, upload day, length and kind (video or Short) of new videos |
+| `uv run details [all]` | fetches the original title and description, exact publish time, length and kind (video or Short) of new videos (`all`: again for saved videos without an exact publish time) |
 | `uv run stats [days\|all]` | refreshes views and likes (videos from the last 90 days by default) |
 | `uv run comments [days\|all\|unread]` | collects new comments (videos from the last 90 days by default) |
 | `uv run proxies` | downloads VPN configs and free proxies, and restarts sing-box with them in the background |
