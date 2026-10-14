@@ -29,11 +29,13 @@ TESTS_AT_ONCE = 100  # proxy tests in flight at a time, in each process (500 fou
 # YouTube's own 400s in a row, with no good answer between, that stop the run: a field mask is probably out of date.
 # A single one only fails its request.
 BAD_REQUESTS = 20
-# Seconds a proxy rests when its slots fall to zero, before it's tested again
-REST = 60
+# Seconds a proxy rests when it fails its test, or when its slots fall to zero, before it's tested again: a random
+# length in this range, so proxies that failed together come back at different times. With one fixed length they came
+# back together, and the load rose and fell every minute.
+REST = (45, 75)
 # YouTube returns a random 403/429 now and then; that alone changes nothing. Only a real storm (8 blocks
-# among a proxy's last 10 answers) pauses that proxy for 60 seconds; then it continues at full speed.
-STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, 60
+# among a proxy's last 10 answers) pauses that proxy, for a random length like a rest; then it continues at full speed.
+STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, (45, 75)
 # A process brings in its reserve (its share of the free proxies) once its working proxies fall to a quarter of the
 # most it had working at once, which YouTube blocking their addresses does, or once every proxy rests. Below this
 # many, a peak is too small to say.
@@ -243,7 +245,7 @@ class Pool:
             recent.append(outcome == "blocked")
             if sum(recent) >= STORM_BLOCKS:
                 recent.clear()
-                self.paused_until[proxy] = time.monotonic() + STORM_PAUSE
+                self.paused_until[proxy] = time.monotonic() + random.uniform(*STORM_PAUSE)
         new = self.limit[proxy] - self.held[proxy]  # slots to add; below zero, this one is dropped
         if new < 0:
             self.held[proxy] -= 1
@@ -294,7 +296,7 @@ class Pool:
         self.held[proxy] = self.busy[proxy] = 0
         self.proven.discard(proxy)
         self.resting.add(proxy)
-        asyncio.get_running_loop().call_later(REST, self._wake, proxy, self.generation[proxy])
+        asyncio.get_running_loop().call_later(random.uniform(*REST), self._wake, proxy, self.generation[proxy])
         collapsed = self.peak >= MIN_PEAK and len(self.proven) * 4 <= self.peak
         if collapsed or len(self.resting) == self.count:
             self._bring_reserve()

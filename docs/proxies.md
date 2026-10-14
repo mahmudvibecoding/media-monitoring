@@ -39,13 +39,15 @@ of the ones that worked in an earlier run wouldn't help.
    passed carries 8 requests at a time, and one more each time it answers while all of them are busy, up to
    64. With few working proxies each one carries more, and with many each carries less.
 3. Each failure (no answer within 5 seconds, or an answer that isn't YouTube's) takes one request off the
-   proxy's share. At zero the proxy rests for 60 seconds, then is tested again, and so is a proxy that failed
-   its test. So proxies that come back are used again within a minute or two, even in long runs.
+   proxy's share. At zero the proxy rests, then is tested again, and so is a proxy that failed its test. A rest
+   lasts 45 to 75 seconds, at random, so proxies that failed together come back at different times. So proxies
+   that recover are used again within a minute or two, even in long runs.
 4. A failed request is sent again through another proxy, up to 5 times.
 5. Near the end of a run, when there's no new work left, a request without an answer after a second also goes
    out through a second working proxy, so the last few don't hold up the run.
 6. YouTube refuses a request now and then (403 or 429). That alone changes nothing: the request is retried
-   elsewhere. Only if 8 of a proxy's last 10 answers are refusals does that proxy pause for 60 seconds.
+   elsewhere. Only if 8 of a proxy's last 10 answers are refusals does that proxy pause, for 45 to 75 seconds
+   like a rest.
 
 Each process has its own share of the proxies. Certificates aren't checked through proxies, since all the
 data is public. A proxy can answer in YouTube's place, so an answer only counts as YouTube's if it looks
