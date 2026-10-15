@@ -41,13 +41,16 @@ IDLE_LOW, IDLE_HIGH = 0.10, 0.20
 OWN_FREE, OWN_BUSY = 0.6, 0.9
 
 # Shared by all processes: whether the run is stopping early (set by the main process on Ctrl+C or kill, see run),
-# how many proxy tests each process may run at a time (set by the main process, see regulate_tests), then four
+# how many proxy tests each process may run at a time (set by the main process, see regulate_tests), then PER_SHARE
 # counters for each share of the items, from SHARES on, each written only by the process working on that share: items
-# finished, items saved, whether it's ready (what's already saved is loaded) and whether it brought in the free
-# proxies. Without a lock, a process ended halfway through (killed, or out of memory) can't leave one held.
+# finished, items saved, whether it's ready (what's already saved is loaded), whether it brought in the free proxies,
+# and its successful requests. Without a lock, a process ended halfway through (killed, or out of memory) can't leave
+# one held.
 progress = None
 STOPPING, TESTS, SHARES = 0, 1, 2
-FINISHED, SAVED, READY, RESERVE = range(4)
+PER_SHARE = 5
+FINISHED, SAVED, READY, RESERVE, SUCCEEDED = range(PER_SHARE)
+SUCCESSFUL = ("ok", "gone")  # requests YouTube answered with what was asked: every speed shown counts these
 parent = None  # in each worker process: the main process, which it stops for if it's gone
 busy = False  # in each worker process: whether it's working on a share (see run_share)
 killed = False  # in each worker process: whether kill asked this process alone to stop (see start)
@@ -109,7 +112,7 @@ async def work(collector, items, share, shares):
     ones in reserve."""
     raise_open_files_limit()
     seen = {path: modified(path) for path in (PROXY_FILE, PLAIN_PROXY_FILE)}
-    mine = SHARES + 4 * share  # where this share's counters are in progress
+    mine = SHARES + PER_SHARE * share  # where this share's counters are in progress
 
     def reserve_brought():
         progress[mine + RESERVE] = 1
@@ -181,13 +184,14 @@ async def work(collector, items, share, shares):
             async def regulator():
                 """Every REGULATE_EVERY seconds: how many proxies this process tests at a time. The main process sets
                 that for all processes, by the server's idle CPU; this one tests fewer while its own core is nearly
-                full, since its tests and its work share it."""
+                full, since its tests and its work share it. Also counts the successful requests, for the speed."""
                 own, cpu, then = TESTS_MAX, time.process_time(), time.monotonic()
                 while not stop.is_set():
                     try:
                         await asyncio.wait_for(stop.wait(), timeout=REGULATE_EVERY)
                     except TimeoutError:
                         pass
+                    progress[mine + SUCCEEDED] = sum(pool.outcomes[outcome] for outcome in SUCCESSFUL)
                     busy_share = (time.process_time() - cpu) / max(time.monotonic() - then, 0.001)
                     cpu, then = time.process_time(), time.monotonic()
                     if busy_share > OWN_BUSY:
@@ -269,7 +273,7 @@ def regulate_tests(counter, processes, done):
     while more than IDLE_HIGH of the server's CPU is idle, which is when the work can't use it, as when few proxies
     work; half as many while less than IDLE_LOW is, as the work needs it. One setting for all processes, so they don't
     each react on their own. Where the CPU can't be read (not on Linux), it stays at TESTS_START."""
-    while sum(counter[SHARES + READY::4]) < processes:
+    while sum(counter[SHARES + READY::PER_SHARE]) < processes:
         if done.wait(REGULATE_EVERY):
             return
     last = cpu_times()
@@ -336,13 +340,14 @@ def run(collector_class):
     processes = max(1, min(PROCESSES, (len(vpn) or len(free)) // 50, math.ceil(len(items) / 1000)))
     print(f"working with {processes} processes...")
     context = get_context("spawn")
-    counter = context.Array("q", SHARES + 4 * processes, lock=False)  # see progress
+    counter = context.Array("q", SHARES + PER_SHARE * processes, lock=False)  # see progress
     counter[STOPPING], counter[TESTS] = bool(asked), TESTS_START
 
     def totals():
-        """Items finished, items saved, shares ready and shares that brought in the free proxies, from all shares."""
+        """Items finished, items saved, shares ready, shares that brought in the free proxies and successful requests,
+        from all shares."""
         values = counter[:]
-        return [sum(values[SHARES + kind::4]) for kind in (FINISHED, SAVED, READY, RESERVE)]
+        return [sum(values[SHARES + kind::PER_SHARE]) for kind in (FINISHED, SAVED, READY, RESERVE, SUCCEEDED)]
 
     # Held back while the worker processes start, which takes a few seconds: they start with them held back too,
     # until they ignore them (see start), and here they arrive once the workers are running
@@ -356,10 +361,10 @@ def run(collector_class):
         done = threading.Event()  # the regulator's stop
         threading.Thread(target=regulate_tests, args=(counter, processes, done), daemon=True).start()
         signal.pthread_sigmask(signal.SIG_UNBLOCK, handled)
-        before, then = 0, started
+        before, then = 0, started  # successful requests at the last line, and when
         while not all(future.done() for future in futures):
             wait(futures, timeout=collector.report_every)
-            now, (finished, saved, ready, reserve) = time.monotonic(), totals()
+            now, (finished, saved, ready, reserve, succeeded) = time.monotonic(), totals()
             # Before its work, each process loads what's already saved for its items (comments' IDs, for example),
             # which for a big run takes a while: say so, or the line would look stuck at 0
             notes = ([f"{processes - ready} of {processes} processes still loading what's already saved"]
@@ -368,9 +373,9 @@ def run(collector_class):
             notes += [f"free proxies brought in by {reserve} of {processes} processes"] if reserve else []
             notes += ["stopping early: each process saves what it has"] if asked else []
             print(f"{now - started:5.0f} s  {finished} of {len(items)} {collector.item_name} done, {saved} "
-                  f"{collector.saved_name}, {(finished - before) / max(now - then, 0.001):,.0f}/s"
+                  f"{collector.saved_name}, {(succeeded - before) / max(now - then, 0.001):,.0f} successful requests/s"
                   + "".join(f"  ({note})" for note in notes))
-            before, then = finished, now
+            before, then = succeeded, now
         broken = False  # a worker process ended unexpectedly (killed, or out of memory): the pool ends the others
         for future in futures:
             try:
@@ -384,8 +389,10 @@ def run(collector_class):
             working += share_working
         done.set()
     took = time.monotonic() - started
-    finished, saved, _, reserve = totals()
-    rate = f"{finished / took:,.0f} {collector.item_name}/s"
+    finished, saved, _, reserve, succeeded = totals()
+    if not broken:  # the shares' own counts, which include the requests after their last progress update
+        succeeded = sum(outcomes[outcome] for outcome in SUCCESSFUL)
+    rate = f"{succeeded / took:,.0f} successful requests/s"
     if broken:  # the shares' own counts didn't come back, only the ones they keep in progress
         print(f"\nstopped after {took:.0f} s ({rate}): {finished} {collector.item_name} done, {saved} "
               f"{collector.saved_name}")
