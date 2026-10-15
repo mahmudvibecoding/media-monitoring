@@ -61,6 +61,7 @@ class Collector:
     process's share of the items: prepare() once, then handle() for each item, while save() writes what has been
     collected every SAVE_EVERY seconds. self.results counts the items' outcomes; handle() may add counts of its own."""
     concurrency = 500  # items in progress at a time, per process
+    attempts = ATTEMPTS  # requests per item at most, each through another proxy (see Pool.run)
     give_up = True  # end the run when every proxy rests at once (see Pool)
     follow_lists = False  # take in refreshed proxy lists while running
     report_every = 10  # seconds between progress lines
@@ -118,7 +119,8 @@ async def work(collector, items, share, shares):
         progress[mine + RESERVE] = 1
 
     pool = Pool(load_share(PROXY_FILE, share, shares), give_up=collector.give_up,
-                reserve=load_share(PLAIN_PROXY_FILE, share, shares), on_reserve=reserve_brought)
+                reserve=load_share(PLAIN_PROXY_FILE, share, shares), on_reserve=reserve_brought,
+                attempts=collector.attempts)
     collector.results = results = Counter()
     finished = 0
     async with await db.connect() as conn:
@@ -126,7 +128,7 @@ async def work(collector, items, share, shares):
         progress[mine + READY] = 1  # what's already saved is loaded, and the work starts
         # verify=False: no certificate checks through proxies (all the data is public)
         async with AsyncSession(impersonate="chrome", verify=False,
-                                max_clients=collector.concurrency * ATTEMPTS + TESTS_MAX) as session:
+                                max_clients=collector.concurrency * collector.attempts + TESTS_MAX) as session:
             pool.start_testing(partial(collector.test, session))
             remaining, stop, halted = iter(items), asyncio.Event(), False
 

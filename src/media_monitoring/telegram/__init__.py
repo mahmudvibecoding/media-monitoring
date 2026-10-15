@@ -3,8 +3,9 @@ t.me/s/<username>, which anyone can read without an account: where they are, one
 and what a page says. A page shows the channel's title, description and counters, and its 20 or so newest messages.
 
 Telegram doesn't refuse an address that asks too fast: it hides pages from it instead, redirecting them to the
-channel's plain page (t.me/<username>), as it does for a channel without a public page. Either way the request counts
-as blocked, and goes out again through another proxy (see Pool).
+channel's plain page (t.me/<username>), as it does for a channel without a public page. Either way the page counts as
+hidden: it goes out again through another proxy, and the proxy keeps working, since Telegram hides some channels from
+an address, not all of them (see Pool).
 """
 import base64
 import html
@@ -25,7 +26,7 @@ VIEW = re.compile(r'data-view="([^"]+)"')  # base64 JSON that counts a message's
 
 async def call(session, proxy, url):
     """One request for a page through one proxy. Returns (problem, response): problem is None when Telegram answered
-    with a page, "blocked" when it redirected it to the channel's plain page (see the top of this file), "broken" when
+    with a page, "hidden" when it redirected it to the channel's plain page (see the top of this file), "broken" when
     the proxy failed (no answer, or one that isn't Telegram's), or "telegram error" for any other answer."""
     try:
         response = await session.get(url, proxy=proxy, timeout=TIMEOUT, allow_redirects=False)
@@ -33,7 +34,7 @@ async def call(session, proxy, url):
         return "broken", None
     if response.status_code in (301, 302, 303, 307, 308):
         location = response.headers.get("location") or ""
-        return ("blocked" if location.startswith("https://t.me/") else "broken"), None
+        return ("hidden" if location.startswith("https://t.me/") else "broken"), None
     if "tgme_" not in response.text:
         return "broken", None  # not Telegram's page: the proxy answered in its place
     if response.status_code != 200:

@@ -28,7 +28,7 @@ PROXY_FILE = "data/vpn_proxies.txt"  # from sing-box (uv run proxies): one line 
 PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from uv run proxies: plain HTTP and SOCKS proxies, the reserve
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
 HEDGE_AFTER = 1  # when draining: seconds without an answer before a request also goes out through another proxy
-ATTEMPTS = 5  # requests per answer at most
+ATTEMPTS = 5  # requests per answer at most, unless the collector sets its own (see Collector.attempts)
 # Proxy tests in flight at a time, in each process: TESTS_START at first, then between TESTS_MIN and TESTS_MAX by how
 # much CPU the work leaves unused (see allow_tests). A fixed 500 found more proxies than 100, but slowed the work.
 TESTS_MIN, TESTS_START, TESTS_MAX = 25, 100, 1000
@@ -48,8 +48,9 @@ STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, (45, 75)
 # have room for more, or once its working proxies fall to a quarter of the most it had working at once, which YouTube
 # blocking their addresses does, or once every proxy rests. Below this many, a peak is too small to say.
 MIN_PEAK = 8
-# Outcomes of a request the site answered
-ANSWERED = ("ok", "gone", "blocked", "youtube error", "telegram error", "bad request")
+# Outcomes of a request the site answered. Only "blocked" counts towards a storm: "hidden" is a Telegram page hidden
+# from the proxy's address (see telegram.call), and Telegram hides some channels from an address, not all of them
+ANSWERED = ("ok", "gone", "blocked", "hidden", "youtube error", "telegram error", "bad request")
 
 
 class NoProxiesLeft(Exception):
@@ -94,10 +95,11 @@ class Pool:
     starts the tests. reserve is more proxies (the plain ones), brought in once there's room to test them or the
     working proxies collapse (see MIN_PEAK), and always tested after the VPN ones; on_reserve is called when they
     are. With give_up=False, requests wait when every proxy rests at once, for one to come back or for add() to bring
-    new ones."""
+    new ones. attempts is how many requests an answer may take at most."""
 
-    def __init__(self, proxies, give_up=True, reserve=(), on_reserve=None):
+    def __init__(self, proxies, give_up=True, reserve=(), on_reserve=None, attempts=ATTEMPTS):
         self.give_up = give_up
+        self.attempts = attempts
         self.reserve = list(reserve)  # replaceable until used, e.g. by a refreshed list
         self.reserve_used = False
         self.on_reserve = on_reserve
@@ -170,17 +172,17 @@ class Pool:
 
     async def run(self, request):
         """Get one answer. request(proxy) sends one request through that proxy and returns (outcome, result),
-        where outcome is "ok", "gone" or a problem from youtube.call(). A failed request goes out again through
-        another proxy, up to ATTEMPTS times. When draining, a request without an answer after HEDGE_AFTER seconds
-        also goes out through another proxy with a free slot; the first useful answer wins. Returns ("ok", result),
-        ("gone", result) or ("failed", None)."""
+        where outcome is "ok", "gone" or a problem from youtube.call() or telegram.call(). A failed request goes out
+        again through another proxy, up to self.attempts times. When draining, a request without an answer after
+        HEDGE_AFTER seconds also goes out through another proxy with a free slot; the first useful answer wins.
+        Returns ("ok", result), ("gone", result) or ("failed", None)."""
         tries, sent, slow = set(), 0, False
         try:
             while True:
                 slot = None
-                if sent < ATTEMPTS and not tries:
+                if sent < self.attempts and not tries:
                     slot = await self._take()
-                elif sent < ATTEMPTS and slow and self.draining:
+                elif sent < self.attempts and slow and self.draining:
                     slot = self._take_free()
                 if slot:
                     proxy, generation = slot

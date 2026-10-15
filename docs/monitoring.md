@@ -134,6 +134,7 @@ an account. It isn't part of the rounds.
   the page carries the channel's ID, so a page whose messages belong to another channel is left out.
 - **Through the proxies, like YouTube's steps.** Telegram doesn't refuse an address that asks too fast; it hides
   pages from it instead, redirecting them as it does for a channel without a public page. A hidden page goes out
-  again through another proxy, up to five times, so each address asks for few pages. From the server's own address
+  again through another proxy, up to ten times, and the proxy keeps working: Telegram hides some channels from an
+  address, not all of them. From the server's own address
   alone, Telegram hid about half the pages at 500 a second; at about 30,000 requests a second, it also kept hiding
   those channels for about 12 minutes afterwards, from other visitors too.

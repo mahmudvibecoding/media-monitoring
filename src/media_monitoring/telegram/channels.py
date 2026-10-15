@@ -7,7 +7,7 @@ The page also shows the channel's newest messages: a channel without a last mess
 messages belong to another channel means the username now belongs to that channel: nothing is written for it.
 
 Run it after "uv run proxies": the pool tests the proxies by itself (see pool.py). A page Telegram hides from a
-proxy's address goes out again through another one.
+proxy's address goes out again through another one, up to ATTEMPTS times in all; the proxy keeps working.
 """
 import re
 from functools import partial
@@ -17,6 +17,7 @@ from media_monitoring.telegram import PAGE, TEST_CHANNEL, call, channel_id, coun
 
 TITLE = re.compile(r'<div class="tgme_channel_info_header_title"[^>]*>(.*?)</div>', re.S)
 DESCRIPTION = re.compile(r'<div class="tgme_channel_info_description"[^>]*>(.*?)</div>', re.S)
+ATTEMPTS = 10  # requests per channel at most: Telegram hides many pages from busy proxies
 SUBSCRIBERS = re.compile(r'<span class="counter_value">([^<]+)</span>\s*<span class="counter_type">subscribers?<')
 CHANNELS = """CREATE TEMP TABLE channels (channel_id bigint, title text, description text, subscriber_count bigint,
               last_message_id integer, last_message_at timestamptz) ON COMMIT DELETE ROWS"""
@@ -59,6 +60,7 @@ async def fetch(session, username, proxy):
 
 
 class Channels(Collector):
+    attempts = ATTEMPTS
     report_every = 2
     item_name = "channels"
     saved_name = "changed"
