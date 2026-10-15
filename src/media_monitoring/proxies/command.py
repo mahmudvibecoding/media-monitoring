@@ -1,4 +1,4 @@
-"""The proxies command. By itself it gets fresh proxies: it downloads the public lists of VPN configs and of free
+"""The proxies command. By itself it gets fresh proxies: it downloads the public lists of VPN configs and of plain
 proxies, then restarts sing-box with the new configs in the background, and returns once its local proxies are ready.
 
     uv run proxies                      download both, and (re)start sing-box in the background
@@ -42,14 +42,14 @@ def start_singbox():
 
 def refresh():
     """Download both lists, and restart sing-box with the new configs in the background."""
-    # The free lists at the same time as the VPN ones, in a process of their own: saving them takes seconds of Python
-    # that would otherwise slow this one down. Their report comes after the VPN one.
-    free = subprocess.Popen([sys.executable, "-m", plain_proxies.__name__], stdout=subprocess.PIPE, text=True)
+    # The plain proxies' lists at the same time as the VPN ones, in a process of their own: saving them takes seconds
+    # of Python that would otherwise slow this one down. Their report comes after the VPN one.
+    plain = subprocess.Popen([sys.executable, "-m", plain_proxies.__name__], stdout=subprocess.PIPE, text=True)
     vpn_proxies.main()
-    report, _ = free.communicate()
+    report, _ = plain.communicate()
     print(report, end="")
-    if free.returncode:
-        sys.exit("the free lists failed (see above)")
+    if plain.returncode:
+        sys.exit("the plain proxies' lists failed (see above)")
     print("\nstarting sing-box in the background...")
     ready = start_singbox()
     if ready is None:

@@ -20,7 +20,7 @@ On October 13, 2026:
 to date. A round started while another is still running is skipped. A round doesn't guess what changed: it checks
 everything again, in this order.
 
-1. **Fresh proxies** (`uv run proxies`). Download the public lists of VPN configs and of free proxies, and
+1. **Fresh proxies** (`uv run proxies`). Download the public lists of VPN configs and of plain proxies, and
    restart sing-box with the new configs, in the background. It stops when the round ends.
 2. **Channels** (`channels`). Refresh every channel's name, handle, description, picture and subscriber
    count. Only the channels whose details changed are written.
@@ -51,7 +51,7 @@ days:
 
 | Step | Work | Time |
 |---|---|---|
-| Fresh proxies | 24 VPN lists and 26 free-proxy lists; 66,666 configs running in sing-box | about 1 min |
+| Fresh proxies | 24 VPN lists and 26 plain-proxy lists; 66,666 configs running in sing-box | about 1 min |
 | Channels | 55,859 channels, 58 of them changed | 7 s |
 | New videos | 55,859 channels, 42 new videos | 19 s |
 | Video details | 540 videos without details | 20 s |

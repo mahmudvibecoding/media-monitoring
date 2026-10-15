@@ -19,7 +19,7 @@ YouTube sees the proxy's address instead of the server's.
   address (127.1.1.1, 127.1.2.1, and so on). A few thousand of them work at any time: about 4,200 when the
   lists were last chosen (2026-10-14), from 969 lists in GitHub projects active that week, by how many working
   configs each added.
-- **Free proxies.** `uv run proxies` also downloads 28 public lists of free HTTP, SOCKS4 and SOCKS5 proxies, about
+- **Plain proxies.** `uv run proxies` also downloads 28 public lists of ordinary HTTP, SOCKS4 and SOCKS5 proxies, about
   510,000 in all. Only a few hundred work at a time (224 of 588,000 checked on 2026-10-14, most of them SOCKS5),
   but each one is another address, which video pages and comments can use (see below). Each collector process
   keeps its share of them in reserve, and brings them in once its VPN proxies stop working, or once it has
@@ -39,7 +39,7 @@ of the ones that worked in an earlier run wouldn't help.
    100 at a time. Twice a second, the main process doubles that while more than 20% of the server's CPU is idle,
    as when few proxies work, and halves it while less than 10% is, up to 1,000 and down to 25. A process whose
    own core is nearly full tests fewer, whatever the rest of the server does. VPN proxies are always tested
-   before free ones.
+   before plain ones.
 2. Real requests only go through proxies that passed their test, so none waits on a dead one. A proxy that
    passed carries 8 requests at a time, and one more each time it answers while all of them are busy, up to
    64. With few working proxies each one carries more, and with many each carries less.
@@ -65,11 +65,11 @@ Video pages and comments come from a different YouTube endpoint (`next`). It blo
 minutes of heavy use: every request from it then gets a "Sorry, unusual traffic" page, which takes 20 to 25
 seconds to arrive, so it shows up as failures, and the proxy rests like any other. And once the working VPN
 proxies of a collector process fall to a quarter of the most it had (or all of them rest), or once it has tested
-them all and has room for more tests, the process brings in its share of the free proxies: many more addresses.
+them all and has room for more tests, the process brings in its share of the plain proxies: many more addresses.
 They're tested after the VPN ones, and the VPN ones that come back from their rest carry work again next to them.
 
 The comments step can run for hours (`comments all`), so it also takes in refreshed lists while it runs:
-sing-box's proxies are tested again when it restarts with new configs, and new free proxies join when `uv run
+sing-box's proxies are tested again when it restarts with new configs, and new plain proxies join when `uv run
 proxies` runs again (or replace the reserve, if it isn't in use yet). When every proxy rests at once, it waits
 for them instead of stopping.
 
@@ -83,7 +83,7 @@ for them instead of stopping.
   second.
 - **Video pages and comments are limited by addresses.** With about 2,800 VPN addresses, comments came in at
   about 250,000 a second for 3 minutes, then slid to about 10,000 a second within 8 minutes as the addresses
-  got blocked. About 3,000 working free proxies raised the peak, but it slid the same way. How long a block
+  got blocked. About 3,000 working plain proxies raised the peak, but it slid the same way. How long a block
   lasts, and how fast one address can go without one, isn't measured yet.
 - **Proxies come and go.** In a long run most of them fail now and then. When a single failure dropped a
   proxy for good, a long run slowed from 8,000 videos a second to 80; now failed proxies rest and come back.
@@ -103,7 +103,7 @@ for them instead of stopping.
 ## Checking the lists
 
 `uv run proxies check` sends one real request through every proxy and reports how many work: the VPN ones by
-protocol and by list, and the free ones by type and by list. Both kinds are checked the same way, with a channel
+protocol and by list, and the plain ones by type and by list. Both kinds are checked the same way, with a channel
 page. `uv run proxies check vpn` or `check plain` checks one kind. The collectors don't need it; it shows which
 lists are worth keeping.
 

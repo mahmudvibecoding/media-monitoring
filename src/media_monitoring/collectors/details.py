@@ -8,7 +8,7 @@ bot checks stopped it partway.
 
 YouTube checks for bots when that request comes in bulk, which suits the new videos of each round, a few thousand a
 day: a refused request goes out again through another proxy, and a video refused every time is tried again next
-round. Once the VPN proxies are blocked the free ones come in (see Pool). Run it after "uv run proxies" (see
+round. Once the VPN proxies are blocked the plain ones come in (see Pool). Run it after "uv run proxies" (see
 pool.py).
 """
 from datetime import datetime, timezone

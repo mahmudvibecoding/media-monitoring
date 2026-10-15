@@ -5,7 +5,7 @@ from an earlier run wouldn't help. Testing runs on its own, apart from the work:
 collector's own kind on an item that has been up for years, and a proxy YouTube answers through starts carrying work
 at once. Real requests only go through proxies that work, so none waits on a dead one. How many tests run at a time
 follows the CPU the work leaves unused (see allow_tests): many while few proxies work, few while the work needs the
-CPU. Once every VPN proxy has been tested and there's room for more tests, the free proxies are tested too.
+CPU. Once every VPN proxy has been tested and there's room for more tests, the plain proxies are tested too.
 
 Each working proxy has slots in a queue: a request takes the next free slot and puts it back when it ends, so fast
 proxies come back sooner and carry more of the work. A proxy starts with START_LIMIT slots and gets one more after
@@ -24,7 +24,7 @@ import zlib
 from collections import Counter, deque
 
 PROXY_FILE = "data/vpn_proxies.txt"  # from sing-box (uv run proxies): one line per local proxy, "proxy link"
-PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from uv run proxies: free HTTP and SOCKS proxies, the reserve
+PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from uv run proxies: plain HTTP and SOCKS proxies, the reserve
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
 HEDGE_AFTER = 1  # when draining: seconds without an answer before a request also goes out through another proxy
 ATTEMPTS = 5  # requests per answer at most
@@ -43,7 +43,7 @@ REST = (25, 35)
 # among a proxy's last 10 answers) pauses that proxy, for a random length in this range; then it continues at full
 # speed.
 STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, (45, 75)
-# A process brings in its reserve (its share of the free proxies) once every VPN proxy has been tested and its tests
+# A process brings in its reserve (its share of the plain proxies) once every VPN proxy has been tested and its tests
 # have room for more, or once its working proxies fall to a quarter of the most it had working at once, which YouTube
 # blocking their addresses does, or once every proxy rests. Below this many, a peak is too small to say.
 MIN_PEAK = 8
@@ -89,7 +89,7 @@ def raise_open_files_limit():
 
 class Pool:
     """One process's share of the proxies (see the top of this file), in the order to test them; start_testing()
-    starts the tests. reserve is more proxies (the free ones), brought in once there's room to test them or the
+    starts the tests. reserve is more proxies (the plain ones), brought in once there's room to test them or the
     working proxies collapse (see MIN_PEAK), and always tested after the VPN ones; on_reserve is called when they
     are. With give_up=False, requests wait when every proxy rests at once, for one to come back or for add() to bring
     new ones."""
@@ -102,10 +102,10 @@ class Pool:
         self.peak = 0  # the most proxies working at once in this run
         self.known = set(proxies)
         self.slots = asyncio.Queue()  # working proxies' free slots, in the order they were freed: (proxy, generation)
-        # Proxies waiting for a test, VPN ones first, then in the order they came: (free, number, proxy, generation)
+        # Proxies waiting for a test, VPN ones first, then in the order they came: (plain, number, proxy, generation)
         self.to_test = asyncio.PriorityQueue()
         self.order = itertools.count()  # the numbers that keep that order
-        self.free = set()  # the free proxies brought in from the reserve
+        self.plain = set()  # the plain proxies brought in from the reserve
         self.test, self.testers = None, []  # the test request (see start_testing), and the tasks that test them
         self.allowed = TESTS_START  # tests that may run at once (see allow_tests)
         self.raised = asyncio.Event()  # set when more tests may run at once
@@ -146,14 +146,14 @@ class Pool:
             self.raised.set()  # wakes the testers waiting for it
             self.raised = asyncio.Event()
 
-    def add(self, proxies, free=False):
-        """Proxies that joined the lists while the pool runs: each is tested, the free ones after the VPN ones."""
+    def add(self, proxies, plain=False):
+        """Proxies that joined the lists while the pool runs: each is tested, the plain ones after the VPN ones."""
         for proxy in proxies:
             if proxy not in self.known:
                 self.known.add(proxy)
                 self.count += 1
-                if free:
-                    self.free.add(proxy)
+                if plain:
+                    self.plain.add(proxy)
                 self._queue_test(proxy)
 
     def renew(self, proxies):
@@ -286,7 +286,7 @@ class Pool:
     def _queue_test(self, proxy):
         """Put the proxy in line for a test."""
         self.resting.discard(proxy)
-        self.to_test.put_nowait((proxy in self.free, next(self.order), proxy, self.generation[proxy]))
+        self.to_test.put_nowait((proxy in self.plain, next(self.order), proxy, self.generation[proxy]))
 
     async def _tester(self, n):
         """Test the proxies waiting for it, one at a time. There are TESTS_MAX of these, and the nth only tests while
@@ -342,7 +342,7 @@ class Pool:
         if self.reserve_used or not self.reserve:
             return
         self.reserve_used = True
-        self.add(self.reserve, free=True)
+        self.add(self.reserve, plain=True)
         if self.on_reserve:
             self.on_reserve()
 

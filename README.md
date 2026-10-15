@@ -2,7 +2,7 @@
 
 Monitors the YouTube channels listed in `channels.txt`: finds their new videos, fetches the videos' details, keeps
 their views and likes up to date, and collects their comments, all into PostgreSQL. Requests go through thousands of
-free VPN configs and proxies, so it works as fast as the server allows.
+free VPN configs and plain proxies, so it works as fast as the server allows.
 
 ## Running it
 
@@ -30,8 +30,8 @@ started while the last one is still running is skipped:
 ## The steps
 
 Each step can also run on its own, after `uv run proxies`. Every step goes through the VPN proxies, and brings in
-the free proxies by itself once those stop working, or once it has tested them all and has room for more tests:
-YouTube blocks busy addresses for a while on video pages and comments, and the free proxies are many more
+the plain proxies by itself once those stop working, or once it has tested them all and has room for more tests:
+YouTube blocks busy addresses for a while on video pages and comments, and the plain proxies are many more
 addresses. Ctrl+C or `kill` stops a step early: it saves what it has
 collected first, and the rest continues next run.
 
@@ -42,7 +42,7 @@ collected first, and the rest continues next run.
 | `uv run details [all]` | fetches the original title and description, exact publish time, length and kind (video or Short) of new videos (`all`: again for saved videos without an exact publish time) |
 | `uv run stats [days\|all]` | refreshes views and likes (videos from the last 365 days by default) |
 | `uv run comments [days\|all\|unread]` | collects new comments (videos from the last 365 days by default) |
-| `uv run proxies` | downloads VPN configs and free proxies, and restarts sing-box with them in the background |
+| `uv run proxies` | downloads VPN configs and plain proxies, and restarts sing-box with them in the background |
 | `uv run proxies stop` | stops sing-box |
 | `uv run proxies check [vpn\|plain]` | reports how many proxies work, by protocol or type and by list (optional) |
 
@@ -60,7 +60,7 @@ src/media_monitoring/
     parallel.py         runs a collector across processes
     db.py               the database connection
     collectors/         channels, videos, details, stats, comments
-    proxies/            VPN configs, sing-box, free proxies
+    proxies/            VPN configs, sing-box, plain proxies
 docs/                   how it works and why
 data/                   downloaded and generated files (not in git)
 ```

@@ -9,7 +9,7 @@ run stops) continues next time from where it stopped.
 Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run stats first.
 
 Comments come from YouTube's next endpoint, which blocks busy addresses for a while: once the VPN proxies are blocked
-the free ones come in, for many more addresses (see Pool), and proxy lists refreshed while it runs are taken in.
+the plain ones come in, for many more addresses (see Pool), and proxy lists refreshed while it runs are taken in.
 """
 import asyncio
 import base64

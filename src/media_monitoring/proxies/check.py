@@ -3,9 +3,9 @@ report: the collectors find working proxies by themselves (see pool.py).
 
     uv run proxies check          both kinds
     uv run proxies check vpn      the local VPN proxies run by sing-box (after uv run proxies)
-    uv run proxies check plain    the free proxies (downloaded by uv run proxies)
+    uv run proxies check plain    the plain proxies (downloaded by uv run proxies)
 
-Every proxy, VPN or free, is checked the same way: with a channel page, asking only for its title, the lightest
+Every proxy, VPN or plain, is checked the same way: with a channel page, asking only for its title, the lightest
 request the collectors make.
 """
 import asyncio
@@ -23,7 +23,7 @@ from media_monitoring.youtube import API, CONTEXT, TEST_CHANNEL
 VPN_SOURCES = "data/vpn_sources.txt"  # from vpn_proxies.py: "<link> <source> <source> ..."
 PLAIN_SOURCES = "data/plain_sources.txt"  # from plain_proxies.py: "<proxy> <source> <source> ..."
 # Tuned on a 52-core server. PROCESSES x CHECKS_PER_PROCESS should cover all VPN proxies, so they're checked in one
-# wave; the free ones take a few. On a laptop, use far fewer (e.g. 4 processes x 500).
+# wave; the plain ones take a few. On a laptop, use far fewer (e.g. 4 processes x 500).
 PROCESSES = 96
 CHECKS_PER_PROCESS = 1500  # checks in flight in each process; 1500-2000 is safe
 TIMEOUT = 5  # seconds per check, like a request in the collectors: slower proxies barely do any work there
@@ -112,7 +112,7 @@ def print_table(title, counts):
 
 def report(kind, proxies, group_name):
     """Check the proxies, given as {proxy: (group, [source, ...])}, and print what works per group and source."""
-    print(f"checking {len(proxies)} {'local VPN' if kind == 'vpn' else 'free'} proxies...")
+    print(f"checking {len(proxies)} {'local VPN' if kind == 'vpn' else 'plain'} proxies...")
     started = time.monotonic()
     working, outcomes = check_all(list(proxies))
     print(f"\n{len(working)} of {len(proxies)} work ({time.monotonic() - started:.0f} s)")

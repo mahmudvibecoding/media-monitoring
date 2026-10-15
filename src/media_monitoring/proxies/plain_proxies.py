@@ -1,4 +1,4 @@
-"""Download public lists of free HTTP, SOCKS4 and SOCKS5 proxies into data/plain_proxies.txt, one proxy per line, and
+"""Download public lists of plain HTTP, SOCKS4 and SOCKS5 proxies into data/plain_proxies.txt, one proxy per line, and
 which lists each came from into data/plain_sources.txt. Each collector process keeps its share of them in reserve
 and brings them in once its VPN proxies stop working, or once it has tested all of those and has room for more tests:
 they give video pages and comments (YouTube's next endpoint, which blocks an address after heavy use) many more

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Set this machine up if needed, then run one monitoring round: fresh proxies (new VPN configs for sing-box, and new
-# free proxies), then the collectors in order: channel details, new videos, video details, views and likes, and
+# plain proxies), then the collectors in order: channel details, new videos, video details, views and likes, and
 # comments. Run it again for the next round, for example every 15 minutes from cron (see README.md). Started while a
 # round is still running, it skips its own.
 #

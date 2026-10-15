@@ -3,9 +3,9 @@ items and of the proxies, works through its items `concurrency` at a time, and s
 SAVE_EVERY seconds. A collector (channels, videos, details, stats, comments) only describes its own part: see
 Collector.
 
-Every collector goes through the VPN proxies run by sing-box. Each process also holds its share of the free proxies
+Every collector goes through the VPN proxies run by sing-box. Each process also holds its share of the plain proxies
 in reserve, and brings them in once its VPN proxies stop working, or once it has tested them all and has room for more
-tests: YouTube's next endpoint (details, comments) blocks busy addresses for a while, and the free proxies are many
+tests: YouTube's next endpoint (details, comments) blocks busy addresses for a while, and the plain proxies are many
 more addresses (see Pool). How many proxies each process tests at a time follows the CPU the work leaves unused (see
 regulate_tests).
 """
@@ -43,7 +43,7 @@ OWN_FREE, OWN_BUSY = 0.6, 0.9
 # Shared by all processes: whether the run is stopping early (set by the main process on Ctrl+C or kill, see run),
 # how many proxy tests each process may run at a time (set by the main process, see regulate_tests), then PER_SHARE
 # counters for each share of the items, from SHARES on, each written only by the process working on that share: items
-# finished, items saved, whether it's ready (what's already saved is loaded), whether it brought in the free proxies,
+# finished, items saved, whether it's ready (what's already saved is loaded), whether it brought in the plain proxies,
 # and its successful requests. Without a lock, a process ended halfway through (killed, or out of memory) can't leave
 # one held.
 progress = None
@@ -108,7 +108,7 @@ def modified(path):
 
 
 async def work(collector, items, share, shares):
-    """One worker process: its share of the items, through its share of the VPN proxies, with its share of the free
+    """One worker process: its share of the items, through its share of the VPN proxies, with its share of the plain
     ones in reserve."""
     raise_open_files_limit()
     seen = {path: modified(path) for path in (PROXY_FILE, PLAIN_PROXY_FILE)}
@@ -164,7 +164,7 @@ async def work(collector, items, share, shares):
 
             async def follower():
                 """Every FOLLOW_EVERY seconds: once sing-box has restarted with new configs, its local proxies are
-                tested again; a refreshed free list joins the pool if the reserve is in use, else replaces it."""
+                tested again; a refreshed plain list joins the pool if the reserve is in use, else replaces it."""
                 while not stop.is_set():
                     try:
                         await asyncio.wait_for(stop.wait(), timeout=FOLLOW_EVERY)
@@ -177,7 +177,7 @@ async def work(collector, items, share, shares):
                             if path == PROXY_FILE:
                                 pool.renew(proxies)
                             elif pool.reserve_used:
-                                pool.add(proxies, free=True)
+                                pool.add(proxies, plain=True)
                             else:
                                 pool.reserve = proxies
 
@@ -329,22 +329,22 @@ def run(collector_class):
         signal.signal(signum, ask_to_stop)
     with psycopg.connect(db.DATABASE_URL, autocommit=True) as conn:
         items = collector.load(conn, argument)
-    vpn, free = load_proxies(PROXY_FILE), load_proxies(PLAIN_PROXY_FILE)
-    print(f"{len(items)} {collector.describe(argument)}, {len(vpn)} VPN proxies and {len(free)} free ones in reserve")
+    vpn, plain = load_proxies(PROXY_FILE), load_proxies(PLAIN_PROXY_FILE)
+    print(f"{len(items)} {collector.describe(argument)}, {len(vpn)} VPN proxies and {len(plain)} plain ones in reserve")
     if asked:
         print("stopped before it started")
         sys.exit(128 + asked[0])
-    if not items or not vpn + free:
+    if not items or not vpn + plain:
         return
 
-    processes = max(1, min(PROCESSES, (len(vpn) or len(free)) // 50, math.ceil(len(items) / 1000)))
+    processes = max(1, min(PROCESSES, (len(vpn) or len(plain)) // 50, math.ceil(len(items) / 1000)))
     print(f"working with {processes} processes...")
     context = get_context("spawn")
     counter = context.Array("q", SHARES + PER_SHARE * processes, lock=False)  # see progress
     counter[STOPPING], counter[TESTS] = bool(asked), TESTS_START
 
     def totals():
-        """Items finished, items saved, shares ready, shares that brought in the free proxies and successful requests,
+        """Items finished, items saved, shares ready, shares that brought in the plain proxies and successful requests,
         from all shares."""
         values = counter[:]
         return [sum(values[SHARES + kind::PER_SHARE]) for kind in (FINISHED, SAVED, READY, RESERVE, SUCCEEDED)]
@@ -370,7 +370,7 @@ def run(collector_class):
             notes = ([f"{processes - ready} of {processes} processes still loading what's already saved"]
                      if ready < processes else [])
             notes += [f"up to {counter[TESTS]} proxy tests at a time per process"] if ready == processes else []
-            notes += [f"free proxies brought in by {reserve} of {processes} processes"] if reserve else []
+            notes += [f"plain proxies brought in by {reserve} of {processes} processes"] if reserve else []
             notes += ["stopping early: each process saves what it has"] if asked else []
             print(f"{now - started:5.0f} s  {finished} of {len(items)} {collector.item_name} done, {saved} "
                   f"{collector.saved_name}, {(succeeded - before) / max(now - then, 0.001):,.0f} successful requests/s"
@@ -402,7 +402,7 @@ def run(collector_class):
         print(f"requests: {dict(outcomes)}")
         print(f"proxy tests: {dict(tests)}")
     if reserve:
-        print(f"free proxies were brought in by {reserve} of {processes} processes, once their VPN proxies were all "
+        print(f"plain proxies were brought in by {reserve} of {processes} processes, once their VPN proxies were all "
               "tested or stopped working")
     if not broken:
         print(f"{working} proxies working at the end")
