@@ -1,7 +1,7 @@
 """Run a collector across processes, as fast as the proxies answer. Each worker process takes an equal share of the
 items and of the proxies, works through its items `concurrency` at a time, and saves what it collects every
-SAVE_EVERY seconds. A collector (channels, videos, details, stats, comments) only describes its own part: see
-Collector.
+SAVE_EVERY seconds. A collector (YouTube's channels, videos, details, stats and comments, Telegram's channels) only
+describes its own part: see Collector.
 
 Every collector goes through the VPN proxies run by sing-box. Each process also holds its share of the plain proxies
 in reserve, and brings them in once its VPN proxies stop working, or once it has tested them all and has room for more
@@ -50,7 +50,7 @@ progress = None
 STOPPING, TESTS, SHARES = 0, 1, 2
 PER_SHARE = 5
 FINISHED, SAVED, READY, RESERVE, SUCCEEDED = range(PER_SHARE)
-SUCCESSFUL = ("ok", "gone")  # requests YouTube answered with what was asked: every speed shown counts these
+SUCCESSFUL = ("ok", "gone")  # requests the site answered with what was asked: every speed shown counts these
 parent = None  # in each worker process: the main process, which it stops for if it's gone
 busy = False  # in each worker process: whether it's working on a share (see run_share)
 killed = False  # in each worker process: whether kill asked this process alone to stop (see start)

@@ -2,9 +2,9 @@
 uses: its title and description as the creator wrote them (not a translation), when it was published (to the
 second), its exact length, and whether it's a Short. Run videos first, so new videos are in youtube_videos.
 
-"uv run details all" also fetches them again for every saved video without an exact publish time, newest first:
-once, for the videos saved before details took them from the player answer. Run it again to continue, if YouTube's
-bot checks stopped it partway.
+"uv run youtube details all" also fetches them again for every saved video without an exact publish time, newest
+first: once, for the videos saved before details took them from the player answer. Run it again to continue, if
+YouTube's bot checks stopped it partway.
 
 YouTube checks for bots when that request comes in bulk, which suits the new videos of each round, a few thousand a
 day: a refused request goes out again through another proxy, and a video refused every time is tried again next

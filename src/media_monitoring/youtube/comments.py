@@ -4,9 +4,10 @@ To recognize those, each video keeps the IDs of its newest comments (youtube_com
 those for its videos in one query, instead of every saved comment. A read that stops partway (a page fails, or the
 run stops) continues next time from where it stopped.
 
-"uv run comments" covers the videos published in the last DAYS days, "uv run comments 30" the last 30 days,
-"uv run comments all" every video, and "uv run comments unread" every video whose whole list hasn't been read yet.
-Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run stats first.
+"uv run youtube comments" covers the videos published in the last DAYS days, "uv run youtube comments 30" the last
+30 days, "uv run youtube comments all" every video, and "uv run youtube comments unread" every video whose whole list
+hasn't been read yet. Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run
+stats first.
 
 Comments come from YouTube's next endpoint, which blocks busy addresses for a while: once the VPN proxies are blocked
 the plain ones come in, for many more addresses (see Pool), and proxy lists refreshed while it runs are taken in.

@@ -2,8 +2,9 @@
 
 The system follows the YouTube channels in `channels.txt` and keeps four things up to date in PostgreSQL:
 the channels' details, every video they publish, the views and likes of recent videos, and the comments on
-them. The [README](../README.md) shows how to run it; [proxies.md](proxies.md) explains the proxies every
-request goes through.
+them. It also keeps the details of public Telegram channels up to date (see
+[Telegram channels](#telegram-channels)). The [README](../README.md) shows how to run it; [proxies.md](proxies.md)
+explains the proxies every request goes through.
 
 ## The size of the job
 
@@ -22,22 +23,22 @@ everything again, in this order.
 
 1. **Fresh proxies** (`uv run proxies`). Download the public lists of VPN configs and of plain proxies, and
    restart sing-box with the new configs, in the background. It stops when the round ends.
-2. **Channels** (`channels`). Refresh every channel's name, handle, description, picture and subscriber
+2. **Channels** (`youtube channels`). Refresh every channel's name, handle, description, picture and subscriber
    count. Only the channels whose details changed are written.
-3. **New videos** (`videos`). Read each channel's uploads list, newest first, until reaching a video already
+3. **New videos** (`youtube videos`). Read each channel's uploads list, newest first, until reaching a video already
    saved, recognized by the channel's 100 newest saved videos (all a round needs). The list gives each video's ID;
    details fetches the rest. A channel's first run reads its whole history.
-4. **Video details** (`details`). For each video that has no title yet, ask for the details YouTube's own
+4. **Video details** (`youtube details`). For each video that has no title yet, ask for the details YouTube's own
    player gets: the title and description as the creator wrote them (others are shown a translation when the
    creator added one), when it was published (to the second), the exact length, and whether it's a Short. A
    video YouTube shows nothing for (removed, private, or blocked where the proxy is) is marked unavailable and
-   tried again every round. `details all` fetches them again for every saved video without an exact publish
+   tried again every round. `youtube details all` fetches them again for every saved video without an exact publish
    time, newest first: once, for videos saved before details took them from the player.
-5. **Views and likes** (`stats 365`). Ask for the current views and likes of every video published in the last
+5. **Views and likes** (`youtube stats 365`). Ask for the current views and likes of every video published in the last
    365 days, with the lightest request YouTube's own video page makes to refresh its counts. A video without an
    exact publish time counts by its upload day, and one without either (a stream that hasn't started) from when
    it was found.
-6. **Comments** (`comments 365`). Read the comments of the same videos, newest first, until reaching comments
+6. **Comments** (`youtube comments 365`). Read the comments of the same videos, newest first, until reaching comments
    already saved. The most viewed videos go first, so their long lists don't hold up the end of the run.
 
 Each step loads what it needs from the database, works as fast as the proxies answer, saves as it goes, and
@@ -59,7 +60,7 @@ days:
 | Comments | 688,514 videos, 799 new comments | 58 s |
 
 The whole round took about three minutes, so with a round every 15 minutes the server is idle most of the
-time. Bigger jobs take longer: views and likes for all 8 million videos (`stats all`) take about three and a
+time. Bigger jobs take longer: views and likes for all 8 million videos (`youtube stats all`) take about three and a
 half minutes, and reading every video's comments the first time took hours.
 
 ## What's kept
@@ -85,7 +86,7 @@ half minutes, and reading every video's comments the first time took hours.
 - **Details only for new videos.** The player's answer is the only one with the original title, the exact length
   and the Shorts flag, but YouTube checks for bots when it's asked in bulk: tens of thousands of requests in
   minutes are mostly refused ("confirm you're not a bot"), while a round's new videos get through. A first run
-  on a channel list with millions of saved videos therefore takes many rounds, or `details all` runs, to fill in
+  on a channel list with millions of saved videos therefore takes many rounds, or `youtube details all` runs, to fill in
   their details.
 - **Only the latest views and likes.** Each video has one row, overwritten at every refresh, so the table
   doesn't grow with every round. It's kept apart from the videos table, so a refresh rewrites a few bytes
@@ -115,3 +116,24 @@ half minutes, and reading every video's comments the first time took hours.
 - Replies to comments, and the comments' likes.
 - How views and likes change over time: only the latest numbers are kept.
 - Exact upload times (see above).
+
+## Telegram channels
+
+`telegram_channels` holds 310,333 public Uzbek Telegram channels, from a list of channels found through their public
+pages (September 2026), keyed by Telegram's ID for the channel. `uv run telegram channels` refreshes their title,
+description and subscriber count from each channel's public page, `t.me/s/<username>`, which anyone can read without
+an account. It isn't part of the rounds.
+
+- **One page per channel.** The page shows the channel's title, description and counters, and its 20 or so newest
+  messages. It rounds subscriber counts of 1,000 and more to three digits (1.14M). Only the channel's plain page,
+  `t.me/<username>`, has the exact count, but Telegram answers about 10 of those a second per address, against
+  hundreds of public pages.
+- **The newest message, once.** A channel without a last message yet gets the newest one on its page (for an album,
+  its last item: Telegram numbers each item), so reading its messages can start there.
+- **Usernames move.** A channel can change its username, and another channel can take the old one. Each message on
+  the page carries the channel's ID, so a page whose messages belong to another channel is left out.
+- **Through the proxies, like YouTube's steps.** Telegram doesn't refuse an address that asks too fast; it hides
+  pages from it instead, redirecting them as it does for a channel without a public page. A hidden page goes out
+  again through another proxy, up to five times, so each address asks for few pages. From the server's own address
+  alone, Telegram hid about half the pages at 500 a second; at about 30,000 requests a second, it also kept hiding
+  those channels for about 12 minutes afterwards, from other visitors too.

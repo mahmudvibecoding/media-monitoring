@@ -1,5 +1,6 @@
-"""InnerTube, the API behind YouTube's own website: where it is, the client we present, and one request through
-one proxy. The collectors ask it for channels, uploads lists, video pages, counts and comments."""
+"""YouTube's steps, run by "uv run youtube <step>" (see commands.py), and InnerTube, the API behind YouTube's own
+website: where it is, the client we present, and one request through one proxy. The steps ask it for channels,
+uploads lists, video pages, counts and comments."""
 API = "https://www.youtube.com/youtubei/v1/"
 CONTEXT = {"client": {"clientName": "WEB", "clientVersion": "2.20251001.01.00", "hl": "en", "gl": "US"}}
 TIMEOUT = 5  # seconds; a proxy that hasn't answered by then has failed

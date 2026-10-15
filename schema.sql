@@ -70,3 +70,45 @@ CREATE TABLE IF NOT EXISTS youtube_comments_newest (
     video_id  text PRIMARY KEY,
     newest    text[] NOT NULL
 );
+
+-- Public Telegram channels to monitor, from a list of channels found through their public pages (2026-09), keyed by
+-- Telegram's ID for the channel, which never changes. The username is what their public page, t.me/s/<username>,
+-- takes; channels can change it. Title, description and subscriber count come from that page ("uv run telegram
+-- channels").
+CREATE TABLE IF NOT EXISTS telegram_channels (
+    channel_id        bigint PRIMARY KEY,   -- Telegram's ID (lists often write it with a minus sign)
+    username          text NOT NULL UNIQUE, -- without the @
+    title             text,
+    description       text,
+    subscriber_count  bigint,               -- exact below 1,000; the page rounds bigger counts to three digits (1.14M)
+    -- The last message seen (an album's last item) and when it was published: the collector asks for messages after
+    -- it, and checks channels that haven't posted for a while less often. Set from the channel's page while it's
+    -- NULL ("uv run telegram channels"); after that, saved with its messages, in one transaction
+    last_message_id   integer,
+    last_message_at   timestamptz
+);
+
+-- Messages of the Telegram channels that have text: the message's own text, or the caption of its photo, video or
+-- album. Messages without text aren't kept. Telegram counts each item of an album as a message of its own; here an
+-- album is one row, under its first item's message ID.
+CREATE TABLE IF NOT EXISTS telegram_messages (
+    channel_id        bigint NOT NULL REFERENCES telegram_channels,
+    message_id        integer NOT NULL,     -- Telegram's number for the message in its channel
+    published_at      timestamptz NOT NULL, -- to the second
+    text              text NOT NULL,        -- as plain text, with links kept as addresses
+    first_seen_at     timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (channel_id, message_id)    -- a channel's messages sit together, so they load quickly
+);
+
+-- Each saved message's latest views and reactions: one small row per message, overwritten on every refresh. It's
+-- apart from telegram_messages, so a refresh rewrites a few bytes instead of the text, and half of each page stays
+-- free, so an update fits next to the old row.
+CREATE TABLE IF NOT EXISTS telegram_message_stats (
+    channel_id        bigint NOT NULL,
+    message_id        integer NOT NULL,
+    views             bigint,               -- as the page shows them: 90.4K is 90,400; exact below 1,000
+    reactions         bigint,               -- all reactions together: each emoji's count added up (0 when none)
+    updated_at        timestamptz NOT NULL, -- when views and reactions were last read
+    PRIMARY KEY (channel_id, message_id),
+    FOREIGN KEY (channel_id, message_id) REFERENCES telegram_messages
+) WITH (fillfactor = 50);

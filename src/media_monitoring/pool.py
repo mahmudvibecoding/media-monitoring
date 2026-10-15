@@ -1,4 +1,5 @@
-"""Send YouTube requests through the local VPN proxies from sing-box, as fast as the proxies answer.
+"""Send requests to YouTube and Telegram through the local VPN proxies from sing-box, as fast as the proxies
+answer.
 
 Each run starts fresh with every proxy untested, in random order: proxies stop working within minutes, so a list
 from an earlier run wouldn't help. Testing runs on its own, apart from the work: each proxy gets a test request, the
@@ -13,7 +14,7 @@ each answer that found all of them busy, up to MAX_LIMIT: with few proxies each 
 carries less. Each failure takes one slot away; at zero the proxy rests and is then tested again, as is one that
 failed its test, so proxies that recover come back within half a minute or so, even during long runs. A dead proxy's
 test costs little: a connection attempt, nothing to download or read. The collectors all send their requests this way
-(youtube.call sends each one).
+(youtube.call or telegram.call sends each one).
 """
 import asyncio
 import itertools
@@ -47,7 +48,8 @@ STORM_WINDOW, STORM_BLOCKS, STORM_PAUSE = 10, 8, (45, 75)
 # have room for more, or once its working proxies fall to a quarter of the most it had working at once, which YouTube
 # blocking their addresses does, or once every proxy rests. Below this many, a peak is too small to say.
 MIN_PEAK = 8
-ANSWERED = ("ok", "gone", "blocked", "youtube error", "bad request")  # outcomes of a request YouTube answered
+# Outcomes of a request the site answered
+ANSWERED = ("ok", "gone", "blocked", "youtube error", "telegram error", "bad request")
 
 
 class NoProxiesLeft(Exception):

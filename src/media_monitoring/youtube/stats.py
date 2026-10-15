@@ -1,9 +1,9 @@
 """Refresh the views and likes of recent videos: each video has one row in youtube_video_stats with its latest
 numbers, overwritten on every refresh.
 
-"uv run stats" refreshes the videos published in the last DAYS days, "uv run stats 30" the last 30 days, and
-"uv run stats all" every video. Run details first, so new videos have their upload day, and run it while
-sing-box is running ("uv run proxies"): the pool tests the proxies by itself (see pool.py).
+"uv run youtube stats" refreshes the videos published in the last DAYS days, "uv run youtube stats 30" the last 30
+days, and "uv run youtube stats all" every video. Run details first, so new videos have their upload day, and run it
+while sing-box is running ("uv run proxies"): the pool tests the proxies by itself (see pool.py).
 """
 from functools import partial
 

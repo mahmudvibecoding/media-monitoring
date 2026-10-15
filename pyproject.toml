@@ -1,7 +1,7 @@
 [project]
 name = "media-monitoring"
 version = "0.1.0"
-description = "Monitors YouTube channels: their new videos, the videos' details, views and likes, and comments."
+description = "Monitors YouTube channels (new videos, their details, views and likes, comments) and Telegram channels."
 readme = "README.md"
 requires-python = ">=3.15"
 dependencies = [
@@ -9,13 +9,10 @@ dependencies = [
     "psycopg[binary]>=3.3.6",
 ]
 
-# The steps of a round (run.sh runs them in this order), and the proxy tools
+# Each platform's steps ("uv run youtube <step>", "uv run telegram <step>": see commands.py), and the proxy tools
 [project.scripts]
-channels = "media_monitoring.collectors.channels:main"
-videos = "media_monitoring.collectors.videos:main"
-details = "media_monitoring.collectors.details:main"
-stats = "media_monitoring.collectors.stats:main"
-comments = "media_monitoring.collectors.comments:main"
+youtube = "media_monitoring.commands:youtube"
+telegram = "media_monitoring.commands:telegram"
 proxies = "media_monitoring.proxies.command:main"
 
 [build-system]

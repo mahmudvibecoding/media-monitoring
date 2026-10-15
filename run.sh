@@ -1,6 +1,6 @@
 #!/bin/bash
 # Set this machine up if needed, then run one monitoring round: fresh proxies (new VPN configs for sing-box, and new
-# plain proxies), then the collectors in order: channel details, new videos, video details, views and likes, and
+# plain proxies), then YouTube's steps in order: channel details, new videos, video details, views and likes, and
 # comments. Run it again for the next round, for example every 15 minutes from cron (see README.md). Started while a
 # round is still running, it skips its own.
 #
@@ -139,7 +139,7 @@ if ! uv run proxies > data/proxies.log 2>&1; then
     exit 1
 fi
 tail -2 data/proxies.log | head -1
-for step in "channels" "videos" "details" "stats $DAYS" "comments $DAYS"; do
+for step in "youtube channels" "youtube videos" "youtube details" "youtube stats $DAYS" "youtube comments $DAYS"; do
     echo "### $(date -u +%T) $step"
     uv run $step 9>&-  # without the lock: a step left running after the round can't hold up the next ones
 done

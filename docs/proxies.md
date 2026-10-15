@@ -1,7 +1,7 @@
 # Proxies
 
-Every request to YouTube goes through a proxy. This explains where the proxies come from, how the
-collectors use them, and what we've learned about YouTube's limits. [monitoring.md](monitoring.md) explains
+Every request to YouTube and Telegram goes through a proxy. This explains where the proxies come from, how the
+collectors use them, and what we've learned about YouTube's and Telegram's limits. [monitoring.md](monitoring.md) explains
 the collection itself.
 
 ## Why proxies
@@ -68,10 +68,17 @@ proxies of a collector process fall to a quarter of the most it had (or all of t
 them all and has room for more tests, the process brings in its share of the plain proxies: many more addresses.
 They're tested after the VPN ones, and the VPN ones that come back from their rest carry work again next to them.
 
-The comments step can run for hours (`comments all`), so it also takes in refreshed lists while it runs:
+The comments step can run for hours (`youtube comments all`), so it also takes in refreshed lists while it runs:
 sing-box's proxies are tested again when it restarts with new configs, and new plain proxies join when `uv run
 proxies` runs again (or replace the reserve, if it isn't in use yet). When every proxy rests at once, it waits
 for them instead of stopping.
+
+## Telegram
+
+Telegram doesn't refuse a busy address: it hides its channel pages from it, redirecting each one to the channel's
+plain page as if the channel had no public page. Telegram's step counts that as blocked, like YouTube's 403, so the
+page goes out again through another proxy, up to five times, and a proxy whose pages keep being hidden pauses like a
+blocked one. A channel that really has no public page is redirected through every proxy, and counts as failed.
 
 ## What we've learned
 
