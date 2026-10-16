@@ -1,0 +1,273 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Media monitoring",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/status": {
+      "get": {
+        "summary": "Status",
+        "description": "How many YouTube channels, videos and comments, and Telegram channels and messages the database holds.",
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Status"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "description": "Answers whenever the API runs: for checks that it's up.",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "summary": "Ready",
+        "description": "Answers once the database does too: for checks that the API can serve data.",
+        "operationId": "ready",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "title": "Error"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Problem"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error",
+          "message",
+          "request_id"
+        ],
+        "title": "Error"
+      },
+      "Health": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "Health"
+      },
+      "Problem": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "Problem"
+      },
+      "Readiness": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unavailable"
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "Readiness"
+      },
+      "Status": {
+        "properties": {
+          "youtube": {
+            "$ref": "#/components/schemas/YouTubeCounts"
+          },
+          "telegram": {
+            "$ref": "#/components/schemas/TelegramCounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "youtube",
+          "telegram"
+        ],
+        "title": "Status"
+      },
+      "TelegramCounts": {
+        "properties": {
+          "channels": {
+            "type": "integer",
+            "title": "Channels"
+          },
+          "messages": {
+            "type": "integer",
+            "title": "Messages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channels",
+          "messages"
+        ],
+        "title": "TelegramCounts"
+      },
+      "YouTubeCounts": {
+        "properties": {
+          "channels": {
+            "type": "integer",
+            "title": "Channels"
+          },
+          "videos": {
+            "type": "integer",
+            "title": "Videos"
+          },
+          "comments": {
+            "type": "integer",
+            "title": "Comments"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channels",
+          "videos",
+          "comments"
+        ],
+        "title": "YouTubeCounts"
+      }
+    }
+  }
+}

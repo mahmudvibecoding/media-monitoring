@@ -66,6 +66,10 @@ that ID while a request is answered. Its settings come from environment variable
 (`dbname=media_monitoring` by default), `API_HOST` and `API_PORT`. `uv run ruff check` and `uv run ruff format` check
 its code and lay it out.
 
+`uv run api openapi` writes the description `/api/openapi.json` serves to `openapi.json`, without starting the API:
+every endpoint, its parameters, and the exact JSON of its answers and errors. A change to the API goes into the same
+commit as the file, so the change shows in its diff.
+
 `./run.sh setup` also creates `media_monitoring_api`: a system user, and a database user of the same name that can
 read every table but change nothing. PostgreSQL lets that system user in as it without a password.
 
@@ -75,6 +79,7 @@ read every table but change nothing. PostgreSQL lets that system user in as it w
 run.sh                  sets the machine up and runs a round
 channels.txt            the channels to monitor, one ID per line
 schema.sql              the database tables
+openapi.json            the web API's description: uv run api openapi
 src/media_monitoring/
     commands.py         uv run youtube <step>, uv run telegram <step>
     youtube/            InnerTube, the API behind YouTube's website, and the steps: channels, videos, details,

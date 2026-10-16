@@ -1,9 +1,12 @@
 """The web API: "uv run api" serves it on 127.0.0.1:8000, which only the server itself can reach (see settings.py).
 Every path starts with /api, and /api/docs lists them. Failures are answered as errors.py says, and the logs are JSON
-(see logs.py)."""
+(see logs.py). "uv run api openapi" writes its description to openapi.json instead."""
 
 import asyncio
+import json
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Literal
 
 import psycopg
@@ -20,6 +23,7 @@ MAX_CONNECTIONS = 10  # at once; the collectors use about 50 of PostgreSQL's 100
 CONNECTION_WAIT = 5  # seconds a request waits for a free connection, then gets database_unavailable (503)
 QUERY_LIMIT = 5  # seconds a query may run before PostgreSQL cancels it: database_timeout (504)
 READY_WITHIN = 2  # seconds the readiness check waits for the database
+OPENAPI_FILE = Path(__file__).resolve().parents[3] / "openapi.json"  # at the top of the repo, next to schema.sql
 
 settings = load()
 
@@ -51,6 +55,7 @@ app = FastAPI(
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
     redoc_url=None,
+    generate_unique_id_function=lambda route: route.name,  # "status", not FastAPI's "status_api_status_get"
     exception_handlers=errors.HANDLERS,
     responses={500: {"model": errors.Error, "description": "Something went wrong on the server"}},
 )
@@ -85,6 +90,19 @@ async def ready(request: Request, response: Response) -> Readiness:
 
 
 def main():
+    command = sys.argv[1:]
+    if command == ["openapi"]:
+        # What /api/openapi.json serves, made from the code without starting the server; the same every time until the
+        # API changes, so a change shows in the file's diff
+        description = app.openapi()
+        OPENAPI_FILE.write_text(json.dumps(description, indent=2, ensure_ascii=False) + "\n")
+        print(f"wrote {OPENAPI_FILE.name}: {len(description['paths'])} endpoints")
+        return
+    if command:
+        sys.exit(
+            "usage: uv run api            serve the API\n"
+            "       uv run api openapi    write its description to openapi.json"
+        )
     uvicorn.run(
         app,
         host=settings.host,
