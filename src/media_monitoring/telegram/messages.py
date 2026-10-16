@@ -1,11 +1,12 @@
 """Read the new messages of the Telegram channels: for each channel in telegram_channels that has a last message, ask
 for the messages after it (the request a channel's page makes as you scroll down), page by page until an empty
-answer, as fast as the proxies answer; a busy channel WAVE pages at a time (see read_channel). The ones with text
+answer, as fast as the proxies answer; a busy channel WINDOW pages at a time (see read_channel). The ones with text
 are kept (see telegram.messages), and the channel's last message moves to the newest one read, text or not. The
 channels that posted most recently go first: they're the likeliest to need several pages.
 
 A page Telegram hides from a proxy's address goes out again through another one, up to ATTEMPTS times in all; one that
-fails every time ends the channel's read for this run, and the next run continues after the last page read. A page
+fails every time ends the channel's read. Once every channel has had its turn, the failed ones are asked again (see
+finish); one that fails again continues next run, after the last page read without a gap. A page
 whose messages carry another channel's ID means the username now belongs to that channel: nothing it brought counts.
 A channel's new messages and its new last message are saved in one transaction, so a run that stops or crashes loses
 nothing and saves nothing twice: what wasn't saved is read again. Run it after "uv run proxies": the pool tests the
@@ -13,14 +14,21 @@ proxies by itself (see pool.py).
 """
 import asyncio
 import json
+import time
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
+from media_monitoring.pool import NoProxiesLeft
 from media_monitoring.telegram import AFTER, TEST_CHANNEL, call, messages
 
 ATTEMPTS = 10  # requests per page at most: Telegram hides many pages from busy proxies
-WAVE = 10  # pages a busy channel's read asks for at once (see read_channel)
+WINDOW = 10  # pages a busy channel's read keeps asked for at once (see read_channel)
 PAGE = 20  # the most messages an answer brings: Telegram counts each item of an album as one
+FAILED = object()  # a page that failed every try (see read_channel)
+# A channel that failed is asked again once every channel has had its turn, and RETRY_AFTER seconds after it failed at
+# the earliest: Telegram hides channels from busy proxies while a run goes at full speed, and shows most of them again
+# once the load drops (all of 300 random channels, 2 minutes after a run)
+RETRY_AFTER = 30
 TEST_AFTER = 10 ** 9  # proxies are tested by asking for the messages after one that doesn't exist yet: "" comes back
 NEW_MESSAGES = """CREATE TEMP TABLE new_messages (channel_id bigint, message_id integer, published_at timestamptz,
                   text text) ON COMMIT DELETE ROWS"""
@@ -63,11 +71,12 @@ async def read_channel(pool, session, channel_id, username, last):
     message (last unchanged when it doesn't move); pages how many answers brought messages.
 
     Each page needs the newest message of the one before it, so a long read would go one page at a time. But a
-    channel's message IDs are consecutive: after two pages one after another, a channel that has more is read WAVE
-    pages at a time, asking for the messages after last, last + PAGE, last + 2 * PAGE and so on at once. Each answer
-    covers at least the PAGE IDs after where it starts (more where messages were deleted; duplicates are dropped), and
-    an empty one marks the end. The last message only moves as far as the pages read without a gap. An album that
-    began before the last message but ends after it moves it on, without being kept again."""
+    channel's message IDs are consecutive: after two pages one after another, a channel that has more keeps WINDOW
+    pages asked for at once, the messages after last, last + PAGE, last + 2 * PAGE and so on, the next one going out
+    as soon as one comes back. Each answer covers at least the PAGE IDs after where it starts (more where messages
+    were deleted; duplicates are dropped), and an empty one marks the end. The last message only moves as far as the
+    pages read without a gap. An album that began before the last message but ends after it moves it on, without being
+    kept again."""
     start, texts, times, pages = last, {}, {}, 0
 
     def take(found, after):
@@ -99,24 +108,36 @@ async def read_channel(pool, session, channel_id, username, last):
             if newest is None:
                 return result("new messages" if pages else "nothing new")
             last = newest
-        while True:  # then WAVE pages at a time
-            starts = [last + n * PAGE for n in range(WAVE)]
-            answers = await asyncio.gather(*(pool.run(partial(fetch_page, session, username, after))
-                                             for after in starts))
-            gap = ended = False
-            for after, (outcome, found) in zip(starts, answers):
-                if outcome != "ok":
-                    gap = True  # the pages after it are kept, but the last message stays before it
-                    continue
-                newest = take(found, after)
-                if newest is None:
-                    ended = True  # nothing after this page's start: the channel's end
-                elif not gap and after <= last:  # it starts within what's read without a gap
-                    last = max(last, newest)
-            if gap:
-                return result("failed")
-            if ended:
-                return result("new messages")
+        # Then WINDOW pages at a time: page n starts after base + n * PAGE, and as soon as one comes back, the next one
+        # goes out, until one comes back empty (the end) or fails
+        base, asked, answered, stop = last, {}, {}, None
+
+        def ask(n):
+            asked[asyncio.ensure_future(pool.run(partial(fetch_page, session, username, base + n * PAGE)))] = n
+
+        for n in range(WINDOW):
+            ask(n)
+        following = WINDOW  # the next page to ask for
+        try:
+            while asked:
+                done, _ = await asyncio.wait(asked, return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    n = asked.pop(task)
+                    outcome, found = task.result()
+                    answered[n] = take(found, base + n * PAGE) if outcome == "ok" else FAILED
+                    if answered[n] is None or answered[n] is FAILED:
+                        stop = n if stop is None else min(stop, n)
+                    if stop is None:
+                        ask(following)
+                        following += 1
+        finally:
+            for task in asked:  # left over only when a page belonged to another channel
+                task.cancel()
+        n = 0  # the last message moves on through the pages answered without a gap
+        while answered.get(n) not in (None, FAILED) and base + n * PAGE <= last:
+            last = max(last, answered[n])
+            n += 1
+        return result("failed" if answered.get(n) is FAILED else "new messages")
     except Moved:
         return result("other channel")
 
@@ -135,6 +156,7 @@ class Messages(Collector):
 
     async def prepare(self, conn, channels):
         self.pending = []  # (channel_id, its new messages with text, its new last message's ID or None, its time)
+        self.failed = []  # (channel, when its read failed), to ask again (see finish)
         for table in (NEW_MESSAGES, NEW_LAST):
             await conn.execute(table)
 
@@ -142,6 +164,13 @@ class Messages(Collector):
         return await fetch_page(session, TEST_CHANNEL, TEST_AFTER, proxy)
 
     async def handle(self, pool, session, channel):
+        outcome = await self.read(pool, session, channel)
+        if outcome == "failed":
+            self.failed.append((channel, time.monotonic()))
+        return outcome
+
+    async def read(self, pool, session, channel):
+        """Read one channel, and keep what it brought for the next save. Returns its outcome (see read_channel)."""
         channel_id, username, last = channel
         outcome, texts, new_last, published_at, pages = await read_channel(pool, session, channel_id, username, last)
         if texts or new_last > last:
@@ -149,6 +178,24 @@ class Messages(Collector):
         self.results["pages"] += pages
         self.results["messages with text"] += len(texts)
         return outcome
+
+    async def finish(self, pool, session):
+        """Ask the channels whose read failed once more (see RETRY_AFTER). Those it reads no longer count as failed."""
+        gate = asyncio.Semaphore(self.concurrency)
+
+        async def again(channel, failed_at):
+            async with gate:
+                await asyncio.sleep(max(0, failed_at + RETRY_AFTER - time.monotonic()))
+                try:
+                    outcome = await self.read(pool, session, channel)
+                except NoProxiesLeft:
+                    return
+            if outcome != "failed":
+                self.results["failed"] -= 1
+                self.results[outcome] += 1
+                self.results["read when asked again"] += 1
+
+        await asyncio.gather(*(again(channel, failed_at) for channel, failed_at in self.failed))
 
     async def save(self, conn):
         """Write the messages read since the last save, and move their channels' last messages on, in one
@@ -178,7 +225,8 @@ class Messages(Collector):
         return (f"{results['new messages']} channels with new messages ({results['messages with text']} with text, "
                 f"in {results['pages']} pages, {saved} saved), {results['nothing new']} with nothing new, "
                 f"{results['other channel']} whose username now belongs to another channel (left as they were), "
-                f"{results['failed']} failed (they continue next run)")
+                f"{results['failed']} failed even when asked again at the end (they continue next run; "
+                f"{results['read when asked again']} more were read then)")
 
 
 def main():

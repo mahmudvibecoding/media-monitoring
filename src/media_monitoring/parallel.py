@@ -101,6 +101,10 @@ class Collector:
         """Write what has been collected since the last save. Returns how many items it counts as saved."""
         return 0
 
+    async def finish(self, pool, session):
+        """In each worker process, once every item of its share has had its turn, with the proxies still at hand:
+        e.g. try again the items that failed. Saves go on meanwhile; Ctrl+C or kill stops it like the work."""
+
     def summary(self, results, saved):
         """The last line, from all processes' outcomes and the number saved."""
         return f"{dict(results)}, {saved} {self.saved_name}"
@@ -220,7 +224,11 @@ async def work(collector, items, share, shares):
                         own = min(TESTS_MAX, own * 2)
                     pool.allow_tests(min(progress[TESTS], own))
 
-            working = asyncio.gather(*(worker() for _ in range(min(collector.concurrency, len(items)))))
+            async def everything():
+                await asyncio.gather(*(worker() for _ in range(min(collector.concurrency, len(items)))))
+                await collector.finish(pool, session)
+
+            working = asyncio.ensure_future(everything())
             tasks = [asyncio.create_task(saver()), asyncio.create_task(regulator())]
             if collector.follow_lists:
                 tasks.append(asyncio.create_task(follower()))
