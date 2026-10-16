@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import NamedTuple
 
 PAGE = "https://t.me/s/{}"
+AFTER = "https://t.me/s/{}?after={}"  # the messages after one: what a channel's page asks for as you scroll down
 TIMEOUT = 10  # seconds; a proxy that hasn't brought the page by then has failed
 TEST_CHANNEL = "telegram"  # what proxies are tested with (see Pool): Telegram's own channel, up for years
 MESSAGE = '<div class="tgme_widget_message_wrap'  # where each message on a page starts
@@ -45,19 +46,25 @@ class Message(NamedTuple):
     channel_id: int | None
 
 
-async def call(session, proxy, url):
-    """One request for a page through one proxy. Returns (problem, response): problem is None when Telegram answered
-    with a page, "hidden" when it redirected it to the channel's plain page (see the top of this file), "broken" when
-    the proxy failed (no answer, or one that isn't Telegram's), or "telegram error" for any other answer."""
+async def call(session, proxy, url, light=False):
+    """One request through one proxy: for a page, or with light for the messages after one (see AFTER), which
+    Telegram answers with a JSON string: the messages' HTML, or "" when there are none. Returns (problem, response):
+    problem is None when Telegram answered, "hidden" when it redirected the request to the channel's plain page (see
+    the top of this file), "broken" when the proxy failed (no answer, or one that isn't Telegram's), or "telegram
+    error" for any other answer."""
     try:
-        response = await session.get(url, proxy=proxy, timeout=TIMEOUT, allow_redirects=False)
+        if light:  # an empty body, whose length must still be given (411 otherwise)
+            response = await session.post(url, proxy=proxy, timeout=TIMEOUT, allow_redirects=False, data=b"",
+                                          headers={"X-Requested-With": "XMLHttpRequest"})
+        else:
+            response = await session.get(url, proxy=proxy, timeout=TIMEOUT, allow_redirects=False)
     except Exception:
         return "broken", None
     if response.status_code in (301, 302, 303, 307, 308):
         location = response.headers.get("location") or ""
         return ("hidden" if location.startswith("https://t.me/") else "broken"), None
-    if "tgme_" not in response.text:
-        return "broken", None  # not Telegram's page: the proxy answered in its place
+    if not (response.text.startswith('"') if light else "tgme_" in response.text):
+        return "broken", None  # not Telegram's answer: the proxy answered in its place
     if response.status_code != 200:
         return "telegram error", None
     return None, response
