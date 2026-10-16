@@ -14,7 +14,8 @@ YouTube sees the proxy's address instead of the server's.
 
 - **VPN configs.** People share free VPN configurations publicly, mostly to help others get around internet
   censorship, and many GitHub projects collect them from Telegram channels into lists. `uv run proxies`
-  downloads 50 of those lists, from 31 projects, then runs every config with sing-box, as a
+  downloads 41 of those lists, from 31 projects (one of them comes in numbered parts, as many as it has configs for
+  that day, up to 15), then runs every config with sing-box, as a
   proxy on the server itself: about 110,000 of them, 1,000 per sing-box process, each group on its own local
   address (127.1.1.1, 127.1.2.1, and so on). A few thousand of them work at any time: about 4,200 when the
   lists were last chosen (2026-10-14), from 969 lists in GitHub projects active that week, by how many working
@@ -26,7 +27,9 @@ YouTube sees the proxy's address instead of the server's.
   tested all of those and has room for more tests.
 
 Every round downloads both again and restarts sing-box with the new configs, in the background: `uv run proxies`
-does all of it in one command, and `uv run proxies stop` stops sing-box.
+does all of it in one command, and `uv run proxies stop` stops sing-box. Its report shows the same for every list of
+both kinds: when it was last updated (from the file's commit feed on GitHub), how many configs or proxies it has, how
+many of those no list above it had, and how many couldn't be used.
 
 ## How the collectors use them
 

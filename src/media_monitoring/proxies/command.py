@@ -47,7 +47,7 @@ def refresh():
     plain = subprocess.Popen([sys.executable, "-m", plain_proxies.__name__], stdout=subprocess.PIPE, text=True)
     vpn_proxies.main()
     report, _ = plain.communicate()
-    print(report, end="")
+    print("\n" + report, end="")
     if plain.returncode:
         sys.exit("the plain proxies' lists failed (see above)")
     print("\nstarting sing-box in the background...")

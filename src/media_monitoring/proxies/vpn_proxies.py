@@ -9,12 +9,19 @@ import os
 import re
 from collections import Counter, defaultdict
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime, timezone
 from multiprocessing import get_context
 from urllib.parse import parse_qsl, unquote, urlsplit
 
 from curl_cffi import AsyncSession
 
-GITHUB = "https://raw.githubusercontent.com/"
+from media_monitoring.proxies import lists
+from media_monitoring.proxies.lists import GITHUB
+
+# Au1rxx's checked configs come in numbered parts, as many as it has configs for that day (10 at most so far, 1 or 2
+# some days): a part that isn't there today isn't a failure
+PARTS = [GITHUB + f"Au1rxx/free-vpn-subscriptions/main/output/all-verified/v2ray-base64-{n:04d}.txt"
+         for n in range(1, 16)]
 SOURCES = [
     GITHUB + "10ium/V2ray-Config/main/All_Configs_Sub.txt",
     GITHUB + "Argh94/V2RayAutoConfig/main/configs/ShadowSocks.txt",
@@ -46,8 +53,7 @@ SOURCES = [
     # and that the lists above didn't have, most first (about 2,100 working, next to 1,900 from the lists above)
     GITHUB + "sakha1370/OpenRay/main/output/all_valid_proxies.txt",
     GITHUB + "liketolivefree/kobabi/main/sub_all.txt",
-    *(GITHUB + f"Au1rxx/free-vpn-subscriptions/main/output/all-verified/v2ray-base64-{n:04d}.txt"
-      for n in range(1, 11)),  # its checked configs, in 10 parts
+    *PARTS,
     GITHUB + "10ium/V2ray-Config/main/Splitted-By-Protocol/vless.txt",
     GITHUB + "10ium/V2ray-Config/main/Splitted-By-Protocol/trojan.txt",
     GITHUB + "10ium/V2ray-Config/main/Splitted-By-Protocol/vmess.txt",
@@ -163,15 +169,21 @@ def parse(link):
 
 
 async def download(session, url):
+    """A list's text, or None for a part that isn't published today (see PARTS)."""
     response = await session.get(url, timeout=300)  # the biggest list is about 21 MB
+    if response.status_code == 404 and url in PARTS:
+        return None
     response.raise_for_status()
     return response.content.decode("utf-8", "replace")
 
 
 async def download_all():
+    """Every list's text (or its error), and when each one last changed, all at once."""
     async with AsyncSession() as session:
-        # All sources at once; return_exceptions=True keeps one failed download from stopping the others
-        return await asyncio.gather(*(download(session, url) for url in SOURCES), return_exceptions=True)
+        # return_exceptions=True keeps one failed download from stopping the others
+        texts = asyncio.gather(*(download(session, url) for url in SOURCES), return_exceptions=True)
+        dates = asyncio.gather(*(lists.changed(session, url) for url in SOURCES))
+        return await texts, await dates
 
 
 def readable(text):
@@ -206,7 +218,8 @@ def collect():
     """Download all sources, and parse them in pieces spread over processes: on one core it takes about a minute.
     Returns {key: (protocol, clean_link)} for the unique configs, and {key: {source, ...}} with every list each
     config appeared in."""
-    texts = asyncio.run(download_all())
+    texts, dates = asyncio.run(download_all())
+    now = datetime.now(timezone.utc)
     work = [(n, piece) for n, text in enumerate(texts) if isinstance(text, str) for piece in pieces(readable(text))]
     found_in, skipped_in = defaultdict(list), Counter()
     # "spawn" starts each process fresh, which works the same on macOS and Linux
@@ -215,11 +228,14 @@ def collect():
             found_in[n] += found
             skipped_in[n] += skipped
 
-    configs, sources = {}, defaultdict(set)
+    configs, sources, rows, missing = {}, defaultdict(set), [], 0
     for n, (url, text) in enumerate(zip(SOURCES, texts)):
-        name = url.removeprefix(GITHUB)
+        name = lists.name(url)
+        if text is None:
+            missing += 1
+            continue
         if isinstance(text, Exception):
-            print(f"FAILED   {name}: {text}")
+            rows.append((name, text))
             continue
         found, skipped = found_in[n], skipped_in[n]
         if len(found) + skipped < 3 and "://" in text:  # hardly any links: the list may be base64 after all
@@ -231,11 +247,13 @@ def collect():
                 configs[key] = (protocol, clean_link)
                 new += 1
             sources[key].add(name)
-        print(f"{len(found):>6} valid, {new:>6} new, {skipped:>6} skipped  {name}")
+        rows.append((name, dates[n], len({key for _, key, _ in found}), new, skipped))
 
-    print(f"\n{len(configs):>7}  unique configs in total")
-    for protocol, count in Counter(p for p, _ in configs.values()).most_common():
-        print(f"{count:>7}  {protocol}")
+    lists.report(f"VPN configs from {len(rows)} lists (vless, vmess, trojan, ss, hysteria2)", rows, now)
+    if missing:
+        lists.note(f"({missing} of Au1rxx's {len(PARTS)} possible parts aren't published today)")
+    protocols = Counter(protocol for protocol, _ in configs.values()).most_common()
+    lists.total(len(configs), "unique configs: " + ", ".join(f"{count:,} {protocol}" for protocol, count in protocols))
     return configs, sources
 
 
@@ -246,7 +264,7 @@ def main():
         f.write("".join(f"{link}\n" for _, link in sorted(configs.values())))
     with open(SOURCES_OUTPUT, "w") as f:
         f.write("".join(f"{link} {' '.join(sorted(sources[key]))}\n" for key, (_, link) in configs.items()))
-    print(f"\nsaved to {OUTPUT} and {SOURCES_OUTPUT}")
+    lists.note(f"saved to {OUTPUT} and {SOURCES_OUTPUT}")
 
 
 if __name__ == "__main__":  # only when run directly, not when imported

@@ -5,19 +5,22 @@ they give video pages and comments (YouTube's next endpoint, which blocks an add
 addresses. Most of them don't work; the pool finds the ones that do by itself (see pool.py), and "uv run proxies
 check plain" reports which lists work best.
 """
+import asyncio
 import ipaddress
 import os
-from collections import defaultdict
+from collections import Counter, defaultdict
 from concurrent.futures import ProcessPoolExecutor
+from datetime import datetime, timezone
 from multiprocessing import get_context
-from urllib.parse import urlsplit
 
 from curl_cffi import requests
+
+from media_monitoring.proxies import lists
 
 # (url, type): type is None when each line already starts with its type, like "http://...". Chosen by how many of
 # their proxies answered a real comments request (2026-10-12): small checked lists beat the big scraped ones. The
 # two SOCKS5 lists came 2026-10-14, when their proxies answered channel pages more than all the lists above together.
-G = "https://raw.githubusercontent.com/"
+G = lists.GITHUB
 SOURCES = [
     (G + "proxifly/free-proxy-list/main/proxies/all/data.txt", None),
     ("https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport"
@@ -75,50 +78,61 @@ def parse_line(line, default_type):
 
 
 def fetch(source):
-    """In a worker process: download one list and parse it. Returns its proxies as a set, or the error as text if the
-    download failed."""
+    """In a worker process: download one list and parse it. Returns (its proxies as a set, how many of its lines
+    weren't proxies), or the error as text if the download failed."""
     url, default_type = source
     try:
         response = requests.get(url, timeout=30)
         response.raise_for_status()
     except Exception as error:
         return str(error) or type(error).__name__
-    return {proxy for line in response.text.splitlines() if (proxy := parse_line(line, default_type))}
-
-
-def source_name(url):
-    """A list's name in the reports: its path on GitHub, or the site it comes from."""
-    return url.removeprefix(G) if url.startswith(G) else urlsplit(url).netloc
+    proxies, skipped = set(), 0
+    for line in response.text.splitlines():
+        if proxy := parse_line(line, default_type):
+            proxies.add(proxy)
+        elif line.strip():
+            skipped += 1
+    return proxies, skipped
 
 
 def collect():
-    """Download and parse every list, each in a process of its own: [(name, its proxies or the error), ...]."""
+    """Download and parse every list, each in a process of its own, while this one asks when each last changed.
+    Returns what fetch() returned for each list, and those times."""
     # "spawn" starts each process fresh, which works the same on macOS and Linux
     with ProcessPoolExecutor(min(len(SOURCES), os.cpu_count()), mp_context=get_context("spawn")) as pool:
-        return [(source_name(url), result) for (url, _), result in zip(SOURCES, pool.map(fetch, SOURCES))]
+        results = pool.map(fetch, SOURCES)  # all sent to the processes at once
+        dates = asyncio.run(lists.all_changed([url for url, _ in SOURCES]))
+        return list(results), dates
 
 
-def save(lists):
+def save(results, dates):
     """Report each list from collect(), and save the proxies of them all."""
-    sources = defaultdict(set)  # {proxy: {list it was in, ...}}
-    for name, found in lists:
+    now = datetime.now(timezone.utc)
+    sources, rows = defaultdict(set), []  # {proxy: {list it was in, ...}}, and the report's lines
+    for (url, _), found, when in zip(SOURCES, results, dates):
+        name = lists.name(url)
         if isinstance(found, str):
-            print(f"FAILED   {name}: {found}")
+            rows.append((name, found))
             continue
-        print(f"{len(found):>7}  {name}")
-        for proxy in found:
+        proxies, skipped = found
+        new = sum(1 for proxy in proxies if proxy not in sources)
+        for proxy in proxies:
             sources[proxy].add(name)
+        rows.append((name, when, len(proxies), new, skipped))
+    lists.report(f"Plain proxies from {len(rows)} lists (HTTP, SOCKS4, SOCKS5)", rows, now)
+    kinds = Counter(proxy.split("://", 1)[0] for proxy in sources).most_common()
+    lists.total(len(sources), "unique proxies: " + ", ".join(f"{count:,} {kind}" for kind, count in kinds))
     os.makedirs("data", exist_ok=True)
     with open(SOURCES_OUTPUT, "w") as f:
         f.writelines(f"{proxy} {' '.join(sorted(names))}\n" for proxy, names in sources.items())
     with open(OUTPUT + ".tmp", "w") as f:
         f.writelines(proxy + "\n" for proxy in sources)
     os.replace(OUTPUT + ".tmp", OUTPUT)  # all at once: a collector reading it never sees half a list
-    print(f"{len(sources):>7}  saved to {OUTPUT} and {SOURCES_OUTPUT}")
+    lists.note(f"saved to {OUTPUT} and {SOURCES_OUTPUT}")
 
 
 def main():
-    save(collect())
+    save(*collect())
 
 
 if __name__ == "__main__":  # only when run directly, not when imported
