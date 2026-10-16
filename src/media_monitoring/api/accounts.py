@@ -59,6 +59,10 @@ class PasswordChange(BaseModel):
     new: str = Field(max_length=PASSWORD_MAX)
 
 
+class LocaleChange(BaseModel):
+    locale: Literal["ru", "uz", "en"]
+
+
 def token_hash(token: str) -> bytes:
     return hashlib.sha256(token.encode()).digest()
 
@@ -126,15 +130,25 @@ async def signed_in(request: Request) -> Me:
     return Me(**row)
 
 
-async def admin(user: Annotated[Me, Depends(signed_in)]) -> Me:
+async def active(user: Annotated[Me, Depends(signed_in)]) -> Me:
+    """Someone signed in with a password of their own, or must_change_password (403): a temporary password opens
+    nothing but its change (and who's signed in, the language, signing out)"""
+    if user.must_change_password:
+        raise Failure(403, "must_change_password", "The temporary password is to be changed first")
+    return user
+
+
+async def admin(user: Annotated[Me, Depends(active)]) -> Me:
     """An admin who's signed in, or forbidden (403)"""
     if user.role != "admin":
         raise Failure(403, "forbidden", "Only an admin may do this")
     return user
 
 
-# For endpoints: "user: SignedIn" requires someone signed in, "user: Admin" an admin
+# For endpoints: "user: SignedIn" requires someone signed in, "user: Active" with a password of their own (what
+# endpoints with data use), "user: Admin" an admin
 SignedIn = Annotated[Me, Depends(signed_in)]
+Active = Annotated[Me, Depends(active)]
 Admin = Annotated[Me, Depends(admin)]
 
 FAILURES = """
@@ -267,6 +281,13 @@ async def change_password(body: PasswordChange, user: SignedIn, request: Request
         )
         await conn.execute("DELETE FROM app.sessions WHERE user_id = %s AND token_hash <> %s", [user.id, this_session])
     log.info("password changed", extra={"fields": {"user": user.id, "client": ip}})
+
+
+@router.post("/api/auth/locale", status_code=204, responses=failures({401: "not_signed_in: no session, or it ended"}))
+async def change_locale(body: LocaleChange, user: SignedIn, request: Request) -> None:
+    """Saves the signed-in user's language, which the site switches to when they sign in."""
+    async with request.state.pool.connection() as conn:
+        await conn.execute("UPDATE app.users SET locale = %s WHERE id = %s", [body.locale, user.id])
 
 
 def add_admin(database_url: str, email: str, name: str) -> str:

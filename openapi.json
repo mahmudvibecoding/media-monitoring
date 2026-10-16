@@ -297,6 +297,78 @@
         }
       }
     },
+    "/api/auth/locale": {
+      "post": {
+        "summary": "Change Locale",
+        "description": "Saves the signed-in user's language, which the site switches to when they sign in.",
+        "operationId": "change_locale",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocaleChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/status": {
       "get": {
         "summary": "Status",
@@ -315,6 +387,26 @@
           },
           "500": {
             "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
             "content": {
               "application/json": {
                 "schema": {
@@ -480,6 +572,24 @@
           "status"
         ],
         "title": "Health"
+      },
+      "LocaleChange": {
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "ru",
+              "uz",
+              "en"
+            ],
+            "title": "Locale"
+          }
+        },
+        "type": "object",
+        "required": [
+          "locale"
+        ],
+        "title": "LocaleChange"
       },
       "Me": {
         "properties": {

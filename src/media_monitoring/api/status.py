@@ -1,9 +1,10 @@
-"""GET /api/status: how much the database holds."""
+"""GET /api/status: how much the database holds, for admins."""
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from media_monitoring.api.errors import DATABASE_ERRORS
+from media_monitoring.api.accounts import Admin
+from media_monitoring.api.errors import failures
 
 router = APIRouter()
 
@@ -36,8 +37,16 @@ class Status(BaseModel):
     telegram: TelegramCounts
 
 
-@router.get("/api/status", responses=DATABASE_ERRORS)
-async def status(request: Request) -> Status:
+@router.get(
+    "/api/status",
+    responses=failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+        }
+    ),
+)
+async def status(request: Request, _: Admin) -> Status:
     """How many YouTube channels, videos and comments, and Telegram channels and messages the database holds."""
     async with request.state.pool.connection() as conn:
         rows = dict(await (await conn.execute(COUNTS)).fetchall())

@@ -44,8 +44,17 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
+- Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
+  and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
+  password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
+  inside a page comes after Next has begun sending it: a 200, followed only by the browser's scripts. The site's server
+  passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
 - A visitor sees Russian until choosing Uzbek (Latin script) or English in the header; the choice is kept in a cookie
-  for a year. Addresses are the same in every language, since no search engine indexes a site behind a password.
+  for a year and, for someone signed in, in their account. Signing in keeps a language this browser chose before (and
+  saves it to the account); without one, it switches to the account's. Addresses are the same in every language,
+  since no search engine indexes a site behind a password.
+- Counts are written by the site's own function (`src/lib/format.ts`), not the browser's `Intl`: Chrome's Uzbek data
+  writes 55,859 where Node's writes 55 859, and the browser would rewrite what the server rendered.
 - The texts are in `web/messages/` (`ru.json`, `uz.json`, `en.json`): a key missing from one, or asked for by a page
   but not there, fails the typecheck.
 - The font is Inter: Geist, Next's and shadcn's own, has no `ʻ`, which Uzbek writes oʻ and gʻ with.

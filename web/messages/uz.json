@@ -5,10 +5,13 @@
   },
   "header": {
     "name": "OAV monitoringi",
-    "language": "Til"
+    "language": "Til",
+    "signOut": "Chiqish"
   },
   "home": {
-    "title": "Umumiy koʻrinish"
+    "title": "Umumiy koʻrinish",
+    "greeting": "Assalomu alaykum, {name}!",
+    "empty": "Hozircha bu yerda hech narsa yoʻq."
   },
   "status": {
     "youtube": {
@@ -32,7 +35,16 @@
     "invalid_request": "Notoʻgʻri soʻrov.",
     "internal": "Nimadir xato ketdi. Qaytadan urinib koʻring.",
     "requestId": "Soʻrov kodi: {id}",
-    "retry": "Qayta urinish"
+    "retry": "Qayta urinish",
+    "wrong_credentials": "Pochta yoki parol notoʻgʻri.",
+    "account_disabled": "Hisob oʻchirilgan.",
+    "too_many_attempts": "Muvaffaqiyatsiz urinishlar juda koʻp. 15 daqiqadan soʻng urinib koʻring.",
+    "wrong_password": "Joriy parol notoʻgʻri.",
+    "weak_password": "Parol mos emas: kamida 10 ta belgi, pochta va joriy parol bilan bir xil boʻlmasin.",
+    "not_signed_in": "Siz tizimga kirmagansiz.",
+    "must_change_password": "Avval vaqtinchalik parolni almashtiring.",
+    "forbidden": "Ruxsat yetarli emas.",
+    "cross_site": "Boshqa saytdan kelgan soʻrov rad etildi."
   },
   "notFound": {
     "title": "Sahifa topilmadi",
@@ -48,5 +60,23 @@
   "globalError": {
     "message": "Nimadir xato ketdi. Qaytadan urinib koʻring.",
     "retry": "Qayta urinish"
+  },
+  "signIn": {
+    "title": "Kirish",
+    "email": "Elektron pochta",
+    "password": "Parol",
+    "submit": "Kirish",
+    "submitting": "Kirilmoqda…"
+  },
+  "changePassword": {
+    "title": "Yangi parol",
+    "required": "Parolingiz vaqtinchalik: davom etish uchun oʻzingiznikini oʻrnating.",
+    "current": "Joriy parol",
+    "new": "Yangi parol",
+    "repeat": "Yangi parolni takrorlang",
+    "rules": "Kamida 10 ta belgi, pochta va joriy parol bilan bir xil boʻlmasin.",
+    "mismatch": "Parollar mos kelmadi.",
+    "submit": "Saqlash",
+    "submitting": "Saqlanmoqda…"
   }
 }

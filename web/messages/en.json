@@ -5,10 +5,13 @@
   },
   "header": {
     "name": "Media monitoring",
-    "language": "Language"
+    "language": "Language",
+    "signOut": "Sign out"
   },
   "home": {
-    "title": "Overview"
+    "title": "Overview",
+    "greeting": "Hello, {name}!",
+    "empty": "Nothing here yet."
   },
   "status": {
     "youtube": {
@@ -32,7 +35,16 @@
     "invalid_request": "The request isn't valid.",
     "internal": "Something went wrong. Please try again.",
     "requestId": "Request ID: {id}",
-    "retry": "Try again"
+    "retry": "Try again",
+    "wrong_credentials": "Wrong email or password.",
+    "account_disabled": "This account is disabled.",
+    "too_many_attempts": "Too many failed attempts. Try again in 15 minutes.",
+    "wrong_password": "The current password is wrong.",
+    "weak_password": "This password won't do: at least 10 characters, not your email, not your current one.",
+    "not_signed_in": "You're not signed in.",
+    "must_change_password": "Change your temporary password first.",
+    "forbidden": "You don't have access to this.",
+    "cross_site": "A request from another site was refused."
   },
   "notFound": {
     "title": "Page not found",
@@ -48,5 +60,23 @@
   "globalError": {
     "message": "Something went wrong. Please try again.",
     "retry": "Try again"
+  },
+  "signIn": {
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…"
+  },
+  "changePassword": {
+    "title": "New password",
+    "required": "Your password is temporary: set your own to go on.",
+    "current": "Current password",
+    "new": "New password",
+    "repeat": "New password again",
+    "rules": "At least 10 characters, not your email, not your current password.",
+    "mismatch": "The passwords don't match.",
+    "submit": "Save",
+    "submitting": "Saving…"
   }
 }

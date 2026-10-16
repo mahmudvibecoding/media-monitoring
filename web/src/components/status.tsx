@@ -1,13 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useFormatter, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { statusOptions } from "@/api/@tanstack/react-query.gen";
 import { ApiError } from "@/components/api-error";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatCount } from "@/lib/format";
 
 const REFRESH_EVERY = 30_000; // milliseconds, while the tab is in view
 
@@ -44,12 +45,12 @@ function Group({ title, children }: { title: ReactNode; children: ReactNode }) {
 }
 
 function Count({ label, value }: { label: string; value: number }) {
-  const format = useFormatter();
+  const locale = useLocale();
   return (
     <Card>
       <CardHeader>
         <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-3xl tabular-nums">{format.number(value)}</CardTitle>
+        <CardTitle className="text-3xl tabular-nums">{formatCount(value, locale)}</CardTitle>
       </CardHeader>
     </Card>
   );

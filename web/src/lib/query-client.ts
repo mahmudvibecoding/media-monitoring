@@ -1,25 +1,27 @@
-import { isServer, QueryClient } from "@tanstack/react-query";
+import { isServer, QueryCache, QueryClient } from "@tanstack/react-query";
 import { cache } from "react";
 
-// The API's error codes (see the API's errors.py) for a request that was wrong rather than one that failed: asking again
-// won't help
-const REQUEST_ERRORS = new Set([
-  "bad_request",
-  "unauthorized",
-  "forbidden",
-  "not_found",
-  "method_not_allowed",
-  "invalid_request",
-]);
+import { apiFailure, REQUEST_ERRORS } from "@/lib/api-error";
 
-// A failed request is asked again twice, unless it was wrong
+// A failed request is asked again twice, unless it was wrong, or refused
 function retry(failures: number, error: unknown) {
-  const code = typeof error === "object" && error !== null && "error" in error ? error.error : undefined;
-  return failures < 2 && !(typeof code === "string" && REQUEST_ERRORS.has(code));
+  const given = apiFailure(error).given;
+  return failures < 2 && !(given && REQUEST_ERRORS.has(given));
 }
 
 function makeQueryClient() {
   return new QueryClient({
+    queryCache: new QueryCache({
+      // In the browser, data refused for not being signed in means the session ended while the page was open: sign in
+      // again, then come back
+      onError: (error) => {
+        if (!isServer && apiFailure(error).code === "not_signed_in") {
+          // A full load, not Next's router: it drops all that the tab kept of the account
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+          window.location.assign(`/sign-in?next=${encodeURIComponent(location.pathname + location.search)}`);
+        }
+      },
+    }),
     defaultOptions: {
       queries: {
         staleTime: 30_000, // milliseconds: what the server loaded for the page isn't asked for again right away

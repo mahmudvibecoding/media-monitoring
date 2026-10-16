@@ -47,6 +47,16 @@ export type Health = {
 };
 
 /**
+ * LocaleChange
+ */
+export type LocaleChange = {
+    /**
+     * Locale
+     */
+    locale: 'ru' | 'uz' | 'en';
+};
+
+/**
  * Me
  */
 export type Me = {
@@ -364,6 +374,47 @@ export type ChangePasswordResponses = {
 
 export type ChangePasswordResponse = ChangePasswordResponses[keyof ChangePasswordResponses];
 
+export type ChangeLocaleData = {
+    body: LocaleChange;
+    path?: never;
+    query?: never;
+    url: '/api/auth/locale';
+};
+
+export type ChangeLocaleErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type ChangeLocaleError = ChangeLocaleErrors[keyof ChangeLocaleErrors];
+
+export type ChangeLocaleResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type ChangeLocaleResponse = ChangeLocaleResponses[keyof ChangeLocaleResponses];
+
 export type StatusData = {
     body?: never;
     path?: never;
@@ -372,6 +423,14 @@ export type StatusData = {
 };
 
 export type StatusErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
     /**
      * Something went wrong on the server
      */

@@ -95,7 +95,12 @@ pnpm dev                         # serve it while working on it, updated on ever
 `pnpm lint`, `pnpm typecheck` and `pnpm format` (or `pnpm format:check`) check its code and lay it out. Package
 versions are pinned exactly, and pnpm only installs releases at least a day old.
 
-A visitor sees Russian until they choose another language in the header; the choice is kept in a cookie for a year.
+Every page but `/sign-in` needs someone signed in: a visitor who isn't goes to `/sign-in`, and back afterwards, and an
+account with a temporary password to `/change-password` until it has its own. Admins see how much the database holds
+on the home page; customers, for now, a greeting. The header has the user's name and signing out.
+
+A visitor sees Russian until they choose another language in the header; the choice is kept in a cookie for a year,
+and, once they're signed in, in their account, which the site switches to when they sign in in another browser.
 The texts are in `messages/` (`ru.json`, `uz.json`, `en.json`), looked up by key: a key missing from a language, or
 one a page asks for that isn't there, fails the typecheck. The components are shadcn/ui's, on Base UI, kept in
 `src/components/ui/` as shadcn writes them (`pnpm exec shadcn add <name>` adds one). The font is Inter, which has

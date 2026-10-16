@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { Header } from "@/components/header";
 import { QueryProvider } from "@/components/query-provider";
 import { inter } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
@@ -16,16 +15,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title"), description: t("description") };
 }
 
+// Every page's frame; the header and the page's width come from (signed-in)/layout.tsx and the sign-in page
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
   return (
     <html lang={locale} className={cn("font-sans", inter.variable)}>
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider>
-          <QueryProvider>
-            <Header />
-            <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
-          </QueryProvider>
+          <QueryProvider>{children}</QueryProvider>
         </NextIntlClientProvider>
       </body>
     </html>

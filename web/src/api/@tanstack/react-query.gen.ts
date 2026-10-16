@@ -3,8 +3,8 @@
 import { queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { changePassword, health, me, type Options, ready, signIn, signOut, status } from '../sdk.gen';
-import type { ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse } from '../types.gen';
+import { changeLocale, changePassword, health, me, type Options, ready, signIn, signOut, status } from '../sdk.gen';
+import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -107,6 +107,25 @@ export const changePasswordMutation = (options?: Partial<Options<ChangePasswordD
     const mutationOptions: UseMutationOptions<ChangePasswordResponse, ChangePasswordError, Options<ChangePasswordData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await changePassword({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Change Locale
+ *
+ * Saves the signed-in user's language, which the site switches to when they sign in.
+ */
+export const changeLocaleMutation = (options?: Partial<Options<ChangeLocaleData>>): UseMutationOptions<ChangeLocaleResponse, ChangeLocaleError, Options<ChangeLocaleData>> => {
+    const mutationOptions: UseMutationOptions<ChangeLocaleResponse, ChangeLocaleError, Options<ChangeLocaleData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await changeLocale({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

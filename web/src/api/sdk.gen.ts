@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses } from './types.gen';
+import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -54,6 +54,20 @@ export const me = <ThrowOnError extends boolean = false>(options?: Options<MeDat
  */
 export const changePassword = <ThrowOnError extends boolean = false>(options: Options<ChangePasswordData, ThrowOnError>): RequestResult<ChangePasswordResponses, ChangePasswordErrors, ThrowOnError> => (options.client ?? client).post<ChangePasswordResponses, ChangePasswordErrors, ThrowOnError>({
     url: '/api/auth/password',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Change Locale
+ *
+ * Saves the signed-in user's language, which the site switches to when they sign in.
+ */
+export const changeLocale = <ThrowOnError extends boolean = false>(options: Options<ChangeLocaleData, ThrowOnError>): RequestResult<ChangeLocaleResponses, ChangeLocaleErrors, ThrowOnError> => (options.client ?? client).post<ChangeLocaleResponses, ChangeLocaleErrors, ThrowOnError>({
+    url: '/api/auth/locale',
     ...options,
     headers: {
         'Content-Type': 'application/json',
