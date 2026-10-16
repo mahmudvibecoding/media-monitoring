@@ -125,11 +125,20 @@ read-only to them, they can't see `/root` or `/home`, and they can reach nothing
 security` rates them 1.1 of 10). Their logs: `journalctl -u media-monitoring-api` and `journalctl -u
 media-monitoring-web`.
 
+Caddy is in front of both (`deploy/Caddyfile`, which `deploy.sh` installs): the site is at https://198.163.196.164,
+with `/api/...` going to the API and everything else to the site, and `http://` sent on to `https://`. Its
+certificate comes from Let's Encrypt, for the IP address itself; those last about 6 days, and Caddy renews them. Until
+the site has logins of its own, a shared user name and password guard everything: the user is `monitoring`, and the
+password, made by the first deploy, is in `/etc/caddy/site-password` (`sudo cat /etc/caddy/site-password`). Answers
+carry security headers (HTTPS only, no framing by other sites, no guessing of content types), and each request gets
+an ID, which the API's log and Caddy's (`journalctl -u caddy`) both show. On the server itself, the same site answers
+on http://127.0.0.1:8080, for checks. Once there's a domain, it goes into the Caddyfile in place of the address.
+
 ## Layout
 
 ```
 run.sh                  sets the machine up and runs a round
-deploy.sh               deploys the website and the API; deploy/ has their services
+deploy.sh               deploys the website and the API; deploy/ has their services and Caddy's setup
 channels.txt            the channels to monitor, one ID per line
 schema.sql              the database tables
 openapi.json            the web API's description: uv run api openapi

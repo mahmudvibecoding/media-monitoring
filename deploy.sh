@@ -3,7 +3,8 @@
 # and start with the machine: media-monitoring-api and media-monitoring-web (deploy/*.service). Each deploy gets a
 # release folder of its own, /opt/media-monitoring/releases/<time>-<commit>, where the commit is installed and the site
 # built; the link /opt/media-monitoring/current says which release runs. If installing or building fails, the running
-# release is left as it is; if the new one doesn't answer once started, the one before it is started again.
+# release is left as it is; if the new one doesn't answer once started, the one before it is started again. Caddy, in
+# front of both (deploy/Caddyfile), gets the address, HTTPS and a temporary shared password for everything.
 #
 #   ./deploy.sh            deploy this clone's current commit (uncommitted changes aren't deployed)
 #   ./deploy.sh rollback   go back to the release before the running one
@@ -61,6 +62,54 @@ start() {
 
 logs() {
     journalctl -u media-monitoring-api -u media-monitoring-web -n 20 --no-pager -o cat || true
+}
+
+caddy_up() {
+    # Caddy in front of both, with the Caddyfile the release has: installed once Caddy finds it valid, and reloaded
+    # when it changed. The temporary shared password is made the first time: Caddy gets the user name and the
+    # password's hash from /etc/caddy/site.env, and root can read the password itself in /etc/caddy/site-password.
+    local caddyfile=$1 restart="" reload="" password check
+    if ! command -v caddy > /dev/null; then
+        echo "deploy.sh: Caddy isn't installed yet: run ./run.sh setup"
+        return 1
+    fi
+    if [ ! -f /etc/caddy/site.env ]; then
+        password=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
+        (umask 077 && printf '%s\n' "$password" > /etc/caddy/site-password)
+        printf 'SITE_USER=monitoring\nSITE_PASSWORD_HASH=%s\n' "$(caddy hash-password --plaintext "$password")" \
+            > /etc/caddy/site.env
+        chown root:caddy /etc/caddy/site.env
+        chmod 640 /etc/caddy/site.env
+        echo "### made the site's temporary password: user monitoring, password in /etc/caddy/site-password"
+    fi
+    local dropin=/etc/systemd/system/caddy.service.d/media-monitoring.conf
+    if [ ! -f "$dropin" ]; then
+        mkdir -p "${dropin%/*}"
+        printf '[Service]\nEnvironmentFile=/etc/caddy/site.env\n' > "$dropin"
+        systemctl daemon-reload
+        restart=1
+    fi
+    if ! cmp -s "$caddyfile" /etc/caddy/Caddyfile; then
+        check=$(mktemp)
+        # shellcheck disable=SC2046  # each line of site.env is one variable
+        if ! env $(< /etc/caddy/site.env) caddy validate --config "$caddyfile" --adapter caddyfile > "$check" 2>&1; then
+            tail -5 "$check"
+            rm -f "$check"
+            echo "deploy.sh: deploy/Caddyfile isn't valid, so Caddy keeps the one it has"
+            return 1
+        fi
+        rm -f "$check"
+        install -m 644 "$caddyfile" /etc/caddy/Caddyfile
+        reload=1
+    fi
+    systemctl enable --quiet caddy
+    if [ -n "$restart" ] || ! systemctl is-active --quiet caddy; then
+        systemctl restart caddy
+        echo "### Caddy started"
+    elif [ -n "$reload" ]; then
+        systemctl reload caddy
+        echo "### Caddy reloaded with the new Caddyfile"
+    fi
 }
 
 running=$(readlink "$ROOT/current" || true)
@@ -143,6 +192,8 @@ if ! answering; then
     echo "deploy.sh: $release didn't answer"
     exit 1
 fi
+
+caddy_up "$folder/deploy/Caddyfile"
 
 # The newest releases are kept, the one just started among them
 ls "$ROOT/releases" | sort | head -n -"$KEEP" | while read -r old; do

@@ -1,6 +1,6 @@
 """The API's logs: one JSON object per line on standard error, for uvicorn's lines, the database pool's and the API's
 own. Each request gets an ID, which comes back in the X-Request-ID header and is in every line logged while it's
-answered, and the API logs one line per request."""
+answered, and the API logs one line per request, with the visitor's address."""
 
 import json
 import logging
@@ -82,5 +82,7 @@ class RequestLog:
         finally:
             fields = {"method": scope["method"], "path": scope["path"], "status": status}
             fields["ms"] = round((time.perf_counter() - started) * 1000, 1)
+            # The visitor's address: uvicorn takes it from the X-Forwarded-For header Caddy, on this machine, adds
+            fields["client"] = scope["client"][0] if scope.get("client") else None
             requests_log.info("%s %s %s", scope["method"], scope["path"], status, extra={"fields": fields})
             request_id.reset(token)

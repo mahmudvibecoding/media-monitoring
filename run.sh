@@ -95,6 +95,21 @@ setup() {
             > /dev/null
     fi
 
+    # Caddy, in front of the website and its API (deploy/Caddyfile, which deploy.sh installs), from Caddy's own signed
+    # apt repository: it faces the internet, so its security fixes come with "apt upgrade" rather than a version pinned
+    # here. It's left stopped until deploy.sh configures it.
+    if ! command -v caddy > /dev/null; then
+        echo "### installing Caddy"
+        keyring=/usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | $sudo gpg --dearmor --yes -o "$keyring"
+        curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt |
+            $sudo tee /etc/apt/sources.list.d/caddy-stable.list > /dev/null
+        $sudo chmod o+r "$keyring" /etc/apt/sources.list.d/caddy-stable.list
+        $sudo apt-get update -q
+        $sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y -q caddy
+        $sudo systemctl stop caddy
+    fi
+
     # uv, and through it Python and the packages in uv.lock
     if ! command -v uv > /dev/null; then
         echo "### installing uv"
