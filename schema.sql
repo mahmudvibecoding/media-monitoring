@@ -99,16 +99,3 @@ CREATE TABLE IF NOT EXISTS telegram_messages (
     first_seen_at     timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (channel_id, message_id)    -- a channel's messages sit together, so they load quickly
 );
-
--- Each saved message's latest views and reactions: one small row per message, overwritten on every refresh. It's
--- apart from telegram_messages, so a refresh rewrites a few bytes instead of the text, and half of each page stays
--- free, so an update fits next to the old row.
-CREATE TABLE IF NOT EXISTS telegram_message_stats (
-    channel_id        bigint NOT NULL,
-    message_id        integer NOT NULL,
-    views             bigint,               -- as the page shows them: 90.4K is 90,400; exact below 1,000
-    reactions         bigint,               -- all reactions together: each emoji's count added up (0 when none)
-    updated_at        timestamptz NOT NULL, -- when views and reactions were last read
-    PRIMARY KEY (channel_id, message_id),
-    FOREIGN KEY (channel_id, message_id) REFERENCES telegram_messages
-) WITH (fillfactor = 50);
