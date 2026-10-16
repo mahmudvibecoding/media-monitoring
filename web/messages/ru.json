@@ -24,6 +24,32 @@
       "messages": "Сообщения"
     }
   },
+  "nav": {
+    "overview": "Обзор",
+    "channels": "Каналы",
+    "toggle": "Показать или скрыть меню"
+  },
+  "youtubeChannels": {
+    "title": "Каналы YouTube",
+    "count": "{count, plural, one {{formatted} канал} few {{formatted} канала} many {{formatted} каналов} other {{formatted} канала}}",
+    "found": "Найдено: {formatted}",
+    "search": "Название или псевдоним",
+    "order": "Порядок",
+    "biggest": "Сначала крупные",
+    "byName": "По названию",
+    "channel": "Канал",
+    "handle": "Псевдоним",
+    "subscribers": "Подписчики",
+    "hidden": "скрыто",
+    "open": "Открыть на YouTube",
+    "none": "Каналов пока нет.",
+    "noMatch": "По запросу «{search}» каналов нет.",
+    "page": "Страница {page} из {pages}",
+    "first": "Первая страница",
+    "previous": "Предыдущая страница",
+    "next": "Следующая страница",
+    "last": "Последняя страница"
+  },
   "common": {
     "loading": "Загрузка…"
   },

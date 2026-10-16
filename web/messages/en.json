@@ -24,6 +24,32 @@
       "messages": "Messages"
     }
   },
+  "nav": {
+    "overview": "Overview",
+    "channels": "Channels",
+    "toggle": "Show or hide the menu"
+  },
+  "youtubeChannels": {
+    "title": "YouTube channels",
+    "count": "{count, plural, one {{formatted} channel} other {{formatted} channels}}",
+    "found": "Found: {formatted}",
+    "search": "Search by name or handle",
+    "order": "Order",
+    "biggest": "Biggest first",
+    "byName": "By name",
+    "channel": "Channel",
+    "handle": "Handle",
+    "subscribers": "Subscribers",
+    "hidden": "hidden",
+    "open": "Open on YouTube",
+    "none": "No channels yet.",
+    "noMatch": "No channels match “{search}”.",
+    "page": "Page {page} of {pages}",
+    "first": "First page",
+    "previous": "Previous page",
+    "next": "Next page",
+    "last": "Last page"
+  },
   "common": {
     "loading": "Loading…"
   },

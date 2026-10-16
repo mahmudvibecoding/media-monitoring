@@ -189,6 +189,50 @@ export type ValidationError = {
 };
 
 /**
+ * YouTubeChannel
+ */
+export type YouTubeChannel = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Handle
+     */
+    handle: string | null;
+    /**
+     * Avatar Url
+     */
+    avatar_url: string | null;
+    /**
+     * Subscribers
+     */
+    subscribers: number | null;
+};
+
+/**
+ * YouTubeChannels
+ */
+export type YouTubeChannels = {
+    /**
+     * Channels
+     */
+    channels: Array<YouTubeChannel>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
  * YouTubeCounts
  */
 export type YouTubeCounts = {
@@ -455,6 +499,70 @@ export type StatusResponses = {
 };
 
 export type StatusResponse = StatusResponses[keyof StatusResponses];
+
+export type YoutubeChannelsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search
+         *
+         * Part of a channel's name or handle
+         */
+        search?: string;
+        /**
+         * Sort
+         *
+         * The biggest first, or by name
+         */
+        sort?: 'subscribers' | 'name';
+        /**
+         * Page
+         *
+         * 50 channels to a page
+         */
+        page?: number;
+    };
+    url: '/api/youtube/channels';
+};
+
+export type YoutubeChannelsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: a parameter is out of its range
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type YoutubeChannelsError = YoutubeChannelsErrors[keyof YoutubeChannelsErrors];
+
+export type YoutubeChannelsResponses = {
+    /**
+     * Successful Response
+     */
+    200: YouTubeChannels;
+};
+
+export type YoutubeChannelsResponse = YoutubeChannelsResponses[keyof YoutubeChannelsResponses];
 
 export type HealthData = {
     body?: never;

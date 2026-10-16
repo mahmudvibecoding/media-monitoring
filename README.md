@@ -81,6 +81,10 @@ There's no signing up: the first admin is added on the server, as root, from the
 uv run api add-admin admin@example.com "Ali Valiyev"   # prints a temporary password, changed at the first sign-in
 ```
 
+`/api/youtube/channels`, for admins, lists the monitored YouTube channels, 50 to a page, the biggest first or by name,
+and how many match; with `search`, only those whose name or handle has it in them, whatever the case of its letters
+and apostrophes aside (zor finds Zo‘r). `app.sql` has the column and the indexes it reads them by.
+
 ## The website
 
 `web/` is the website: a Next.js app in TypeScript, in Russian, Uzbek and English. In `web/`:
@@ -95,8 +99,10 @@ pnpm dev                         # serve it while working on it, updated on ever
 versions are pinned exactly, and pnpm only installs releases at least a day old.
 
 Every page but `/sign-in` needs someone signed in: a visitor who isn't goes to `/sign-in`, and back afterwards, and an
-account with a temporary password to `/change-password` until it has its own. Admins see how much the database holds
-on the home page; customers, for now, a greeting. The header has the user's name and signing out.
+account with a temporary password to `/change-password` until it has its own. Admins have a menu at the side, which
+folds down to its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds, and YouTube's
+channels, a list searched as one types, the biggest first or by name, 50 to a page, whose address keeps the search, the
+order and the page. Customers, for now, see a greeting. The header has the user's name and signing out.
 
 A visitor sees Russian until they choose another language in the header; the choice is kept in a cookie for a year,
 and, once they're signed in, in their account, which the site switches to when they sign in in another browser.
@@ -128,16 +134,16 @@ On the server, as root, from the clone (after `./run.sh setup`):
 ./deploy.sh rollback   # go back to the release before the running one
 ```
 
-It installs the commit in a release folder of its own in `/opt/media-monitoring/releases` (the API's packages, and
-the site, built), brings the website's own tables up to date (`app.sql`: the accounts, in the schema `app`), points
-`/opt/media-monitoring/current` at the release, and restarts two services: `media-monitoring-api` (127.0.0.1:8000)
-and `media-monitoring-web` (127.0.0.1:3000). They start with the machine and come back 2 s after they stop. A failed
-install, build or table update leaves the running release as it is, a release that doesn't answer within 30 s is
-replaced by the one before it, and the last 3 are kept. The API runs as `media_monitoring_api`, which can change the
-website's own tables but only read the collected data, and the site as `media_monitoring_web`, which can't reach the
-database. systemd locks both down: the system is read-only to them, they can't see `/root` or `/home`, and they can
-reach nothing but this machine (`systemd-analyze security` rates them 1.1 of 10). Their logs: `journalctl -u
-media-monitoring-api` and `journalctl -u media-monitoring-web`.
+It installs the commit in a release folder of its own in `/opt/media-monitoring/releases` (the API's packages, and the
+site, built), brings the website's own tables up to date (`app.sql`: the accounts, in the schema `app`, and the indexes
+the site's pages read the collected data by), points `/opt/media-monitoring/current` at the release, and restarts two
+services: `media-monitoring-api` (127.0.0.1:8000) and `media-monitoring-web` (127.0.0.1:3000). They start with the
+machine and come back 2 s after they stop. A failed install, build or table update leaves the running release as it is,
+a release that doesn't answer within 30 s is replaced by the one before it, and the last 3 are kept. The API runs as
+`media_monitoring_api`, which can change the website's own tables but only read the collected data, and the site as
+`media_monitoring_web`, which can't reach the database. systemd locks both down: the system is read-only to them, they
+can't see `/root` or `/home`, and they can reach nothing but this machine (`systemd-analyze security` rates them 1.1 of
+10). Their logs: `journalctl -u media-monitoring-api` and `journalctl -u media-monitoring-web`.
 
 Caddy is in front of both (`deploy/Caddyfile`, which `deploy.sh` installs): the site is at https://198.163.196.164,
 with `/api/...` going to the API and everything else to the site, and `http://` sent on to `https://`. Its
@@ -154,7 +160,7 @@ run.sh                  sets the machine up and runs a round
 deploy.sh               deploys the website and the API; deploy/ has their services and Caddy's setup
 channels.txt            the channels to monitor, one ID per line
 schema.sql              the database tables
-app.sql                 the website's own tables (accounts), in the schema app
+app.sql                 the website's own tables (accounts), in the schema app, and its indexes on the collected data
 openapi.json            the web API's description: uv run api openapi
 src/media_monitoring/
     commands.py         uv run youtube <step>, uv run telegram <step>

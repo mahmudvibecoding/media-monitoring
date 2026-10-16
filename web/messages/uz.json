@@ -24,6 +24,32 @@
       "messages": "Xabarlar"
     }
   },
+  "nav": {
+    "overview": "Umumiy koʻrinish",
+    "channels": "Kanallar",
+    "toggle": "Menyuni koʻrsatish yoki yashirish"
+  },
+  "youtubeChannels": {
+    "title": "YouTube kanallari",
+    "count": "{formatted} ta kanal",
+    "found": "Topildi: {formatted} ta",
+    "search": "Nomi yoki taxallusi",
+    "order": "Tartib",
+    "biggest": "Avval yiriklari",
+    "byName": "Nomi boʻyicha",
+    "channel": "Kanal",
+    "handle": "Taxallus",
+    "subscribers": "Obunachilar",
+    "hidden": "yashirin",
+    "open": "YouTube saytida ochish",
+    "none": "Hozircha kanallar yoʻq.",
+    "noMatch": "«{search}» boʻyicha kanal topilmadi.",
+    "page": "Sahifa: {page} / {pages}",
+    "first": "Birinchi sahifa",
+    "previous": "Oldingi sahifa",
+    "next": "Keyingi sahifa",
+    "last": "Oxirgi sahifa"
+  },
   "common": {
     "loading": "Yuklanmoqda…"
   },

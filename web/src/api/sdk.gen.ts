@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses } from './types.gen';
+import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -81,6 +81,14 @@ export const changeLocale = <ThrowOnError extends boolean = false>(options: Opti
  * How many YouTube channels, videos and comments, and Telegram channels and messages the database holds.
  */
 export const status = <ThrowOnError extends boolean = false>(options?: Options<StatusData, ThrowOnError>): RequestResult<StatusResponses, StatusErrors, ThrowOnError> => (options?.client ?? client).get<StatusResponses, StatusErrors, ThrowOnError>({ url: '/api/status', ...options });
+
+/**
+ * Youtube Channels
+ *
+ * The monitored channels, a page at a time, the biggest first or by name. With a search, only the channels whose
+ * name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
+ */
+export const youtubeChannels = <ThrowOnError extends boolean = false>(options?: Options<YoutubeChannelsData, ThrowOnError>): RequestResult<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError> => (options?.client ?? client).get<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError>({ url: '/api/youtube/channels', ...options });
 
 /**
  * Health

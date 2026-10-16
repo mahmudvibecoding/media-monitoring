@@ -438,6 +438,130 @@
         }
       }
     },
+    "/api/youtube/channels": {
+      "get": {
+        "summary": "Youtube Channels",
+        "description": "The monitored channels, a page at a time, the biggest first or by name. With a search, only the channels whose\nname or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.",
+        "operationId": "youtube_channels",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Part of a channel's name or handle",
+              "default": "",
+              "title": "Search"
+            },
+            "description": "Part of a channel's name or handle"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "subscribers",
+                "name"
+              ],
+              "type": "string",
+              "description": "The biggest first, or by name",
+              "default": "subscribers",
+              "title": "Sort"
+            },
+            "description": "The biggest first, or by name"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 1,
+              "description": "50 channels to a page",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "50 channels to a page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeChannels"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: a parameter is out of its range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "Health",
@@ -786,6 +910,93 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "YouTubeChannel": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "handle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Handle"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Url"
+          },
+          "subscribers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subscribers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "handle",
+          "avatar_url",
+          "subscribers"
+        ],
+        "title": "YouTubeChannel"
+      },
+      "YouTubeChannels": {
+        "properties": {
+          "channels": {
+            "items": {
+              "$ref": "#/components/schemas/YouTubeChannel"
+            },
+            "type": "array",
+            "title": "Channels"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "channels",
+          "total",
+          "page_size"
+        ],
+        "title": "YouTubeChannels"
       },
       "YouTubeCounts": {
         "properties": {

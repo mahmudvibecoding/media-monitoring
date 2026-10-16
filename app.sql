@@ -1,6 +1,7 @@
 -- The website's own tables, in a schema of their own, apart from the collected data: accounts, their sessions and
 -- failed sign-ins. The API's database user may read and change these, and nothing else (the collected data stays
--- read-only to it). Safe to run again: it only adds what's missing. deploy.sh runs it before starting a new release.
+-- read-only to it). Then the indexes the site's pages need on the collected data. Safe to run again: it only adds
+-- what's missing. deploy.sh runs it before starting a new release.
 SET client_min_messages = warning;  -- don't list everything that already exists
 
 CREATE SCHEMA IF NOT EXISTS app;
@@ -42,6 +43,35 @@ CREATE TABLE IF NOT EXISTS app.sign_in_failures (
 );
 CREATE INDEX IF NOT EXISTS sign_in_failures_email ON app.sign_in_failures (lower(email), at);
 CREATE INDEX IF NOT EXISTS sign_in_failures_ip ON app.sign_in_failures (ip, at);
+
+-- What the site's pages look the collected data up by, which the collectors don't: columns and indexes on schema.sql's
+-- tables
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;  -- indexes that find text by any part of it
+
+-- Text as the site's searches compare it: in lowercase, and without apostrophes, which Uzbek writes oʻ and gʻ with in
+-- seven ways (Zo'r, Zoʻr, Zo‘r, Zo’r...), so that zor, zo'r and zoʻr all find each other. Columns are made with it:
+-- after a change here, they're to be worked out again, or they'd keep what it gave before.
+CREATE OR REPLACE FUNCTION app.searchable(value text) RETURNS text
+    LANGUAGE sql IMMUTABLE PARALLEL SAFE
+    RETURN lower(regexp_replace(value, '[''ʻʼ‘’`´]', '', 'g'));
+
+-- Names in alphabetical order, as people read them: Unicode's order (the database's own, by character codes, would put
+-- Zebra before apple), with spaces, punctuation, symbols and currency signs passed over, which many channels' names
+-- start with ("    UZ News", "👤 Aziz", "£LUNORIA£"): those would otherwise come first
+CREATE COLLATION IF NOT EXISTS app.names (provider = icu, locale = 'und-u-ka-shifted-kv-currency');
+
+-- The YouTube channels page. Its search looks in each channel's name and handle, kept searchable in a column of their
+-- own, which PostgreSQL brings up to date whenever a collector changes them: worked out during each search instead,
+-- that took 0.5 s for a search the index can't narrow down, like a single letter. Its orders are the biggest first,
+-- and by name. Their indexes hold the search column too, so that a search the index can't narrow reads them alone, not
+-- the table.
+ALTER TABLE youtube_channels ADD COLUMN IF NOT EXISTS search_text text
+    GENERATED ALWAYS AS (app.searchable(coalesce(title, '') || ' ' || coalesce(handle, ''))) STORED;
+CREATE INDEX IF NOT EXISTS youtube_channels_search ON youtube_channels USING gin (search_text gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS youtube_channels_subscribers
+    ON youtube_channels (subscriber_count DESC NULLS LAST, channel_id) INCLUDE (search_text);
+CREATE INDEX IF NOT EXISTS youtube_channels_name
+    ON youtube_channels (title COLLATE app.names, channel_id) INCLUDE (search_text);
 
 -- The API's user (run.sh setup makes it) may read and change every table here, and create none
 GRANT USAGE ON SCHEMA app TO media_monitoring_api;

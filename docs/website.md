@@ -42,6 +42,24 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
 - A request that changes something, from another site's page (its Origin header), is refused.
 - Sign-ins, failures, sign-outs and password changes go into the log, with the address, never a password.
 
+### YouTube's channels
+
+`/api/youtube/channels` gives admins 50 channels at a time, the biggest first or by name, and how many match; with
+`search`, those whose name or handle has it in them. Through Caddy, a search takes about 13 ms, the first page 41 ms
+(counting all 55,859 channels) and a search for a single letter 60 ms:
+- Each channel's name and handle are kept searchable in a column of their own, `search_text`: in lowercase, and without
+  apostrophes, which Uzbek writes oʻ and gʻ with in seven ways (Zo'r, Zoʻr, Zo‘r...), so that zor, zo'r and zoʻr find
+  the same 442 channels. PostgreSQL brings it up to date as the collectors change them. A trigram index (pg_trgm) finds
+  any part of it. Worked out during each search instead, it took 0.5 s for a search the index can't narrow down, like
+  one letter.
+- By name is alphabetical as people read it (ICU, with spaces, punctuation, symbols and currency signs passed over): the
+  database's own order is by character codes, Zebra before apple, and many names start with spaces, 👤 or £.
+- A page's channels are picked from its order's index alone, which holds their IDs and the search column, and only those
+  50 are read from the table: a page far down takes milliseconds, not the 0.4 s of reading and sorting every channel.
+  The page and the count are asked for at the same time, on two connections.
+- `app.sql` has the column, the indexes and the order (`app.names`), so a deploy makes them: 3 s the first time, nothing
+  after.
+
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
@@ -50,6 +68,13 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
   inside a page comes after Next has begun sending it: a 200, followed only by the browser's scripts. The site's server
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
+- Admins have a menu at the side (shadcn's sidebar): the overview, then each kind of collected data. It folds down to
+  its icons, which it remembers in a cookie, and slides in over the page on a phone.
+- The channel list keeps its search, order and page in the address, so Back, Forward and a copied link bring them back.
+  It changes the address through the browser's history rather than by loading the page again, and asks the API itself,
+  through Caddy; the server renders the list only when the page is loaded. A search starts 300 ms after the last key,
+  and the last list stays, dimmed, while the next one loads.
+- Channel pictures come from YouTube's image server at 88 px (8 KB each), not at the 900 px saved (114 KB).
 - A visitor sees Russian until choosing Uzbek (Latin script) or English in the header; the choice is kept in a cookie
   for a year and, for someone signed in, in their account. Signing in keeps a language this browser chose before (and
   saves it to the account); without one, it switches to the account's. Addresses are the same in every language,
