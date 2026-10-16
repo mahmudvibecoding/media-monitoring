@@ -1,10 +1,16 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
+import { API_URL } from "./src/lib/api-url";
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false, // no "X-Powered-By: Next.js" header in answers
+  // The browser asks the site's own /api/...: Next passes it on to the API
+  async rewrites() {
+    return [{ source: "/api/:path*", destination: `${API_URL}/api/:path*` }];
+  },
   turbopack: {
     rules: {
       // Tailwind's styles, built by Turbopack itself

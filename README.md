@@ -92,6 +92,13 @@ one a page asks for that isn't there, fails the typecheck. The components are sh
 `src/components/ui/` as shadcn writes them (`pnpm exec shadcn add <name>` adds one). The font is Inter, which has
 every letter of the three languages, Uzbek's ʻ included, and the colors follow the device's light or dark setting.
 
+The site reads the API through a typed client in `src/api/`, which `pnpm api` writes from `../openapi.json` (run it
+after `uv run api openapi`); it isn't edited by hand, and asking for an endpoint or a field the API doesn't have fails
+the typecheck. While a page is rendered on the server, requests go straight to the API (`API_URL`,
+`http://127.0.0.1:8000` by default); in the browser they go to the site's own `/api/...`, which Next passes on to the
+API. TanStack Query loads a page's data on the server, so the page arrives with it, and the browser keeps it fresh:
+the home page's counts are asked for again every 30 seconds.
+
 ## Layout
 
 ```
@@ -109,7 +116,7 @@ src/media_monitoring/
     db.py               the database connection
     proxies/            VPN configs, sing-box, plain proxies
     api/                the web API: uv run api
-web/                    the website (Next.js): pages in src/app/, texts in messages/
+web/                    the website (Next.js): pages in src/app/, texts in messages/, the API's client in src/api/
 docs/                   how it works and why
 data/                   downloaded and generated files (not in git)
 ```

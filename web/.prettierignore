@@ -2,3 +2,5 @@ pnpm-lock.yaml
 pnpm-workspace.yaml
 # shadcn's components, kept as shadcn writes them, so its updates apply cleanly
 src/components/ui/
+# The typed client, which "pnpm api" writes
+src/api/

@@ -9,5 +9,18 @@
   },
   "home": {
     "title": "Umumiy koʻrinish"
+  },
+  "status": {
+    "youtube": {
+      "channels": "Kanallar",
+      "videos": "Videolar",
+      "comments": "Izohlar"
+    },
+    "telegram": {
+      "channels": "Kanallar",
+      "messages": "Xabarlar"
+    },
+    "loading": "Yuklanmoqda…",
+    "failed": "Maʼlumotlarni yuklab boʻlmadi"
   }
 }

@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { Header } from "@/components/header";
+import { QueryProvider } from "@/components/query-provider";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -25,8 +26,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html lang={locale} className={cn("font-sans", inter.variable)}>
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider>
-          <Header />
-          <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+          <QueryProvider>
+            <Header />
+            <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+          </QueryProvider>
         </NextIntlClientProvider>
       </body>
     </html>

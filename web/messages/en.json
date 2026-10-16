@@ -9,5 +9,18 @@
   },
   "home": {
     "title": "Overview"
+  },
+  "status": {
+    "youtube": {
+      "channels": "Channels",
+      "videos": "Videos",
+      "comments": "Comments"
+    },
+    "telegram": {
+      "channels": "Channels",
+      "messages": "Messages"
+    },
+    "loading": "Loading…",
+    "failed": "Couldn't load the data"
   }
 }

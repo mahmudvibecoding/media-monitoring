@@ -9,5 +9,18 @@
   },
   "home": {
     "title": "Обзор"
+  },
+  "status": {
+    "youtube": {
+      "channels": "Каналы",
+      "videos": "Видео",
+      "comments": "Комментарии"
+    },
+    "telegram": {
+      "channels": "Каналы",
+      "messages": "Сообщения"
+    },
+    "loading": "Загрузка…",
+    "failed": "Не удалось загрузить данные"
   }
 }
