@@ -26,7 +26,8 @@ class Problem(BaseModel):
 
 
 class Error(BaseModel):
-    # not_found, method_not_allowed, invalid_request, database_unavailable, database_timeout or internal
+    # not_found, method_not_allowed, invalid_request, database_unavailable, database_timeout, internal, or an
+    # endpoint's own (a Failure's), like wrong_credentials
     error: str
     message: str
     request_id: str
@@ -36,6 +37,18 @@ class Error(BaseModel):
 def error_response(status, error, message, details=None, headers=None):
     body = Error(error=error, message=message, request_id=request_id.get() or "", details=details)
     return JSONResponse(body.model_dump(exclude_none=True), status, headers=headers)
+
+
+class Failure(Exception):
+    """A failure with a code of its own, which an endpoint raises: answered like every other"""
+
+    def __init__(self, status: int, error: str, message: str, headers: dict[str, str] | None = None):
+        super().__init__(message)
+        self.status, self.error, self.message, self.headers = status, error, message, headers
+
+
+async def failure(request: Request, exc: Failure):
+    return error_response(exc.status, exc.error, exc.message, headers=exc.headers)
 
 
 async def http_error(request: Request, exc: HTTPException):
@@ -65,6 +78,7 @@ def internal_error():
 
 
 HANDLERS = {
+    Failure: failure,
     HTTPException: http_error,
     RequestValidationError: invalid_request,
     psycopg.errors.QueryCanceled: database_timeout,
@@ -76,3 +90,8 @@ DATABASE_ERRORS = {
     503: {"model": Error, "description": "The database doesn't answer"},
     504: {"model": Error, "description": "A query ran past the time limit"},
 }
+
+
+def failures(described: dict[int, str]) -> dict:
+    """For an endpoint's docs: its own failures, by status, and the database's"""
+    return {status: {"model": Error, "description": text} for status, text in described.items()} | DATABASE_ERRORS

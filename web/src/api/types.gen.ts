@@ -27,6 +27,16 @@ export type Error = {
 };
 
 /**
+ * HTTPValidationError
+ */
+export type HttpValidationError = {
+    /**
+     * Detail
+     */
+    detail?: Array<ValidationError>;
+};
+
+/**
  * Health
  */
 export type Health = {
@@ -34,6 +44,50 @@ export type Health = {
      * Status
      */
     status: 'ok';
+};
+
+/**
+ * Me
+ */
+export type Me = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Role
+     */
+    role: 'admin' | 'customer';
+    /**
+     * Locale
+     */
+    locale: 'ru' | 'uz' | 'en';
+    /**
+     * Must Change Password
+     */
+    must_change_password: boolean;
+};
+
+/**
+ * PasswordChange
+ */
+export type PasswordChange = {
+    /**
+     * Current
+     */
+    current: string;
+    /**
+     * New
+     */
+    new: string;
 };
 
 /**
@@ -61,6 +115,20 @@ export type Readiness = {
 };
 
 /**
+ * SignIn
+ */
+export type SignIn = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * Status
  */
 export type Status = {
@@ -83,6 +151,34 @@ export type TelegramCounts = {
 };
 
 /**
+ * ValidationError
+ */
+export type ValidationError = {
+    /**
+     * Location
+     */
+    loc: Array<string | number>;
+    /**
+     * Message
+     */
+    msg: string;
+    /**
+     * Error Type
+     */
+    type: string;
+    /**
+     * Input
+     */
+    input?: unknown;
+    /**
+     * Context
+     */
+    ctx?: {
+        [key: string]: unknown;
+    };
+};
+
+/**
  * YouTubeCounts
  */
 export type YouTubeCounts = {
@@ -99,6 +195,174 @@ export type YouTubeCounts = {
      */
     comments: number;
 };
+
+export type SignInData = {
+    body: SignIn;
+    path?: never;
+    query?: never;
+    url: '/api/auth/sign-in';
+};
+
+export type SignInErrors = {
+    /**
+     * wrong_credentials: the email or the password is wrong
+     */
+    401: Error;
+    /**
+     * account_disabled: the account is disabled
+     */
+    403: Error;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * too_many_attempts: too many failed sign-ins lately, for this email or from this address
+     */
+    429: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type SignInError = SignInErrors[keyof SignInErrors];
+
+export type SignInResponses = {
+    /**
+     * Successful Response
+     */
+    200: Me;
+};
+
+export type SignInResponse = SignInResponses[keyof SignInResponses];
+
+export type SignOutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/auth/sign-out';
+};
+
+export type SignOutErrors = {
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type SignOutError = SignOutErrors[keyof SignOutErrors];
+
+export type SignOutResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SignOutResponse = SignOutResponses[keyof SignOutResponses];
+
+export type MeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/auth/me';
+};
+
+export type MeErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type MeError = MeErrors[keyof MeErrors];
+
+export type MeResponses = {
+    /**
+     * Successful Response
+     */
+    200: Me;
+};
+
+export type MeResponse = MeResponses[keyof MeResponses];
+
+export type ChangePasswordData = {
+    body: PasswordChange;
+    path?: never;
+    query?: never;
+    url: '/api/auth/password';
+};
+
+export type ChangePasswordErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * wrong_password: the current password is wrong
+     */
+    403: Error;
+    /**
+     * weak_password: the new password is too short, the email, or the current one
+     */
+    422: Error;
+    /**
+     * too_many_attempts: too many wrong passwords lately
+     */
+    429: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type ChangePasswordError = ChangePasswordErrors[keyof ChangePasswordErrors];
+
+export type ChangePasswordResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type ChangePasswordResponse = ChangePasswordResponses[keyof ChangePasswordResponses];
 
 export type StatusData = {
     body?: never;

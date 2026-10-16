@@ -27,6 +27,20 @@ renders each page on the server, asking the API directly, so the page arrives wi
 - Its log is JSON lines, one per request among them: method, path, status, milliseconds, the visitor's address, and
   the request's ID.
 
+### Accounts
+
+An account is an admin or a customer, each a person; there's no signing up (`uv run api add-admin` adds an admin on
+the server). Signing in (`/api/auth/sign-in`) starts a session:
+- Its token is in a cookie that page scripts can't read, sent only over HTTPS and not with requests that start on other
+  sites; the database keeps only the token's hash, so the table alone can't be used to sign in.
+- A session lasts up to 30 days and ends after 7 days unused; signing out, a password change (for the other sessions)
+  and disabling the account end it at once.
+- Passwords are Argon2id hashes (64 MiB, 3 passes: about 0.2 s to check). A wrong password and an email without an
+  account get the same answer, after the same time, so it doesn't show which emails have accounts.
+- After 10 failures for an email, or 50 from an address, within 15 minutes, sign-ins wait (429).
+- A request that changes something, from another site's page (its Origin header), is refused.
+- Sign-ins, failures, sign-outs and password changes go into the log, with the address, never a password.
+
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.

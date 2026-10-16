@@ -74,6 +74,14 @@ commit as the file, so the change shows in its diff.
 read the collected data but change none of it. PostgreSQL lets that system user in as it without a password. The
 website's own tables (`app.sql`, which `deploy.sh` applies) it may also change.
 
+Accounts are admins or customers. `/api/auth/sign-in` signs in with an email and a password and starts a session in a
+cookie; `/api/auth/sign-out`, `/api/auth/me` (who's signed in) and `/api/auth/password` (change one's own) go with it.
+There's no signing up: the first admin is added on the server, as root, from the clone:
+
+```bash
+uv run api add-admin admin@example.com "Ali Valiyev"   # prints a temporary password, changed at the first sign-in
+```
+
 ## The website
 
 `web/` is the website: a Next.js app in TypeScript, in Russian, Uzbek and English. In `web/`:

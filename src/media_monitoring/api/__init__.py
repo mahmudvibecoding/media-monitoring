@@ -1,6 +1,7 @@
 """The web API: "uv run api" serves it on 127.0.0.1:8000, which only the server itself can reach (see settings.py).
 Every path starts with /api, and /api/docs lists them. Failures are answered as errors.py says, and the logs are JSON
-(see logs.py). "uv run api openapi" writes its description to openapi.json instead."""
+(see logs.py). Accounts and signing in are in accounts.py. "uv run api openapi" writes the API's description to
+openapi.json instead, and "uv run api add-admin <email> <name>" adds an admin."""
 
 import asyncio
 import json
@@ -11,11 +12,11 @@ from typing import Literal
 
 import psycopg
 import uvicorn
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 
-from media_monitoring.api import errors, logs, status
+from media_monitoring.api import accounts, errors, logs, status
 from media_monitoring.api.settings import load
 
 CONNECTIONS = 2  # database connections kept open
@@ -58,8 +59,10 @@ app = FastAPI(
     generate_unique_id_function=lambda route: route.name,  # "status", not FastAPI's "status_api_status_get"
     exception_handlers=errors.HANDLERS,
     responses={500: {"model": errors.Error, "description": "Something went wrong on the server"}},
+    dependencies=[Depends(accounts.same_origin)],  # changes only from the site's own pages
 )
 app.add_middleware(logs.RequestLog, crashed=errors.internal_error)
+app.include_router(accounts.router)
 app.include_router(status.router)
 
 
@@ -98,10 +101,21 @@ def main():
         OPENAPI_FILE.write_text(json.dumps(description, indent=2, ensure_ascii=False) + "\n")
         print(f"wrote {OPENAPI_FILE.name}: {len(description['paths'])} endpoints")
         return
+    if command[:1] == ["add-admin"] and len(command) == 3:
+        email, name = command[1].strip(), command[2].strip()
+        if "@" not in email or " " in email or not name:
+            sys.exit("add-admin: give an email and a name")
+        try:
+            password = accounts.add_admin(settings.database_url, email, name)
+        except psycopg.errors.UniqueViolation:
+            sys.exit(f"add-admin: there's an account for {email} already")
+        print(f"{email} is an admin now. Their temporary password, to change at the first sign-in:\n{password}")
+        return
     if command:
         sys.exit(
-            "usage: uv run api            serve the API\n"
-            "       uv run api openapi    write its description to openapi.json"
+            "usage: uv run api                          serve the API\n"
+            "       uv run api openapi                  write its description to openapi.json\n"
+            '       uv run api add-admin <email> <name>  add an admin (the name in quotes: "Ali Valiyev")'
         )
     uvicorn.run(
         app,
