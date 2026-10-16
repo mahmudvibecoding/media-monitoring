@@ -1,7 +1,8 @@
 """Run a collector across processes, as fast as the proxies answer. Each worker process takes an equal share of the
-items and of the proxies, works through its items `concurrency` at a time, and saves what it collects every
-SAVE_EVERY seconds. A collector (YouTube's channels, videos, details, stats and comments, Telegram's channels) only
-describes its own part: see Collector.
+items and of the proxies to test, works through its items `concurrency` at a time, and saves what it collects every
+SAVE_EVERY seconds. Each process tells the others which of its proxies work, and one that runs short uses theirs too
+(see relay and Pool.borrow). A collector (YouTube's channels, videos, details, stats and
+comments, Telegram's channels) only describes its own part: see Collector.
 
 Every collector goes through the VPN proxies run by sing-box. Each process also holds its share of the plain proxies
 in reserve, and brings them in once its VPN proxies stop working, or once it has tested them all and has room for more
@@ -13,6 +14,7 @@ import argparse
 import asyncio
 import math
 import os
+import queue
 import signal
 import sys
 import threading
@@ -37,6 +39,7 @@ FOLLOW_EVERY = 60  # seconds between looks at the proxy lists, for collectors th
 # of the server's CPU is idle, half as many while less than IDLE_LOW is. A process whose own core is busier than
 # OWN_BUSY runs half as many as it did, whatever the server's CPU, and comes back up while it's below OWN_FREE.
 REGULATE_EVERY = 0.5
+RELAY_EVERY = 0.2  # seconds between the main process's looks for news about working proxies (see relay)
 IDLE_LOW, IDLE_HIGH = 0.10, 0.20
 OWN_FREE, OWN_BUSY = 0.6, 0.9
 
@@ -52,6 +55,9 @@ PER_SHARE = 5
 FINISHED, SAVED, READY, RESERVE, SUCCEEDED = range(PER_SHARE)
 SUCCESSFUL = ("ok", "gone")  # requests the site answered with what was asked: every speed shown counts these
 parent = None  # in each worker process: the main process, which it stops for if it's gone
+# News about working proxies (see relay): one queue to the main process and one back for each share of the items, so
+# each queue has one process writing and one reading, and none can leave a lock held that another process needs
+outboxes = inboxes = None
 busy = False  # in each worker process: whether it's working on a share (see run_share)
 killed = False  # in each worker process: whether kill asked this process alone to stop (see start)
 
@@ -110,8 +116,10 @@ def modified(path):
 
 async def work(collector, items, share, shares):
     """One worker process: its share of the items, through its share of the VPN proxies, with its share of the plain
-    ones in reserve."""
+    ones in reserve, and through the other processes' working proxies once it runs short (see Pool.borrow)."""
     raise_open_files_limit()
+    outbox, inbox = outboxes[share], inboxes[share]
+    outbox.cancel_join_thread()  # ending, it doesn't wait for news nobody may read any more
     seen = {path: modified(path) for path in (PROXY_FILE, PLAIN_PROXY_FILE)}
     mine = SHARES + PER_SHARE * share  # where this share's counters are in progress
 
@@ -186,13 +194,23 @@ async def work(collector, items, share, shares):
             async def regulator():
                 """Every REGULATE_EVERY seconds: how many proxies this process tests at a time. The main process sets
                 that for all processes, by the server's idle CPU; this one tests fewer while its own core is nearly
-                full, since its tests and its work share it. Also counts the successful requests, for the speed."""
+                full, since its tests and its work share it. Also counts the successful requests, for the speed, and
+                sends news about its own proxies and takes in the other processes'."""
                 own, cpu, then = TESTS_MAX, time.process_time(), time.monotonic()
                 while not stop.is_set():
                     try:
                         await asyncio.wait_for(stop.wait(), timeout=REGULATE_EVERY)
                     except TimeoutError:
                         pass
+                    if pool.news:
+                        news, pool.news = pool.news, []
+                        outbox.put(news)
+                    while True:
+                        try:
+                            pool.hear(inbox.get_nowait())
+                        except queue.Empty:
+                            break
+                    pool.borrow()  # once draining, it may be short without news
                     progress[mine + SUCCEEDED] = sum(pool.outcomes[outcome] for outcome in SUCCESSFUL)
                     busy_share = (time.process_time() - cpu) / max(time.monotonic() - then, 0.001)
                     cpu, then = time.process_time(), time.monotonic()
@@ -218,11 +236,12 @@ async def work(collector, items, share, shares):
     return results, pool.outcomes, pool.test_outcomes, len(pool.proven)
 
 
-def start(counter, main):
+def start(counter, main, news_out, news_in):
     """Runs first in each worker process. main is the main process: not simply this one's parent, which is already
-    another one if the main process was killed while this one was starting."""
-    global progress, parent
-    progress, parent = counter, main
+    another one if the main process was killed while this one was starting. news_out and news_in are the queues of
+    news about working proxies, one of each per share (see relay)."""
+    global progress, parent, outboxes, inboxes
+    progress, parent, outboxes, inboxes = counter, main, news_out, news_in
     # Ctrl+C reaches the workers too, but only the main process acts on it, and the workers stop when it asks (see
     # work). kill on a worker makes it save what it has and end, like the main process being gone; the pool then
     # stops the others the same way (it sends them kill when one has ended). A worker interrupted halfway through
@@ -267,6 +286,22 @@ def cpu_times():
     except (OSError, ValueError):
         return None
     return ticks[3] + ticks[4], sum(ticks)
+
+
+def relay(news_out, news_in, done):
+    """In the main process, until done is set: every RELAY_EVERY seconds, passes each process's news about its own
+    proxies (which started working, which stopped) on to all the other processes, so one that runs short can use
+    theirs (see Pool.borrow)."""
+    while not done.wait(RELAY_EVERY):
+        for sender, outbox in enumerate(news_out):
+            while True:
+                try:
+                    news = outbox.get_nowait()
+                except queue.Empty:
+                    break
+                for share, inbox in enumerate(news_in):
+                    if share != sender:
+                        inbox.put(news)
 
 
 def regulate_tests(counter, processes, done):
@@ -343,6 +378,9 @@ def run(collector_class):
     print(f"working with {processes} processes...")
     context = get_context("spawn")
     counter = context.Array("q", SHARES + PER_SHARE * processes, lock=False)  # see progress
+    news_out, news_in = [context.Queue() for _ in range(processes)], [context.Queue() for _ in range(processes)]
+    for inbox in news_in:
+        inbox.cancel_join_thread()  # ending, this process doesn't wait for news a finished process won't read
     counter[STOPPING], counter[TESTS] = bool(asked), TESTS_START
 
     def totals():
@@ -357,11 +395,12 @@ def run(collector_class):
     started = time.monotonic()
     results, outcomes, tests, working = Counter(), Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=context, initializer=start,
-                             initargs=(counter, os.getpid())) as executor:
+                             initargs=(counter, os.getpid(), news_out, news_in)) as executor:
         futures = [executor.submit(run_share, collector_class, items[i::processes], i, processes)
                    for i in range(processes)]
-        done = threading.Event()  # the regulator's stop
+        done = threading.Event()  # the regulator's and the relay's stop
         threading.Thread(target=regulate_tests, args=(counter, processes, done), daemon=True).start()
+        threading.Thread(target=relay, args=(news_out, news_in, done), daemon=True).start()
         signal.pthread_sigmask(signal.SIG_UNBLOCK, handled)
         before, then = 0, started  # successful requests at the last line, and when
         while not all(future.done() for future in futures):

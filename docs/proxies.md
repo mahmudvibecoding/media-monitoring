@@ -58,8 +58,13 @@ of the ones that worked in an earlier run wouldn't help.
    elsewhere. Only if 8 of a proxy's last 10 answers are refusals does that proxy pause, for 45 to 75 seconds
    like a rest.
 
-Each process has its own share of the proxies. Certificates aren't checked through proxies, since all the
-data is public. A proxy can answer in YouTube's place, so an answer only counts as YouTube's if it looks
+Each process tests and uses its own share of the proxies, and tells the others which of them work. A process that
+runs short, its own working proxies down to a quarter of the most it had or no new items left, also uses the
+others' working proxies, without testing them again, so its last items don't wait on dead ones. Until then it keeps
+to its own: it reuses its open connections through them, while spread over every working proxy most requests need a
+new one first. In a test where every process used every working proxy, refreshing all channels took 21 seconds
+instead of 8, with 22,811 failed requests instead of none. Certificates aren't checked through proxies, since all
+the data is public. A proxy can answer in YouTube's place, so an answer only counts as YouTube's if it looks
 like one: a 400 error, for example, only if it's YouTube's own error message.
 
 ## Video pages and comments

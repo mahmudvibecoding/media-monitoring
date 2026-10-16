@@ -15,6 +15,12 @@ carries less. Each failure takes one slot away; at zero the proxy rests and is t
 failed its test, so proxies that recover come back within half a minute or so, even during long runs. A dead proxy's
 test costs little: a connection attempt, nothing to download or read. The collectors all send their requests this way
 (youtube.call or telegram.call sends each one).
+
+Each process tests and uses its own share of the proxies, and tells the others which of them work (news). A process
+that runs short, its own working proxies down to a quarter of the most it had or no new items left, also adopts the
+others' working proxies without testing them again (see borrow), instead of its last items waiting on dead ones. Until
+then it keeps to its own: it reuses its connections through them, while spread over every working proxy most requests
+would need a new one (in a test, a channels run took 21 s instead of 8).
 """
 import asyncio
 import itertools
@@ -27,6 +33,9 @@ from collections import Counter, deque
 PROXY_FILE = "data/vpn_proxies.txt"  # from sing-box (uv run proxies): one line per local proxy, "proxy link"
 PLAIN_PROXY_FILE = "data/plain_proxies.txt"  # from uv run proxies: plain HTTP and SOCKS proxies, the reserve
 START_LIMIT, MAX_LIMIT = 8, 64  # slots of a proxy once YouTube has answered through it, and at most
+# Slots of a proxy adopted from another process at first (see borrow): processes that run short adopt it at about the
+# same time, so with START_LIMIT each they'd pile onto it together. Like any proxy's, they grow while it keeps up.
+ADOPTED_LIMIT = 2
 HEDGE_AFTER = 1  # when draining: seconds without an answer before a request also goes out through another proxy
 ATTEMPTS = 5  # requests per answer at most, unless the collector sets its own (see Collector.attempts)
 # Proxy tests in flight at a time, in each process: TESTS_START at first, then between TESTS_MIN and TESTS_MAX by how
@@ -118,6 +127,9 @@ class Pool:
         self.held = Counter()  # each proxy's slots, free or in use
         self.busy = Counter()  # each proxy's slots in use
         self.proven = set()  # proxies that work: they answered their test and haven't rested since
+        self.offered = set()  # proxies other processes found working (see hear)
+        self.adopted = set()  # those of them this process uses too, once it runs short (see borrow)
+        self.news = []  # ("works" or "rests", proxy) about this process's own proxies, for the others (see hear)
         self.resting = set()  # proxies resting before their next test
         self.recent = {}  # each proxy's last answers: True = blocked
         self.paused_until = {}  # proxies resting after a storm: {proxy: time}
@@ -166,9 +178,33 @@ class Pool:
         self.add(proxies)
         for proxy in set(proxies) & self.known:
             self.generation[proxy] += 1  # its slots, and a rest it was taking, are thrown away
+            if proxy in self.proven:
+                self.news.append(("rests", proxy))
             self.proven.discard(proxy)
             self._queue_test(proxy)
         self.peak = len(self.proven)  # what worked before says nothing about the new ones
+
+    def hear(self, news):
+        """News from another process about its own proxies: ("works", proxy) or ("rests", proxy)."""
+        for what, proxy in news:
+            if what == "works":
+                self.offered.add(proxy)
+            else:
+                self.offered.discard(proxy)
+                self._drop(proxy)
+        self.borrow()
+
+    def borrow(self):
+        """Once this process runs short, adopt the proxies the other processes found working: they carry its work too,
+        without a test of their own here. It's short once its own working proxies fell to a quarter of the most it had,
+        or when it's draining (no new items left)."""
+        if not (self.draining or self.peak >= MIN_PEAK and len(self.proven) * 4 <= self.peak):
+            return
+        new = list(self.offered - self.adopted)
+        random.shuffle(new)  # every process gets the same offers, and would otherwise use them in the same order
+        for proxy in new:
+            self.adopted.add(proxy)
+            self._start_work(proxy, ADOPTED_LIMIT)
 
     async def run(self, request):
         """Get one answer. request(proxy) sends one request through that proxy and returns (outcome, result),
@@ -319,17 +355,26 @@ class Pool:
             else:
                 self._rest(proxy)
 
-    def _start_work(self, proxy):
-        """The proxy passed its test: it gets START_LIMIT slots."""
-        self.proven.add(proxy)
-        self.peak = max(self.peak, len(self.proven))
-        self.limit[proxy] = self.held[proxy] = START_LIMIT
+    def _start_work(self, proxy, slots=START_LIMIT):
+        """The proxy passed its test, or another process's (see borrow): it gets its first slots."""
+        if proxy not in self.adopted:
+            self.proven.add(proxy)
+            self.peak = max(self.peak, len(self.proven))
+            self.news.append(("works", proxy))
+        self.limit[proxy] = self.held[proxy] = slots
         self.busy[proxy] = 0
-        for _ in range(START_LIMIT):
+        for _ in range(slots):
             self._free(proxy, self.generation[proxy])
 
     def _rest(self, proxy):
-        """The proxy failed its test, or failed with its last slot: it rests, then is tested again."""
+        """The proxy failed its test, or failed with its last slot: it rests, then is tested again. An adopted one is
+        only dropped, until its own process finds it working again."""
+        if proxy in self.adopted:
+            self.offered.discard(proxy)
+            self._drop(proxy)
+            return
+        if proxy in self.proven:
+            self.news.append(("rests", proxy))
         self.generation[proxy] += 1  # its slots still out are thrown away
         self.held[proxy] = self.busy[proxy] = 0
         self.proven.discard(proxy)
@@ -338,8 +383,16 @@ class Pool:
         collapsed = self.peak >= MIN_PEAK and len(self.proven) * 4 <= self.peak
         if collapsed or len(self.resting) == self.count:
             self._bring_reserve()
-        if len(self.resting) == self.count and self.give_up:
+            self.borrow()
+        if len(self.resting) == self.count and not self.adopted and self.give_up:
             self._give_up()
+
+    def _drop(self, proxy):
+        """An adopted proxy stops carrying work here."""
+        if proxy in self.adopted:
+            self.adopted.discard(proxy)
+            self.generation[proxy] += 1  # its slots still out are thrown away
+            self.held[proxy] = self.busy[proxy] = 0
 
     def _bring_reserve(self):
         """Bring in the reserve, once: each of its proxies is tested, after the VPN ones."""
@@ -356,5 +409,5 @@ class Pool:
             self._queue_test(proxy)
 
     def _give_up(self):
-        """Every proxy is resting at once (the network is probably down): end the run."""
+        """Every proxy is resting at once, and none adopted works (the network is probably down): end the run."""
         self.slots.put_nowait((None, 0))
