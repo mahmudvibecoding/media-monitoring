@@ -106,10 +106,30 @@ log has too, and a button to ask again. A page rendered on the server waits at m
 Next's error code, which the site's log has too; and if the frame itself fails, a last page says so in all three
 languages.
 
+## Deploying the website and the API
+
+On the server, as root, from the clone (after `./run.sh setup`):
+
+```bash
+./deploy.sh            # deploy this clone's current commit
+./deploy.sh rollback   # go back to the release before the running one
+```
+
+It installs the commit in a release folder of its own in `/opt/media-monitoring/releases` (the API's packages, and
+the site, built), points `/opt/media-monitoring/current` at it, and restarts two services: `media-monitoring-api`
+(127.0.0.1:8000) and `media-monitoring-web` (127.0.0.1:3000). They start with the machine and come back 2 s after
+they stop. A failed install or build leaves the running release as it is, a release that doesn't answer within 30 s
+is replaced by the one before it, and the last 3 are kept. The API runs as `media_monitoring_api`, which can only
+read the database, and the site as `media_monitoring_web`, which can't reach it. systemd locks both down: the system is
+read-only to them, they can't see `/root` or `/home`, and they can reach nothing but this machine (`systemd-analyze
+security` rates them 1.1 of 10). Their logs: `journalctl -u media-monitoring-api` and `journalctl -u
+media-monitoring-web`.
+
 ## Layout
 
 ```
 run.sh                  sets the machine up and runs a round
+deploy.sh               deploys the website and the API; deploy/ has their services
 channels.txt            the channels to monitor, one ID per line
 schema.sql              the database tables
 openapi.json            the web API's description: uv run api openapi

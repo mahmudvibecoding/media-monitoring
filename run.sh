@@ -9,16 +9,18 @@
 #   ./run.sh setup        only set the machine up
 #
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
-# packages, and Node.js and pnpm for the website), creates the database, its tables and the web API's user, which can
-# only read them, and loads the channels to monitor from channels.txt (any file with channel IDs in it, like a CSV export; new IDs are added at
-# every start). Run it as root or as a user with sudo. It (re)starts sing-box in the background with "uv run
-# proxies" and stops it when the round ends, or on Ctrl+C or kill. Downloaded and generated files (proxy lists,
-# sing-box configs and logs) go in data/.
+# packages, and Node.js and pnpm for the website), creates the database, its tables, the web API's user, which can
+# only read them, and the website's user, and loads the channels to monitor from channels.txt (any file with channel
+# IDs in it, like a CSV export; new IDs are added at every start). Run it as root or as a user with sudo. It
+# (re)starts sing-box in the background with "uv run proxies" and stops it when the round ends, or on Ctrl+C or kill.
+# Downloaded and generated files (proxy lists, sing-box configs and logs) go in data/. The website and its API are
+# deployed with deploy.sh.
 set -u
 cd "$(dirname "$0")"
 DAYS=${DAYS:-365}
 DATABASE=media_monitoring
 API_USER=media_monitoring_api  # the web API's user, on this machine and in PostgreSQL
+WEB_USER=media_monitoring_web  # the website's user, on this machine only (see deploy.sh)
 SING_BOX_VERSION=1.14.3  # the version the VPN configs were tested with
 NODE_VERSION=26.12.0  # Node.js and pnpm, for the website (web/)
 PNPM_VERSION=12.14.0
@@ -125,6 +127,12 @@ setup() {
     psql -q -v ON_ERROR_STOP=1 -d "$DATABASE" -c "GRANT CONNECT ON DATABASE $DATABASE TO $API_USER" \
         -c "GRANT USAGE ON SCHEMA public TO $API_USER" -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO $API_USER" \
         -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO $API_USER"
+
+    # The website's user: a system user without a password, shell or home, and no access to the database
+    if ! id -u "$WEB_USER" > /dev/null 2>&1; then
+        echo "### creating $WEB_USER, the website's user"
+        $sudo useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin "$WEB_USER"
+    fi
 
     # Settings for heavy writing, set once: a quarter of the memory as PostgreSQL's cache (at most 16 GB), a
     # checkpoint every 30 minutes or 64 GB of write log, and a compressed write log. The cache needs a restart.

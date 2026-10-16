@@ -1,0 +1,44 @@
+# The website (see README.md), from the release /opt/media-monitoring/current points to, on 127.0.0.1:3000. It runs as
+# media_monitoring_web, which has no access to the database. deploy.sh installs and restarts it.
+[Unit]
+Description=Media monitoring: website
+After=network.target media-monitoring-api.service
+
+[Service]
+User=media_monitoring_web
+WorkingDirectory=/opt/media-monitoring/current/web
+Environment=NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+ExecStart=/usr/local/bin/node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
+Restart=always
+RestartSec=2
+
+# Locked down as the API is (see media-monitoring-api.service), but Next may write its cache, and Node writes the code
+# its JavaScript compiler makes, so memory that's written may also run
+ReadWritePaths=-/opt/media-monitoring/current/web/.next/cache
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectProc=invisible
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
