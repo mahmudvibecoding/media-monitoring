@@ -1,8 +1,8 @@
 # Proxies
 
 Every request to YouTube and Telegram goes through a proxy. This explains where the proxies come from, how the
-collectors use them, and what we've learned about YouTube's and Telegram's limits. [monitoring.md](monitoring.md) explains
-the collection itself.
+collectors use them, and what we've learned about YouTube's and Telegram's limits. [monitoring.md](monitoring.md)
+explains the collection itself.
 
 ## Why proxies
 
@@ -84,10 +84,12 @@ for them instead of stopping.
 ## Telegram
 
 Telegram doesn't refuse a busy address: it hides its channel pages from it, redirecting each one to the channel's
-plain page as if the channel had no public page. Telegram's step counts that as hidden: the page goes out again
-through another proxy, up to ten times, and unlike a request YouTube blocks, it never pauses the proxy, since Telegram
-hides some channels from an address, not all of them. A channel that really has no public page is redirected through
-every proxy, and counts as failed.
+plain page as if the channel had no public page, and the same for the requests for a channel's newer messages.
+Telegram's steps count that as hidden: the request goes out again through another proxy, up to ten times, and unlike
+a request YouTube blocks, it never pauses the proxy, since Telegram hides some channels from an address, not all of
+them. A channel that really has no public page is redirected through every proxy, and counts as failed. The messages
+step asks a channel that failed once more at the end of the run, when the load has dropped: in a run that found 1,181
+such channels, 1,011 of them answered then.
 
 ## What we've learned
 

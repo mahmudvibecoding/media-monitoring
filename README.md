@@ -2,8 +2,8 @@
 
 Monitors the YouTube channels listed in `channels.txt`: finds their new videos, fetches the videos' details, keeps
 their views and likes up to date, and collects their comments, all into PostgreSQL. Requests go through thousands of
-free VPN configs and plain proxies, so it works as fast as the server allows. It also keeps the details of public
-Telegram channels up to date, from their public pages.
+free VPN configs and plain proxies, so it works as fast as the server allows. It also collects the text messages of
+public Telegram channels, and keeps their details up to date, from their public pages.
 
 ## Running it
 
@@ -14,7 +14,8 @@ On a Debian or Ubuntu machine, as root or as a user with sudo:
 ```
 
 It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, the database and its
-tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN proxies, then each collector in turn.
+tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN proxies, then each of YouTube's
+steps in turn, then Telegram's new messages.
 
 ```bash
 DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (365 by default)
@@ -33,9 +34,9 @@ started while the last one is still running is skipped:
 Each step can also run on its own, after `uv run proxies`. Every step goes through the VPN proxies, and brings in
 the plain proxies by itself once those stop working, or once it has tested them all and has room for more tests:
 YouTube blocks busy addresses for a while on video pages and comments, Telegram hides its pages from them, and the
-plain proxies are many more addresses. Telegram's step isn't part of a round. Ctrl+C or `kill` stops a step early: it
-saves what it has collected first, and the rest continues next run. `uv run youtube` or `uv run telegram` alone lists
-the steps.
+plain proxies are many more addresses. `uv run telegram channels` isn't part of a round. Ctrl+C or `kill` stops a
+step early: it saves what it has collected first, and the rest continues next run. `uv run youtube` or `uv run
+telegram` alone lists the steps.
 
 | Command | What it does |
 |---|---|
@@ -45,6 +46,7 @@ the steps.
 | `uv run youtube stats [days\|all]` | refreshes views and likes (videos from the last 365 days by default) |
 | `uv run youtube comments [days\|all\|unread]` | collects new comments (videos from the last 365 days by default) |
 | `uv run telegram channels` | refreshes every Telegram channel's title, description and subscriber count from its public page, and notes its newest message the first time |
+| `uv run telegram messages` | reads every Telegram channel's new messages, and keeps those with text |
 | `uv run proxies` | downloads VPN configs and plain proxies, and restarts sing-box with them in the background |
 | `uv run proxies stop` | stops sing-box |
 | `uv run proxies check [vpn\|plain]` | reports how many proxies work, by protocol or type and by list (optional) |
@@ -61,7 +63,7 @@ src/media_monitoring/
     commands.py         uv run youtube <step>, uv run telegram <step>
     youtube/            InnerTube, the API behind YouTube's website, and the steps: channels, videos, details,
                         stats, comments
-    telegram/           Telegram's public channel pages, and the step: channels
+    telegram/           Telegram's public channel pages, and the steps: channels, messages
     pool.py             the proxy pool every request goes through
     parallel.py         runs a step across processes
     db.py               the database connection

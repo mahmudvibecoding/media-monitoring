@@ -2,9 +2,9 @@
 
 The system follows the YouTube channels in `channels.txt` and keeps four things up to date in PostgreSQL:
 the channels' details, every video they publish, the views and likes of recent videos, and the comments on
-them. It also keeps the details of public Telegram channels up to date (see
-[Telegram channels](#telegram-channels)). The [README](../README.md) shows how to run it; [proxies.md](proxies.md)
-explains the proxies every request goes through.
+them. It also collects the text messages of public Telegram channels, and keeps their details up to date (see
+[Telegram](#telegram)). The [README](../README.md) shows how to run it; [proxies.md](proxies.md) explains the proxies
+every request goes through.
 
 ## The size of the job
 
@@ -40,6 +40,8 @@ everything again, in this order.
    it was found.
 6. **Comments** (`youtube comments 365`). Read the comments of the same videos, newest first, until reaching comments
    already saved. The most viewed videos go first, so their long lists don't hold up the end of the run.
+7. **Telegram messages** (`telegram messages`). Read every Telegram channel's new messages, and keep those with
+   text (see [Telegram](#telegram)).
 
 Each step loads what it needs from the database, works as fast as the proxies answer, saves as it goes, and
 stops. On the 52-core server the work is split between up to 48 processes (four cores stay free for
@@ -117,24 +119,65 @@ half minutes, and reading every video's comments the first time took hours.
 - How views and likes change over time: only the latest numbers are kept.
 - Exact upload times (see above).
 
-## Telegram channels
+## Telegram
 
-`telegram_channels` holds 310,333 public Uzbek Telegram channels, from a list of channels found through their public
-pages (September 2026), keyed by Telegram's ID for the channel. `uv run telegram channels` refreshes their title,
-description and subscriber count from each channel's public page, `t.me/s/<username>`, which anyone can read without
-an account. It isn't part of the rounds.
+`telegram_channels` holds 310,433 public Uzbek Telegram channels, from a list of channels found through their public
+pages (September 2026), keyed by Telegram's ID for the channel. Everything comes from those public pages,
+`t.me/s/<username>`, which anyone can read without an account. They only work by username, so a channel that changes
+its username can't be followed any more.
+
+### New messages
+
+`uv run telegram messages`, the last step of a round, reads every channel's new messages:
+
+- **The messages after the last one.** For each channel it asks for the messages after its last message, the request
+  a channel's page makes as you scroll down. Most channels have nothing new, a 2-byte answer. An answer brings up to
+  20 messages (Telegram counts each item of an album as one), so a channel with more news is asked again after the
+  newest one it brought, until an answer is empty.
+- **Busy channels, 10 pages at a time.** A channel's message IDs are consecutive, so a channel with more than two
+  pages of news keeps 10 pages asked for at once, starting 20 IDs apart, the next one going out as soon as one comes
+  back. Some taxi ad channels post about 30,000 messages a day: a backlog of 10,000 is read in about 30 seconds.
+- **Messages with text.** A message's own text, or its photo's, video's or album's caption, is kept as plain text,
+  with its line breaks; a link hidden behind words keeps its address after them, in brackets. Messages without text
+  (stickers, voice messages, photos without a caption, notices like "pinned a photo") aren't kept.
+- **Nothing lost, nothing twice.** A channel's new messages and its new last message, text or not, are saved in one
+  transaction, and the last message only moves as far as the pages read without a gap. If a run stops or crashes,
+  what wasn't saved is read again next run.
+- **Hidden pages.** Telegram doesn't refuse an address that asks too fast; it hides pages from it instead,
+  redirecting them as it does for a channel without a public page. A hidden page goes out again through another
+  proxy, up to ten times, and a channel that fails every time is asked again once every channel has had its turn,
+  30 seconds after it failed at the earliest: by then the load has dropped. Telegram never answered "nothing new"
+  to hide a page: at about 30,000 requests a second, such answers stayed at the level that deleted messages explain.
+- **Usernames move.** Each message carries its channel's ID, so a page whose messages belong to another channel is
+  left out: its username moved.
+
+The first run, on October 16, 2026, read what was posted since the channels' last messages were noted the day
+before: 196,496 messages from 27,357 channels. A run a few minutes after another takes about 70 seconds: on 305,065
+channels it found 13,428 messages in 4,290 of them; 1,181 channels failed at first, and 1,011 of those were read when
+asked again at the end.
+
+### Channel details
+
+`uv run telegram channels`, run by hand rather than in the rounds, refreshes each channel's title, description and
+subscriber count from its public page.
 
 - **One page per channel.** The page shows the channel's title, description and counters, and its 20 or so newest
   messages. It rounds subscriber counts of 1,000 and more to three digits (1.14M). Only the channel's plain page,
   `t.me/<username>`, has the exact count, but Telegram answers about 10 of those a second per address, against
   hundreds of public pages.
 - **The newest message, once.** A channel without a last message yet gets the newest one on its page (for an album,
-  its last item: Telegram numbers each item), so reading its messages can start there.
-- **Usernames move.** A channel can change its username, and another channel can take the old one. Each message on
-  the page carries the channel's ID, so a page whose messages belong to another channel is left out.
-- **Through the proxies, like YouTube's steps.** Telegram doesn't refuse an address that asks too fast; it hides
-  pages from it instead, redirecting them as it does for a channel without a public page. A hidden page goes out
-  again through another proxy, up to ten times, and the proxy keeps working: Telegram hides some channels from an
-  address, not all of them. From the server's own address
-  alone, Telegram hid about half the pages at 500 a second; at about 30,000 requests a second, it also kept hiding
-  those channels for about 12 minutes afterwards, from other visitors too.
+  its last item), so reading its messages can start there.
+- **Through the proxies, like YouTube's steps.** A hidden page goes out again through another proxy, up to ten
+  times, and the proxy keeps working: Telegram hides some channels from an address, not all of them. From the
+  server's own address alone, Telegram hid about half the pages at 500 a second; at about 30,000 requests a second,
+  it also kept hiding those channels for about 12 minutes afterwards, from other visitors too.
+
+### What's kept
+
+- **`telegram_channels`:** each channel's username, title, description, subscriber count, and its last message
+  read (ID and time).
+- **`telegram_messages`:** each message with text: its ID (an album's first item), when it was published (to the
+  second), the text, and when we first saw it.
+
+Not collected: photos, videos and other media; views and reactions; where a forwarded message came from; replies and
+edits; and comments, which Telegram doesn't show without an account.
