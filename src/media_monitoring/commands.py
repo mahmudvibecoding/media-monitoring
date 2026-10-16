@@ -12,6 +12,7 @@ YOUTUBE = {
 }
 TELEGRAM = {
     "channels": "refresh every channel's title, description and subscriber count, from its public page",
+    "messages": "read every channel's new messages, and keep those with text",
 }
 
 
