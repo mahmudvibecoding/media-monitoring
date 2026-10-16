@@ -13,8 +13,8 @@ On a Debian or Ubuntu machine, as root or as a user with sudo:
 ./run.sh
 ```
 
-It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, the database and its
-tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN proxies, then each of YouTube's
+It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, Node.js and pnpm for the
+website, the database and its tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN proxies, then each of YouTube's
 steps in turn, then Telegram's new messages.
 
 ```bash
@@ -73,6 +73,19 @@ commit as the file, so the change shows in its diff.
 `./run.sh setup` also creates `media_monitoring_api`: a system user, and a database user of the same name that can
 read every table but change nothing. PostgreSQL lets that system user in as it without a password.
 
+## The website
+
+`web/` is the website: a Next.js app in TypeScript, in Russian. In `web/`:
+
+```bash
+pnpm install --frozen-lockfile   # the packages, as pnpm-lock.yaml lists them
+pnpm build && pnpm start         # build it, then serve it on 127.0.0.1:3000
+pnpm dev                         # serve it while working on it, updated on every change
+```
+
+`pnpm lint`, `pnpm typecheck` and `pnpm format` (or `pnpm format:check`) check its code and lay it out. Package
+versions are pinned exactly, and pnpm only installs releases at least a day old.
+
 ## Layout
 
 ```
@@ -90,6 +103,7 @@ src/media_monitoring/
     db.py               the database connection
     proxies/            VPN configs, sing-box, plain proxies
     api/                the web API: uv run api
+web/                    the website (Next.js); its pages are in src/app/
 docs/                   how it works and why
 data/                   downloaded and generated files (not in git)
 ```

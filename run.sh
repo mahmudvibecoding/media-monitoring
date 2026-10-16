@@ -9,8 +9,8 @@
 #   ./run.sh setup        only set the machine up
 #
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
-# packages), creates the database, its tables and the web API's user, which can only read them, and loads the
-# channels to monitor from channels.txt (any file with channel IDs in it, like a CSV export; new IDs are added at
+# packages, and Node.js and pnpm for the website), creates the database, its tables and the web API's user, which can
+# only read them, and loads the channels to monitor from channels.txt (any file with channel IDs in it, like a CSV export; new IDs are added at
 # every start). Run it as root or as a user with sudo. It (re)starts sing-box in the background with "uv run
 # proxies" and stops it when the round ends, or on Ctrl+C or kill. Downloaded and generated files (proxy lists,
 # sing-box configs and logs) go in data/.
@@ -20,6 +20,8 @@ DAYS=${DAYS:-365}
 DATABASE=media_monitoring
 API_USER=media_monitoring_api  # the web API's user, on this machine and in PostgreSQL
 SING_BOX_VERSION=1.14.3  # the version the VPN configs were tested with
+NODE_VERSION=26.12.0  # Node.js and pnpm, for the website (web/)
+PNPM_VERSION=12.14.0
 # Where uv and sing-box install themselves; cron's PATH has neither
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 only_setup=""
@@ -67,6 +69,28 @@ setup() {
             tar -xz -C "$folder"
         $sudo install -m 755 "$folder/$name/sing-box" /usr/local/bin/sing-box
         rm -rf "$folder"
+    fi
+
+    # Node.js, from nodejs.org and checked against the checksums it publishes, into /usr/local; then pnpm through it
+    if [ "$(node --version 2> /dev/null)" != "v$NODE_VERSION" ]; then
+        echo "### installing Node.js $NODE_VERSION"
+        case "$(uname -m)" in aarch64 | arm64) arch=arm64 ;; *) arch=x64 ;; esac
+        name="node-v$NODE_VERSION-linux-$arch"
+        folder=$(mktemp -d)
+        curl -fsSL "https://nodejs.org/dist/v$NODE_VERSION/$name.tar.gz" -o "$folder/$name.tar.gz"
+        if ! curl -fsSL "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt" | grep " $name.tar.gz\$" |
+                (cd "$folder" && sha256sum -c --quiet -); then
+            echo "setup: the Node.js download doesn't match its checksum"
+            exit 1
+        fi
+        $sudo tar -xzf "$folder/$name.tar.gz" -C /usr/local --strip-components=1 --no-same-owner \
+            --exclude="$name/CHANGELOG.md" --exclude="$name/LICENSE" --exclude="$name/README.md"
+        rm -rf "$folder"
+    fi
+    if [ "$(pnpm --version 2> /dev/null)" != "$PNPM_VERSION" ]; then
+        echo "### installing pnpm $PNPM_VERSION"
+        $sudo npm install --global --no-fund --no-audit --no-update-notifier --loglevel=error "pnpm@$PNPM_VERSION" \
+            > /dev/null
     fi
 
     # uv, and through it Python and the packages in uv.lock

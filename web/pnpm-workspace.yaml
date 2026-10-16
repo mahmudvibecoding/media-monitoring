@@ -1,0 +1,11 @@
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+# Only releases at least a day old (pnpm's default, written out): a hijacked release is usually caught and pulled
+# within hours
+minimumReleaseAge: 1440
+# Next.js's lint plugins don't list ESLint 10 yet, but its rules run the same on it as on ESLint 9, which is no
+# longer supported
+peerDependencyRules:
+  allowedVersions:
+    eslint: "10"
