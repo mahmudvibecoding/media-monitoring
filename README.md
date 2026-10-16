@@ -56,8 +56,9 @@ The database is `media_monitoring`; set `DATABASE_URL` to use another.
 ## The API
 
 `uv run api` serves the web API on 127.0.0.1:8000, which only the server itself can reach: `/api/health` answers
-while it runs, and `/api/docs` lists every endpoint. `uv run ruff check` and `uv run ruff format` check its code and
-lay it out.
+while it runs, `/api/health/ready` once the database answers too (503 until then), and `/api/docs` lists every
+endpoint. Its settings come from environment variables: `API_DATABASE_URL` (`dbname=media_monitoring` by default),
+`API_HOST` and `API_PORT`. `uv run ruff check` and `uv run ruff format` check its code and lay it out.
 
 ## Layout
 
