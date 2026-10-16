@@ -14,8 +14,8 @@ On a Debian or Ubuntu machine, as root or as a user with sudo:
 ```
 
 It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, Node.js and pnpm for the
-website, the database and its tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN proxies, then each of YouTube's
-steps in turn, then Telegram's new messages.
+website, Caddy, the database and its tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN
+proxies, then each of YouTube's steps in turn, then Telegram's new messages.
 
 ```bash
 DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (365 by default)
@@ -129,10 +129,11 @@ Caddy is in front of both (`deploy/Caddyfile`, which `deploy.sh` installs): the 
 with `/api/...` going to the API and everything else to the site, and `http://` sent on to `https://`. Its
 certificate comes from Let's Encrypt, for the IP address itself; those last about 6 days, and Caddy renews them. Until
 the site has logins of its own, a shared user name and password guard everything: the user is `monitoring`, and the
-password, made by the first deploy, is in `/etc/caddy/site-password` (`sudo cat /etc/caddy/site-password`). Answers
-carry security headers (HTTPS only, no framing by other sites, no guessing of content types), and each request gets
-an ID, which the API's log and Caddy's (`journalctl -u caddy`) both show. On the server itself, the same site answers
-on http://127.0.0.1:8080, for checks. Once there's a domain, it goes into the Caddyfile in place of the address.
+password, made by the first deploy, is in `/etc/caddy/site-password` (`sudo cat /etc/caddy/site-password`; to change
+it, delete that file and `/etc/caddy/site.env`, then deploy). Answers carry security headers (HTTPS only, no framing
+by other sites, no guessing of content types), and each request gets an ID, which the API's log and Caddy's
+(`journalctl -u caddy`) both show. On the server itself, the same site answers on http://127.0.0.1:8080, for checks.
+Once there's a domain, it goes into the Caddyfile in place of the address. More in [docs/website.md](docs/website.md).
 
 ## Layout
 
@@ -157,5 +158,5 @@ docs/                   how it works and why
 data/                   downloaded and generated files (not in git)
 ```
 
-How it works, and why it's built this way: [docs/monitoring.md](docs/monitoring.md) and
-[docs/proxies.md](docs/proxies.md).
+How it works, and why it's built this way: [docs/monitoring.md](docs/monitoring.md), [docs/proxies.md](docs/proxies.md)
+and, for the website, its API and their deployment, [docs/website.md](docs/website.md).

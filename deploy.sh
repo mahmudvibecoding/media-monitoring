@@ -66,8 +66,9 @@ logs() {
 
 caddy_up() {
     # Caddy in front of both, with the Caddyfile the release has: installed once Caddy finds it valid, and reloaded
-    # when it changed. The temporary shared password is made the first time: Caddy gets the user name and the
-    # password's hash from /etc/caddy/site.env, and root can read the password itself in /etc/caddy/site-password.
+    # when it changed. The temporary shared password is made when there's none (the first deploy, or a deploy after
+    # both files below are deleted, to change it): Caddy gets the user name and the password's hash from
+    # /etc/caddy/site.env, and root can read the password itself in /etc/caddy/site-password.
     local caddyfile=$1 restart="" reload="" password check
     if ! command -v caddy > /dev/null; then
         echo "deploy.sh: Caddy isn't installed yet: run ./run.sh setup"
@@ -81,6 +82,7 @@ caddy_up() {
         chown root:caddy /etc/caddy/site.env
         chmod 640 /etc/caddy/site.env
         echo "### made the site's temporary password: user monitoring, password in /etc/caddy/site-password"
+        restart=1  # Caddy reads site.env when it starts
     fi
     local dropin=/etc/systemd/system/caddy.service.d/media-monitoring.conf
     if [ ! -f "$dropin" ]; then
