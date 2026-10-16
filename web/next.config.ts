@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -15,4 +16,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// next-intl finds each request's language and texts in src/i18n/request.ts
+export default createNextIntlPlugin()(nextConfig);

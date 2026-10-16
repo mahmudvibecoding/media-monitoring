@@ -1,6 +1,9 @@
 allowBuilds:
   sharp: false
   unrs-resolver: false
+  # next-intl's: both come with ready-made binaries, so their install scripts stay off
+  "@parcel/watcher": false
+  "@swc/core": false
 # Only releases at least a day old (pnpm's default, written out): a hijacked release is usually caught and pulled
 # within hours
 minimumReleaseAge: 1440

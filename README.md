@@ -75,7 +75,7 @@ read every table but change nothing. PostgreSQL lets that system user in as it w
 
 ## The website
 
-`web/` is the website: a Next.js app in TypeScript, in Russian. In `web/`:
+`web/` is the website: a Next.js app in TypeScript, in Russian, Uzbek and English. In `web/`:
 
 ```bash
 pnpm install --frozen-lockfile   # the packages, as pnpm-lock.yaml lists them
@@ -85,6 +85,12 @@ pnpm dev                         # serve it while working on it, updated on ever
 
 `pnpm lint`, `pnpm typecheck` and `pnpm format` (or `pnpm format:check`) check its code and lay it out. Package
 versions are pinned exactly, and pnpm only installs releases at least a day old.
+
+A visitor sees Russian until they choose another language in the header; the choice is kept in a cookie for a year.
+The texts are in `messages/` (`ru.json`, `uz.json`, `en.json`), looked up by key: a key missing from a language, or
+one a page asks for that isn't there, fails the typecheck. The components are shadcn/ui's, on Base UI, kept in
+`src/components/ui/` as shadcn writes them (`pnpm exec shadcn add <name>` adds one). The font is Inter, which has
+every letter of the three languages, Uzbek's ʻ included, and the colors follow the device's light or dark setting.
 
 ## Layout
 
@@ -103,7 +109,7 @@ src/media_monitoring/
     db.py               the database connection
     proxies/            VPN configs, sing-box, plain proxies
     api/                the web API: uv run api
-web/                    the website (Next.js); its pages are in src/app/
+web/                    the website (Next.js): pages in src/app/, texts in messages/
 docs/                   how it works and why
 data/                   downloaded and generated files (not in git)
 ```

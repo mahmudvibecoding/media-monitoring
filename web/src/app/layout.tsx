@@ -1,15 +1,34 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
+
+import { Header } from "@/components/header";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "Мониторинг СМИ",
-  description: "Мониторинг каналов YouTube и Telegram",
-};
+// Every page is in the visitor's language, from a cookie, so pages are rendered for each request
+export const instant = false;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Inter has every letter the three languages use, Uzbek's ʻ (oʻ, gʻ) and Cyrillic Ў, Қ, Ғ, Ҳ included. Next serves it
+// from this server; its Latin and Cyrillic letters load with the page, the rest when a page uses them.
+const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-sans" });
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return { title: t("title"), description: t("description") };
+}
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getLocale();
   return (
-    <html lang="ru">
-      <body>{children}</body>
+    <html lang={locale} className={cn("font-sans", inter.variable)}>
+      <body className="min-h-screen antialiased">
+        <NextIntlClientProvider>
+          <Header />
+          <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+        </NextIntlClientProvider>
+      </body>
     </html>
   );
 }

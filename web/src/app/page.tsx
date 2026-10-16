@@ -1,7 +1,6 @@
-export default function Home() {
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <h1 className="text-2xl font-semibold">Мониторинг СМИ</h1>
-    </main>
-  );
+import { getTranslations } from "next-intl/server";
+
+export default async function Home() {
+  const t = await getTranslations("home");
+  return <h1 className="text-2xl font-semibold">{t("title")}</h1>;
 }

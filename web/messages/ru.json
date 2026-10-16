@@ -1,0 +1,13 @@
+{
+  "metadata": {
+    "title": "Мониторинг СМИ",
+    "description": "Мониторинг каналов YouTube и Telegram"
+  },
+  "header": {
+    "name": "Мониторинг СМИ",
+    "language": "Язык"
+  },
+  "home": {
+    "title": "Обзор"
+  }
+}
