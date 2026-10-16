@@ -3,6 +3,8 @@
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
+from media_monitoring.api.errors import DATABASE_ERRORS
+
 router = APIRouter()
 
 # Each table's rows as PostgreSQL counts them, as rows come and go: reading that takes a millisecond, while counting
@@ -34,7 +36,7 @@ class Status(BaseModel):
     telegram: TelegramCounts
 
 
-@router.get("/api/status")
+@router.get("/api/status", responses=DATABASE_ERRORS)
 async def status(request: Request) -> Status:
     """How many YouTube channels, videos and comments, and Telegram channels and messages the database holds."""
     async with request.state.pool.connection() as conn:

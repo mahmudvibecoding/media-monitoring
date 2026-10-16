@@ -58,8 +58,13 @@ The database is `media_monitoring`; set `DATABASE_URL` to use another.
 `uv run api` serves the web API on 127.0.0.1:8000, which only the server itself can reach: `/api/health` answers
 while it runs, `/api/health/ready` once the database answers too (503 until then), `/api/status` how many YouTube
 channels, videos and comments and Telegram channels and messages the database holds (PostgreSQL's own counts, which
-take a millisecond to read), and `/api/docs` lists every endpoint. Its settings come from environment variables: `API_DATABASE_URL` (`dbname=media_monitoring` by default),
-`API_HOST` and `API_PORT`. `uv run ruff check` and `uv run ruff format` check its code and lay it out.
+take a millisecond to read), and `/api/docs` lists every endpoint. A failure is answered with one JSON shape,
+`{"error": "<code>", "message": "...", "request_id": "..."}`, and the HTTP status that fits: a request waits at most
+5 s for a database connection (503 after that), and a query runs at most 5 s (504). Every answer carries its
+request's ID in `X-Request-ID` (the one the request came with, if any), and every log line is a JSON object, with
+that ID while a request is answered. Its settings come from environment variables: `API_DATABASE_URL`
+(`dbname=media_monitoring` by default), `API_HOST` and `API_PORT`. `uv run ruff check` and `uv run ruff format` check
+its code and lay it out.
 
 `./run.sh setup` also creates `media_monitoring_api`: a system user, and a database user of the same name that can
 read every table but change nothing. PostgreSQL lets that system user in as it without a password.
