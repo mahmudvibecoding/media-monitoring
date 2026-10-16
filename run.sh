@@ -9,14 +9,16 @@
 #   ./run.sh setup        only set the machine up
 #
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
-# packages), creates the database and its tables, and loads the channels to monitor from channels.txt (any file
-# with channel IDs in it, like a CSV export; new IDs are added at every start). Run it as root or as a user with
-# sudo. It (re)starts sing-box in the background with "uv run proxies" and stops it when the round ends, or on
-# Ctrl+C or kill. Downloaded and generated files (proxy lists, sing-box configs and logs) go in data/.
+# packages), creates the database, its tables and the web API's user, which can only read them, and loads the
+# channels to monitor from channels.txt (any file with channel IDs in it, like a CSV export; new IDs are added at
+# every start). Run it as root or as a user with sudo. It (re)starts sing-box in the background with "uv run
+# proxies" and stops it when the round ends, or on Ctrl+C or kill. Downloaded and generated files (proxy lists,
+# sing-box configs and logs) go in data/.
 set -u
 cd "$(dirname "$0")"
 DAYS=${DAYS:-365}
 DATABASE=media_monitoring
+API_USER=media_monitoring_api  # the web API's user, on this machine and in PostgreSQL
 SING_BOX_VERSION=1.14.3  # the version the VPN configs were tested with
 # Where uv and sing-box install themselves; cron's PATH has neither
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
@@ -85,6 +87,20 @@ setup() {
         as_postgres createdb -O "$me" "$DATABASE"
     fi
     psql -q -v ON_ERROR_STOP=1 -d "$DATABASE" -f schema.sql
+
+    # The web API's user: a system user without a password, shell or home, and a database user of the same name,
+    # which PostgreSQL lets it in as without a password. It can read every table, including ones added later, and
+    # change nothing.
+    if ! id -u "$API_USER" > /dev/null 2>&1; then
+        echo "### creating $API_USER, the web API's user, which can only read the database"
+        $sudo useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin "$API_USER"
+    fi
+    if [ "$(as_postgres psql -Atc "SELECT 1 FROM pg_roles WHERE rolname = '$API_USER'")" != 1 ]; then
+        as_postgres createuser "$API_USER"
+    fi
+    psql -q -v ON_ERROR_STOP=1 -d "$DATABASE" -c "GRANT CONNECT ON DATABASE $DATABASE TO $API_USER" \
+        -c "GRANT USAGE ON SCHEMA public TO $API_USER" -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO $API_USER" \
+        -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO $API_USER"
 
     # Settings for heavy writing, set once: a quarter of the memory as PostgreSQL's cache (at most 16 GB), a
     # checkpoint every 30 minutes or 64 GB of write log, and a compressed write log. The cache needs a restart.

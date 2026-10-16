@@ -60,6 +60,9 @@ while it runs, `/api/health/ready` once the database answers too (503 until then
 endpoint. Its settings come from environment variables: `API_DATABASE_URL` (`dbname=media_monitoring` by default),
 `API_HOST` and `API_PORT`. `uv run ruff check` and `uv run ruff format` check its code and lay it out.
 
+`./run.sh setup` also creates `media_monitoring_api`: a system user, and a database user of the same name that can
+read every table but change nothing. PostgreSQL lets that system user in as it without a password.
+
 ## Layout
 
 ```
