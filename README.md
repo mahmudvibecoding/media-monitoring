@@ -53,6 +53,12 @@ telegram` alone lists the steps.
 
 The database is `media_monitoring`; set `DATABASE_URL` to use another.
 
+## The API
+
+`uv run api` serves the web API on 127.0.0.1:8000, which only the server itself can reach: `/api/health` answers
+while it runs, and `/api/docs` lists every endpoint. `uv run ruff check` and `uv run ruff format` check its code and
+lay it out.
+
 ## Layout
 
 ```
@@ -68,6 +74,7 @@ src/media_monitoring/
     parallel.py         runs a step across processes
     db.py               the database connection
     proxies/            VPN configs, sing-box, plain proxies
+    api/                the web API: uv run api
 docs/                   how it works and why
 data/                   downloaded and generated files (not in git)
 ```

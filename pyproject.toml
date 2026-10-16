@@ -6,15 +6,34 @@ readme = "README.md"
 requires-python = ">=3.15"
 dependencies = [
     "curl-cffi>=0.16.3",
+    "fastapi>=0.143.2",
+    "httptools>=0.9.0",
     "psycopg[binary]>=3.3.6",
+    "uvicorn>=0.54.0",
+    "uvloop>=0.23.0",
 ]
 
-# Each platform's steps ("uv run youtube <step>", "uv run telegram <step>": see commands.py), and the proxy tools
+# Each platform's steps ("uv run youtube <step>", "uv run telegram <step>": see commands.py), the proxy tools, and the
+# web API
 [project.scripts]
 youtube = "media_monitoring.commands:youtube"
 telegram = "media_monitoring.commands:telegram"
 proxies = "media_monitoring.proxies.command:main"
+api = "media_monitoring.api:main"
 
 [build-system]
 requires = ["uv_build>=0.11,<0.14"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.1",
+]
+
+# Code checks for the web API ("uv run ruff check", "uv run ruff format"); the collectors keep their own layout
+[tool.ruff]
+include = ["src/media_monitoring/api/**/*.py"]
+line-length = 120
+
+[tool.ruff.lint]
+extend-select = ["I", "B", "UP"]  # import order, likely bugs, outdated syntax
