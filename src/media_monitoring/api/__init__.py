@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request, Response
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 
+from media_monitoring.api import status
 from media_monitoring.api.settings import load
 
 CONNECTIONS = 2  # database connections kept open
@@ -43,6 +44,7 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     redoc_url=None,
 )
+app.include_router(status.router)
 
 
 class Health(BaseModel):
