@@ -18,6 +18,7 @@ KEEP=3  # releases kept, the running one included
 WAIT=30  # seconds a started release has to answer in
 SERVICES=(media-monitoring-api media-monitoring-web)
 WEB_USER=media_monitoring_web
+DATABASE=media_monitoring
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 # The services' Python goes where their users can run it: uv's usual place is in /root, which they can't read
 export UV_PYTHON_INSTALL_DIR="$ROOT/python" UV_PYTHON_PREFERENCE=only-managed
@@ -162,6 +163,11 @@ fi
 # Next writes its cache while it runs: the only place in a release the site's user may write
 mkdir -p "$folder/web/.next/cache"
 chown -R "$WEB_USER:$WEB_USER" "$folder/web/.next/cache"
+
+# The website's own tables, as this commit has them (app.sql adds only what's missing), before anything new runs: in
+# one transaction, so a change that fails partway leaves nothing behind
+echo "### updating the website's tables"
+psql -q -v ON_ERROR_STOP=1 --single-transaction -d "$DATABASE" -f "$folder/app.sql"
 
 # The services, as this commit has them
 reload=""

@@ -71,7 +71,8 @@ every endpoint, its parameters, and the exact JSON of its answers and errors. A 
 commit as the file, so the change shows in its diff.
 
 `./run.sh setup` also creates `media_monitoring_api`: a system user, and a database user of the same name that can
-read every table but change nothing. PostgreSQL lets that system user in as it without a password.
+read the collected data but change none of it. PostgreSQL lets that system user in as it without a password. The
+website's own tables (`app.sql`, which `deploy.sh` applies) it may also change.
 
 ## The website
 
@@ -116,14 +117,15 @@ On the server, as root, from the clone (after `./run.sh setup`):
 ```
 
 It installs the commit in a release folder of its own in `/opt/media-monitoring/releases` (the API's packages, and
-the site, built), points `/opt/media-monitoring/current` at it, and restarts two services: `media-monitoring-api`
-(127.0.0.1:8000) and `media-monitoring-web` (127.0.0.1:3000). They start with the machine and come back 2 s after
-they stop. A failed install or build leaves the running release as it is, a release that doesn't answer within 30 s
-is replaced by the one before it, and the last 3 are kept. The API runs as `media_monitoring_api`, which can only
-read the database, and the site as `media_monitoring_web`, which can't reach it. systemd locks both down: the system is
-read-only to them, they can't see `/root` or `/home`, and they can reach nothing but this machine (`systemd-analyze
-security` rates them 1.1 of 10). Their logs: `journalctl -u media-monitoring-api` and `journalctl -u
-media-monitoring-web`.
+the site, built), brings the website's own tables up to date (`app.sql`: the accounts, in the schema `app`), points
+`/opt/media-monitoring/current` at the release, and restarts two services: `media-monitoring-api` (127.0.0.1:8000)
+and `media-monitoring-web` (127.0.0.1:3000). They start with the machine and come back 2 s after they stop. A failed
+install, build or table update leaves the running release as it is, a release that doesn't answer within 30 s is
+replaced by the one before it, and the last 3 are kept. The API runs as `media_monitoring_api`, which can change the
+website's own tables but only read the collected data, and the site as `media_monitoring_web`, which can't reach the
+database. systemd locks both down: the system is read-only to them, they can't see `/root` or `/home`, and they can
+reach nothing but this machine (`systemd-analyze security` rates them 1.1 of 10). Their logs: `journalctl -u
+media-monitoring-api` and `journalctl -u media-monitoring-web`.
 
 Caddy is in front of both (`deploy/Caddyfile`, which `deploy.sh` installs): the site is at https://198.163.196.164,
 with `/api/...` going to the API and everything else to the site, and `http://` sent on to `https://`. Its
@@ -142,6 +144,7 @@ run.sh                  sets the machine up and runs a round
 deploy.sh               deploys the website and the API; deploy/ has their services and Caddy's setup
 channels.txt            the channels to monitor, one ID per line
 schema.sql              the database tables
+app.sql                 the website's own tables (accounts), in the schema app
 openapi.json            the web API's description: uv run api openapi
 src/media_monitoring/
     commands.py         uv run youtube <step>, uv run telegram <step>

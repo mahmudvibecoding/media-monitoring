@@ -22,7 +22,8 @@ renders each page on the server, asking the API directly, so the page arrives wi
 - Every failure is the same JSON, `{"error": code, "message", "request_id"}`, with codes like `database_unavailable`
   (503), `database_timeout` (504) and `internal` (500); a crash's details only go to the log.
 - A request waits at most 5 s for a database connection, and a query runs at most 5 s.
-- It connects as `media_monitoring_api`, which can read every table and change nothing.
+- It connects as `media_monitoring_api`, which can read the collected data and change none of it. The website's own
+  tables, in the schema `app` (`app.sql`: accounts, their sessions and failed sign-ins), it may also change.
 - Its log is JSON lines, one per request among them: method, path, status, milliseconds, the visitor's address, and
   the request's ID.
 
