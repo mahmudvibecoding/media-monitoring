@@ -19,8 +19,34 @@
     "telegram": {
       "channels": "Channels",
       "messages": "Messages"
-    },
-    "loading": "Loading…",
-    "failed": "Couldn't load the data"
+    }
+  },
+  "common": {
+    "loading": "Loading…"
+  },
+  "errors": {
+    "unavailable": "The service is temporarily unavailable. Please try again later.",
+    "database_unavailable": "The data is temporarily unavailable. Please try again later.",
+    "database_timeout": "The request took too long. Please try again.",
+    "not_found": "Nothing was found.",
+    "invalid_request": "The request isn't valid.",
+    "internal": "Something went wrong. Please try again.",
+    "requestId": "Request ID: {id}",
+    "retry": "Try again"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "There's no such page. The address may have a typo.",
+    "home": "Go to the home page"
+  },
+  "errorPage": {
+    "title": "The page couldn't be opened",
+    "description": "Something went wrong. Please try again.",
+    "code": "Error code: {code}",
+    "retry": "Try again"
+  },
+  "globalError": {
+    "message": "Something went wrong. Please try again.",
+    "retry": "Try again"
   }
 }

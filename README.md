@@ -99,6 +99,13 @@ the typecheck. While a page is rendered on the server, requests go straight to t
 API. TanStack Query loads a page's data on the server, so the page arrives with it, and the browser keeps it fresh:
 the home page's counts are asked for again every 30 seconds.
 
+While data loads, gray placeholders in its shape stand in. When a request fails, the page says why in the visitor's
+language, from the API's error code (or that the API didn't answer at all), with the request's ID, which the API's
+log has too, and a button to ask again. A page rendered on the server waits at most 3 s for the API, and the browser
+15 s. An address the site doesn't have gets a 404 page; a page that fails while it's rendered gets an error page with
+Next's error code, which the site's log has too; and if the frame itself fails, a last page says so in all three
+languages.
+
 ## Layout
 
 ```

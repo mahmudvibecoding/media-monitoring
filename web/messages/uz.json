@@ -19,8 +19,34 @@
     "telegram": {
       "channels": "Kanallar",
       "messages": "Xabarlar"
-    },
-    "loading": "Yuklanmoqda…",
-    "failed": "Maʼlumotlarni yuklab boʻlmadi"
+    }
+  },
+  "common": {
+    "loading": "Yuklanmoqda…"
+  },
+  "errors": {
+    "unavailable": "Xizmat vaqtincha ishlamayapti. Keyinroq urinib koʻring.",
+    "database_unavailable": "Maʼlumotlar vaqtincha mavjud emas. Keyinroq urinib koʻring.",
+    "database_timeout": "Soʻrov juda uzoq davom etdi. Qaytadan urinib koʻring.",
+    "not_found": "Hech narsa topilmadi.",
+    "invalid_request": "Notoʻgʻri soʻrov.",
+    "internal": "Nimadir xato ketdi. Qaytadan urinib koʻring.",
+    "requestId": "Soʻrov kodi: {id}",
+    "retry": "Qayta urinish"
+  },
+  "notFound": {
+    "title": "Sahifa topilmadi",
+    "description": "Bunday sahifa yoʻq. Manzilda xato boʻlishi mumkin.",
+    "home": "Bosh sahifaga"
+  },
+  "errorPage": {
+    "title": "Sahifani ochib boʻlmadi",
+    "description": "Nimadir xato ketdi. Qaytadan urinib koʻring.",
+    "code": "Xato kodi: {code}",
+    "retry": "Qayta urinish"
+  },
+  "globalError": {
+    "message": "Nimadir xato ketdi. Qaytadan urinib koʻring.",
+    "retry": "Qayta urinish"
   }
 }
