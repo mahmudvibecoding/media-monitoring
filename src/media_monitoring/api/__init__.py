@@ -1,7 +1,7 @@
 """The web API: "uv run api" serves it on 127.0.0.1:8000, which only the server itself can reach (see settings.py).
-Every path starts with /api, and /api/docs lists them. Failures are answered as errors.py says, and the logs are JSON
-(see logs.py). Accounts and signing in are in accounts.py. "uv run api openapi" writes the API's description to
-openapi.json instead, and "uv run api add-admin <email> <name>" adds an admin."""
+Every path starts with /api, and /api/docs lists them, for admins. Failures are answered as errors.py says, and the logs
+are JSON (see logs.py). Accounts and signing in are in accounts.py. "uv run api openapi" writes the API's description
+to openapi.json instead, and "uv run api add-admin <email> <name>" adds an admin."""
 
 import asyncio
 import json
@@ -13,6 +13,8 @@ from typing import Literal
 import psycopg
 import uvicorn
 from fastapi import Depends, FastAPI, Request, Response
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse, JSONResponse
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 
@@ -53,8 +55,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Media monitoring",
     lifespan=lifespan,
-    docs_url="/api/docs",
-    openapi_url="/api/openapi.json",
+    docs_url=None,  # /api/docs and /api/openapi.json are below, for admins only
+    openapi_url=None,
     redoc_url=None,
     generate_unique_id_function=lambda route: route.name,  # "status", not FastAPI's "status_api_status_get"
     exception_handlers=errors.HANDLERS,
@@ -90,6 +92,18 @@ async def ready(request: Request, response: Response) -> Readiness:
         response.status_code = 503
         return Readiness(status="unavailable")
     return Readiness(status="ok")
+
+
+@app.get("/api/openapi.json", include_in_schema=False)
+async def openapi(_: accounts.Admin) -> JSONResponse:
+    """The API's description, as "uv run api openapi" writes it to openapi.json"""
+    return JSONResponse(app.openapi())
+
+
+@app.get("/api/docs", include_in_schema=False)
+async def docs(_: accounts.Admin) -> HTMLResponse:
+    """Every endpoint, described and ready to try, from /api/openapi.json"""
+    return get_swagger_ui_html(openapi_url="/api/openapi.json", title=f"{app.title} - API")
 
 
 def main():

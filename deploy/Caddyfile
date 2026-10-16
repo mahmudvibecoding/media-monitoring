@@ -1,13 +1,7 @@
-# Caddy in front of the website and its API (see README.md): one address for both, over HTTPS, behind a temporary
-# shared password. deploy.sh installs it as /etc/caddy/Caddyfile and reloads Caddy when it changes.
+# Caddy in front of the website and its API (see README.md): one address for both, over HTTPS. deploy.sh installs it
+# as /etc/caddy/Caddyfile and reloads Caddy when it changes.
 
 (site) {
-	# Until the site has logins of its own, one shared user name and password for everything. Caddy reads them from
-	# /etc/caddy/site.env, which deploy.sh makes; root can read the password itself in /etc/caddy/site-password.
-	basic_auth {
-		{$SITE_USER} {$SITE_PASSWORD_HASH}
-	}
-
 	# Each request's ID: the API takes it as its own, so Caddy's log, the API's and an error the site shows agree
 	request_header X-Request-ID {http.request.uuid}
 	log_append request_id {http.request.uuid}
@@ -19,8 +13,8 @@
 		X-Frame-Options DENY
 		Referrer-Policy strict-origin-when-cross-origin
 	}
-	# Taking a header away waits until an answer is written, so answers that end in an error (no password, the API
-	# down) still name Caddy; the others name nothing
+	# Taking a header away waits until an answer is written, so the errors Caddy answers itself (the API or the site
+	# down) still name it; the others name nothing
 	header -Server
 
 	handle /api/* {
@@ -30,7 +24,7 @@
 		reverse_proxy 127.0.0.1:3000
 	}
 
-	# Each request as a JSON line in Caddy's journal (journalctl -u caddy), without the password
+	# Each request as a JSON line in Caddy's journal (journalctl -u caddy), with cookies left out: they hold sessions
 	log
 }
 

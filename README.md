@@ -55,20 +55,19 @@ The database is `media_monitoring`; set `DATABASE_URL` to use another.
 
 ## The API
 
-`uv run api` serves the web API on 127.0.0.1:8000, which only the server itself can reach: `/api/health` answers
-while it runs, `/api/health/ready` once the database answers too (503 until then), `/api/status` how many YouTube
-channels, videos and comments and Telegram channels and messages the database holds (PostgreSQL's own counts, which
-take a millisecond to read), and `/api/docs` lists every endpoint. A failure is answered with one JSON shape,
-`{"error": "<code>", "message": "...", "request_id": "..."}`, and the HTTP status that fits: a request waits at most
-5 s for a database connection (503 after that), and a query runs at most 5 s (504). Every answer carries its
-request's ID in `X-Request-ID` (the one the request came with, if any), and every log line is a JSON object, with
-that ID while a request is answered. Its settings come from environment variables: `API_DATABASE_URL`
-(`dbname=media_monitoring` by default), `API_HOST` and `API_PORT`. `uv run ruff check` and `uv run ruff format` check
-its code and lay it out.
+`uv run api` serves the web API on 127.0.0.1:8000, which only the server itself can reach: `/api/health` answers while
+it runs, `/api/health/ready` once the database answers too (503 until then), `/api/status` how many YouTube channels,
+videos and comments and Telegram channels and messages the database holds (PostgreSQL's own counts, which take a
+millisecond to read), and `/api/docs` lists every endpoint, for admins. A failure is answered with one JSON shape,
+`{"error": "<code>", "message": "...", "request_id": "..."}`, and the HTTP status that fits: a request waits at most 5 s
+for a database connection (503 after that), and a query runs at most 5 s (504). Every answer carries its request's ID in
+`X-Request-ID` (the one the request came with, if any), and every log line is a JSON object, with that ID while a
+request is answered. Its settings come from environment variables: `API_DATABASE_URL` (`dbname=media_monitoring` by
+default), `API_HOST` and `API_PORT`. `uv run ruff check` and `uv run ruff format` check its code and lay it out.
 
-`uv run api openapi` writes the description `/api/openapi.json` serves to `openapi.json`, without starting the API:
-every endpoint, its parameters, and the exact JSON of its answers and errors. A change to the API goes into the same
-commit as the file, so the change shows in its diff.
+`uv run api openapi` writes the description `/api/openapi.json` serves admins to `openapi.json`, without starting the
+API: every endpoint, its parameters, and the exact JSON of its answers and errors. A change to the API goes into the
+same commit as the file, so the change shows in its diff.
 
 `./run.sh setup` also creates `media_monitoring_api`: a system user, and a database user of the same name that can
 read the collected data but change none of it. PostgreSQL lets that system user in as it without a password. The
@@ -142,13 +141,11 @@ media-monitoring-api` and `journalctl -u media-monitoring-web`.
 
 Caddy is in front of both (`deploy/Caddyfile`, which `deploy.sh` installs): the site is at https://198.163.196.164,
 with `/api/...` going to the API and everything else to the site, and `http://` sent on to `https://`. Its
-certificate comes from Let's Encrypt, for the IP address itself; those last about 6 days, and Caddy renews them. Until
-the site has logins of its own, a shared user name and password guard everything: the user is `monitoring`, and the
-password, made by the first deploy, is in `/etc/caddy/site-password` (`sudo cat /etc/caddy/site-password`; to change
-it, delete that file and `/etc/caddy/site.env`, then deploy). Answers carry security headers (HTTPS only, no framing
-by other sites, no guessing of content types), and each request gets an ID, which the API's log and Caddy's
-(`journalctl -u caddy`) both show. On the server itself, the same site answers on http://127.0.0.1:8080, for checks.
-Once there's a domain, it goes into the Caddyfile in place of the address. More in [docs/website.md](docs/website.md).
+certificate comes from Let's Encrypt, for the IP address itself; those last about 6 days, and Caddy renews them.
+Answers carry security headers (HTTPS only, no framing by other sites, no guessing of content types), and each request
+gets an ID, which the API's log and Caddy's (`journalctl -u caddy`) both show. On the server itself, the same site
+answers on http://127.0.0.1:8080, for checks. Once there's a domain, it goes into the Caddyfile in place of the
+address. More in [docs/website.md](docs/website.md).
 
 ## Layout
 

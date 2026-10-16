@@ -1,22 +1,23 @@
 # How the website works
 
-The website shows what the system has collected, in Russian, Uzbek and English, at https://198.163.196.164, behind a
-shared password. It's two services behind Caddy: the web API, which reads the database, and the site, which renders
-the pages. The [README](../README.md) has the commands; this explains how the parts fit, and why.
+The website shows what the system has collected, in Russian, Uzbek and English, at https://198.163.196.164. It's two
+services behind Caddy: the web API, which reads the database, and the site, which renders the pages. The
+[README](../README.md) has the commands; this explains how the parts fit, and why.
 
 ```
 browser ── HTTPS ──> Caddy ── /api/... ──> API (FastAPI, 127.0.0.1:8000) ──> PostgreSQL, read only
                        └──── the rest ───> site (Next.js, 127.0.0.1:3000) ──> API
 ```
 
-Only Caddy can be reached from outside. It checks the password, gives each request an ID and passes it on. The site
-renders each page on the server, asking the API directly, so the page arrives with its data; the browser then asks
-`/api/...` through Caddy to keep it fresh.
+Only Caddy can be reached from outside. It gives each request an ID and passes it on. The site renders each page on
+the server, asking the API directly, so the page arrives with its data; the browser then asks `/api/...` through Caddy
+to keep it fresh.
 
 ## The API
 
 - `/api/health` answers while it runs, `/api/health/ready` once the database answers too, `/api/status` with how much
-  the database holds, and `/api/docs` lists them all. `openapi.json` in the repo describes them (`uv run api openapi`).
+  the database holds, and `/api/docs` lists them all. It and the description it shows, `/api/openapi.json`, are for
+  admins only; `openapi.json` in the repo is the same description (`uv run api openapi`).
 - The counts are PostgreSQL's own running count of each table's rows: reading it takes a millisecond, while counting
   the rows takes 0.15 s for Telegram messages and minutes for the 194 million comments.
 - Every failure is the same JSON, `{"error": code, "message", "request_id"}`, with codes like `database_unavailable`
@@ -52,7 +53,7 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
 - A visitor sees Russian until choosing Uzbek (Latin script) or English in the header; the choice is kept in a cookie
   for a year and, for someone signed in, in their account. Signing in keeps a language this browser chose before (and
   saves it to the account); without one, it switches to the account's. Addresses are the same in every language,
-  since no search engine indexes a site behind a password.
+  since search engines see nothing but the sign-in page.
 - Counts are written by the site's own function (`src/lib/format.ts`), not the browser's `Intl`: Chrome's Uzbek data
   writes 55,859 where Node's writes 55 859, and the browser would rewrite what the server rendered.
 - The texts are in `web/messages/` (`ru.json`, `uz.json`, `en.json`): a key missing from one, or asked for by a page
@@ -85,8 +86,6 @@ no access to the database. systemd locks both down: the system is read-only to t
 
 - The certificate is Let's Encrypt's, for the IP address itself; those last about 6 days, and Caddy renews them. With a
   domain, the domain takes the address's place in `deploy/Caddyfile`.
-- The user is `monitoring`; the password is in `/etc/caddy/site-password`, which only root can read, and Caddy has only
-  its hash. To change it, delete that file and `/etc/caddy/site.env`, then deploy.
 - `http://` goes on to `https://`. Answers are compressed and carry security headers: HTTPS only, no framing by other
   sites, no guessing of content types.
 - On the server itself the same site answers on http://127.0.0.1:8080, for checks.

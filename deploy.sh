@@ -4,7 +4,7 @@
 # release folder of its own, /opt/media-monitoring/releases/<time>-<commit>, where the commit is installed and the site
 # built; the link /opt/media-monitoring/current says which release runs. If installing or building fails, the running
 # release is left as it is; if the new one doesn't answer once started, the one before it is started again. Caddy, in
-# front of both (deploy/Caddyfile), gets the address, HTTPS and a temporary shared password for everything.
+# front of both (deploy/Caddyfile), gets the address and HTTPS.
 #
 #   ./deploy.sh            deploy this clone's current commit (uncommitted changes aren't deployed)
 #   ./deploy.sh rollback   go back to the release before the running one
@@ -67,35 +67,15 @@ logs() {
 
 caddy_up() {
     # Caddy in front of both, with the Caddyfile the release has: installed once Caddy finds it valid, and reloaded
-    # when it changed. The temporary shared password is made when there's none (the first deploy, or a deploy after
-    # both files below are deleted, to change it): Caddy gets the user name and the password's hash from
-    # /etc/caddy/site.env, and root can read the password itself in /etc/caddy/site-password.
-    local caddyfile=$1 restart="" reload="" password check
+    # when it changed
+    local caddyfile=$1 reload="" check
     if ! command -v caddy > /dev/null; then
         echo "deploy.sh: Caddy isn't installed yet: run ./run.sh setup"
         return 1
     fi
-    if [ ! -f /etc/caddy/site.env ]; then
-        password=$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')
-        (umask 077 && printf '%s\n' "$password" > /etc/caddy/site-password)
-        printf 'SITE_USER=monitoring\nSITE_PASSWORD_HASH=%s\n' "$(caddy hash-password --plaintext "$password")" \
-            > /etc/caddy/site.env
-        chown root:caddy /etc/caddy/site.env
-        chmod 640 /etc/caddy/site.env
-        echo "### made the site's temporary password: user monitoring, password in /etc/caddy/site-password"
-        restart=1  # Caddy reads site.env when it starts
-    fi
-    local dropin=/etc/systemd/system/caddy.service.d/media-monitoring.conf
-    if [ ! -f "$dropin" ]; then
-        mkdir -p "${dropin%/*}"
-        printf '[Service]\nEnvironmentFile=/etc/caddy/site.env\n' > "$dropin"
-        systemctl daemon-reload
-        restart=1
-    fi
     if ! cmp -s "$caddyfile" /etc/caddy/Caddyfile; then
         check=$(mktemp)
-        # shellcheck disable=SC2046  # each line of site.env is one variable
-        if ! env $(< /etc/caddy/site.env) caddy validate --config "$caddyfile" --adapter caddyfile > "$check" 2>&1; then
+        if ! caddy validate --config "$caddyfile" --adapter caddyfile > "$check" 2>&1; then
             tail -5 "$check"
             rm -f "$check"
             echo "deploy.sh: deploy/Caddyfile isn't valid, so Caddy keeps the one it has"
@@ -106,7 +86,7 @@ caddy_up() {
         reload=1
     fi
     systemctl enable --quiet caddy
-    if [ -n "$restart" ] || ! systemctl is-active --quiet caddy; then
+    if ! systemctl is-active --quiet caddy; then
         systemctl restart caddy
         echo "### Caddy started"
     elif [ -n "$reload" ]; then
