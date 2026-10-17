@@ -44,7 +44,7 @@ export default async function YouTubeChannelPage({ params, searchParams }: PageP
   return (
     // As wide as YouTube's channel pages at most
     <div className="mx-auto max-w-[1284px] space-y-6">
-      <YouTubeMasthead />
+      <YouTubeMasthead up="/youtube/channels" />
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ChannelDetails id={id} />
         <ChannelVideos id={id} />

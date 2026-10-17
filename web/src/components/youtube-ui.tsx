@@ -17,25 +17,24 @@ import { avatarAt, channelsAddress, thumbnail } from "@/lib/youtube";
 // The pieces YouTube's pages here are made of, looking like YouTube's own: its font (Roboto), its near-black and grey,
 // pill buttons, and video cards with the length on the cover
 
-// The top of a YouTube channel's or video's page, as YouTube's own: a way back, its logo, which goes to the channels,
-// and its search box, which searches them (on Enter, in the channels' list), as the list's own top has them. Back is
-// the page one came from on the site, or, for a page opened by its address, up (the channels).
-export function YouTubeMasthead() {
+// The top of a YouTube channel's or video's page, as YouTube's own: a way up (to up: a video's channel, or the channels),
+// its logo, which goes to the channels, and its search box, which searches them (on Enter, in the channels' list), as
+// the list's own top has them
+export function YouTubeMasthead({ up }: { up: string }) {
   const t = useTranslations("youtubeChannels");
   const common = useTranslations("common");
   const router = useRouter();
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3 font-roboto text-yt-text">
       <div className="flex items-center gap-2">
-        <button
-          type="button"
+        <Link
+          href={up}
           aria-label={common("back")}
           title={common("back")}
-          onClick={() => (window.history.length > 1 ? router.back() : router.push("/youtube/channels"))}
           className="-ml-2 flex size-10 items-center justify-center rounded-full hover:bg-yt-chip"
         >
           <ArrowLeftIcon className="size-6" strokeWidth={1.5} />
-        </button>
+        </Link>
         <Link href="/youtube/channels" aria-label="YouTube">
           <YouTubeLogo className="h-5 w-[93px]" />
         </Link>

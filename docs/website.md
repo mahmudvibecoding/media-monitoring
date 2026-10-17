@@ -111,9 +111,10 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
 - Light only, and sober: white, near-black and greys, with color only for a status (running, stopped, failed). YouTube's
-  pages look like YouTube's own (its font, Roboto, its greys, its header with a way back, its logo (the very one its
-  site shows) and the search box, its black button and grey pills, its grids of covers and its watch page), and
-  Telegram's like Telegram's (its list of chats, its blue, its chat with bubbles on its background, its info panel).
+  pages look like YouTube's own (its font, Roboto, its greys, its header with a way up (from a video to its channel,
+  from a channel to the channels), its logo (the very one its site shows) and the search box, its black button and grey
+  pills, its grids of covers and its watch page), and Telegram's like Telegram's (its list of chats, its blue, its chat
+  with bubbles on its background, its info panel).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from

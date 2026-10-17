@@ -22,13 +22,14 @@ import { FIRST_PAGE, nextPage } from "@/lib/pages";
 import { useLoadMore } from "@/lib/use-load-more";
 import { channelOnYouTube } from "@/lib/youtube";
 
-// A video's page, laid out like YouTube's: YouTube's header, its player, the title, the channel with its picture and subscribers, the counts in YouTube's pills, the description in its grey box,
+// A video's page, laid out like YouTube's: YouTube's header (up is the video's channel), its player, the title, the channel with its picture and subscribers, the counts in YouTube's pills, the description in its grey box,
 // and the comments; beside it, more from the same channel
 export function VideoPage({ id }: { id: string }) {
+  const channel = useQuery(youtubeVideoOptions({ path: { video_id: id } })).data?.channel_id;
   return (
     // As YouTube's watch page: the player up to 1280 px wide, and beside it a column of 402 px
     <div className="mx-auto max-w-[1706px] space-y-6">
-      <YouTubeMasthead />
+      <YouTubeMasthead up={channel ? `/youtube/channels/${channel}` : "/youtube/channels"} />
       <div className="grid gap-6 font-roboto text-yt-text xl:grid-cols-[minmax(0,1fr)_402px]">
         <div className="min-w-0 space-y-6">
           <VideoDetails id={id} />
