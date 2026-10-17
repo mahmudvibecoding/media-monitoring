@@ -173,14 +173,25 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. The player is as wide
   as its column but no taller than leaves room for the title under it (16:9 of the screen's height less 116 px), as on
   YouTube, with the next videos beside it from 1,000 px of the page's width, and under the description below that
-  (full-width cards on a phone). YouTube's keys work on the page (K or the space bar, J and L, ← and →, M, F, 0 to 9),
-  times in the description and the comments take the player there, and Share gives the video's link, from the second
-  it's at if asked. Next keeps a page one has left alive, hidden, for going back to it, so a player is given its address
-  only as its page shows (by an effect, which a hidden page doesn't run), never by a page in the background, is unloaded
-  as its page goes (nothing plays unseen), and is loaded again on going back, from the second it had got to (which the
-  player tells a page that says it's listening); a card's preview is unloaded too. In a channel's grid and beside a
-  video, a video plays silently in its card once the mouse has stayed on it half a second, as on YouTube, until the
-  mouse leaves; a click still opens its page.
+  (full-width cards on a phone). Its controls are the page's own, as YouTube's watch page has them: the red line of
+  where it's at (what's loaded lighter, the time under the mouse, a click or a drag takes the video there), play and
+  pause, the next video (the first beside it), the sound and its slider, the time, the speed and the full screen, which
+  hide 3 s after the mouse stops while it plays; a click plays and pauses, a double click fills the screen, and
+  YouTube's signs come and fade in the middle as one plays, pauses, jumps or changes the sound. YouTube's keys work on
+  the page (K or the space bar, J and L, ← and →, ↑ and ↓ while the player has the focus, M, F, Shift+N, 0 to 9), times
+  in the description and the comments take the player there, and Share gives the video's link, from the second it's at
+  if asked. Next keeps a page one has left alive, hidden, for going back to it, so a player is given its address only as
+  its page shows (by an effect, which a hidden page doesn't run), never by a page in the background, is unloaded as its
+  page goes (nothing plays unseen), and is loaded again on going back, from the second it had got to (which the player
+  tells a page that says it's listening); a card's preview is unloaded too. In a channel's grid and beside a video, a
+  video plays silently in its card once the mouse has stayed on it half a second, as on YouTube, until the mouse leaves;
+  a click still opens its page. Shorts don't play under the mouse, as on YouTube. Whatever its address asks, YouTube's
+  player puts its own ⏸ in the middle of the video for about 4 s each time a video starts, goes on after a pause, jumps
+  or changes (and, as a playlist of itself, its way to play a video round again, ⏮ and ⏭ beside it). So the players here
+  are never playlists (the page starts a video again at its end), and each is drawn four times as big as it shows and
+  shrunk back: the ⏸ keeps its size whatever the player's, so it comes out a quarter of it, while the video, chosen for
+  the bigger player, stays sharp, and a soft blur over the middle hides what's left of it for those seconds
+  (`src/components/youtube-embed.tsx`).
 - A Short opens on its own page, `/youtube/shorts/{id}`, as YouTube's do: a feed that slides up and down, a Short to a
   screen, each upright, as tall as the screen allows, with the channel and the title over its bottom and YouTube's round
   buttons beside it (the comments open their panel, the title the description's), and the next one's top under it. The
@@ -193,7 +204,7 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   stay until a Short has started, so sliding to it doesn't go black. The address and the tab's title change to the Short
   playing in place, without a step in the history, as YouTube's: Back goes back to where the Shorts were opened from.
   The player is 160 px taller than its frame at each end, so what YouTube puts along them (its title, its logo, a
-  Short's like count) falls outside it.
+  Short's like count) falls outside it, and it's drawn four times as big, as a video's.
 - A channel's videos, a video's comments, Telegram's chat list and a channel's messages load more as they're scrolled,
   as on YouTube and in Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest
   message, at the bottom, and loads older ones above as it's scrolled up.

@@ -23,6 +23,17 @@ import {
 } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannelDetails, YouTubeVideo } from "@/api/types.gen";
 import { CommentList } from "@/components/youtube-comments";
+import {
+  BUFFERING,
+  command,
+  embed,
+  ENDED,
+  Hush,
+  PLAYING,
+  scaled,
+  useEmbedded,
+  useHush,
+} from "@/components/youtube-embed";
 import { ShortsGhost } from "@/components/youtube-ghosts";
 import { ShareButton } from "@/components/youtube-share";
 import { YouTubeText } from "@/components/youtube-text";
@@ -32,18 +43,12 @@ import { FIRST_PAGE, nextPage } from "@/lib/pages";
 import { cn } from "@/lib/utils";
 import { type Sort, thumbnail, uprightThumbnail } from "@/lib/youtube";
 
-const PLAYER = "https://www.youtube-nocookie.com";
 const AHEAD = 3; // Shorts left in the feed when the next page of the list is asked for
 const LOOK_FOR = 6; // pages of the channel's Shorts looked through for the one opened, when it isn't on the first
 const SETTLED = 150; // milliseconds without scrolling after which the feed is at rest (where scrollend isn't known)
 const TOP = 8; // px between YouTube's top bar and a Short at rest
 
 type PanelKind = "comments" | "description";
-
-// The player's address for a Short: playing at once, from a second if given, round again at its end, without YouTube's
-// controls (the page has its own), and taking the page's commands
-const embed = (id: string, from = 0) =>
-  `${PLAYER}/embed/${id}?autoplay=1&controls=0&loop=1&playlist=${id}&rel=0&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0${from > 0 ? `&start=${from}` : ""}`;
 
 // A Short's page, as YouTube's Shorts: a feed that slides up and down, a Short to a screen, each upright in the middle
 // with the channel and the title over its bottom, YouTube's round buttons beside it (the likes, the comments, which open
@@ -289,20 +294,19 @@ function Reel({
 
 // What the player last told about itself; started once it has played, which the picture shows until
 type State = { playing: boolean; muted: boolean; time: number; duration: number; started: boolean };
-const PLAYING = 1;
-const BUFFERING = 3;
+const SCALE = 4; // the player is drawn four times as big as the frame and shrunk back (see youtube-embed)
+const CROP = 160; // px of the player above and below the frame
 
 // The Short playing, by YouTube's player over its picture, with the page's own controls, as YouTube's Shorts have them:
 // a click on it plays and pauses (K and the space bar too), a big play sign shows while it's paused, the play and sound
 // buttons at its top left come under the mouse (M mutes), and the red line along its bottom says where it's at and goes
-// where it's clicked. The picture shows until the Short has started, so sliding to it doesn't go black. The player is
-// 160 px taller than the frame at each end, so what YouTube puts along them (the title, its logo, and for a Short its
-// own like count) falls outside it, while the Short, as wide as the frame, fills it. The player is loaded only once
-// its page shows (an effect, which a hidden page doesn't run, gives it its address), so a page Next keeps alive,
-// hidden, never plays; as the page goes, it's unloaded, and as it comes back, loaded again from where it was.
+// where it's clicked; at its end it starts again. The picture shows until the Short has started, so sliding to it
+// doesn't go black. The player is 160 px taller than the frame at each end, so what YouTube puts along them (the
+// title, its logo, and for a Short its own like count) falls outside it, while the Short, as wide as the frame, fills
+// it; and it's drawn four times as big and shrunk back, with a blur over the middle while YouTube's own ⏸ is there
+// (see youtube-embed). The player is loaded only once its page shows, and unloaded as it goes.
 function ShortPlayer({ video }: { video: YouTubeVideo }) {
   const t = useTranslations("youtube");
-  const frame = useRef<HTMLIFrameElement>(null);
   const [state, setState] = useState<State>({
     playing: true,
     muted: false,
@@ -310,78 +314,65 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
     duration: video.duration ?? 0,
     started: false,
   });
-  const last = useRef(state); // the same, for the effect's handlers
+  const [hushed, hush] = useHush();
+  const last = useRef(state); // the same, for the handlers
   useEffect(() => {
     last.current = state;
   });
-  const send = (func: string, args: unknown[] = []) =>
-    frame.current?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), PLAYER);
-  const toggle = () => send(last.current.playing ? "pauseVideo" : "playVideo");
-  const mute = () => {
-    send(last.current.muted ? "unMute" : "mute");
-    setState((now) => ({ ...now, muted: !now.muted }));
-  };
-  const seek = (seconds: number) => {
-    send("seekTo", [seconds, true]);
-    setState((now) => ({ ...now, time: seconds }));
-  };
-
-  useEffect(() => {
-    const player = frame.current;
-    if (!player) return;
-    const listen = () =>
-      player.contentWindow?.postMessage(
-        JSON.stringify({ event: "listening", id: video.id, channel: "widget" }),
-        PLAYER,
-      );
-    const heard = (event: MessageEvent) => {
-      if (event.source !== player.contentWindow || typeof event.data !== "string") return;
-      let info;
-      try {
-        info = JSON.parse(event.data)?.info;
-      } catch {
-        return; // not the player's message
+  const frame = useEmbedded(
+    video.id,
+    () => embed(video.id, { from: last.current.time }), // from the start, or from where it was
+    (info, answer) => {
+      if (info.playerState === ENDED) {
+        // Round again, as YouTube's Shorts play
+        hush();
+        answer("seekTo", [0, true]);
+        answer("playVideo");
       }
-      if (!info || typeof info !== "object") return;
+      if (info.playerState === PLAYING && !last.current.started) hush();
       setState((now) => ({
         playing:
           typeof info.playerState === "number"
-            ? info.playerState === PLAYING || info.playerState === BUFFERING
+            ? [PLAYING, BUFFERING, ENDED].includes(info.playerState) // at its end, it goes round again at once
             : now.playing,
         muted: typeof info.muted === "boolean" ? info.muted : now.muted,
         time: typeof info.currentTime === "number" ? info.currentTime : now.time,
         duration: typeof info.duration === "number" && info.duration > 0 ? info.duration : now.duration,
         started: now.started || info.playerState === PLAYING,
       }));
-    };
-    const key = (event: KeyboardEvent) => {
+    },
+  );
+  const send = (func: string, args: unknown[] = []) => command(frame.current, func, args);
+  const toggle = () => {
+    if (!last.current.playing) hush(); // going on, YouTube shows its ⏸ again
+    send(last.current.playing ? "pauseVideo" : "playVideo");
+  };
+  const mute = () => {
+    send(last.current.muted ? "unMute" : "mute");
+    setState((now) => ({ ...now, muted: !now.muted }));
+  };
+  const seek = (seconds: number) => {
+    hush();
+    send("seekTo", [seconds, true]);
+    setState((now) => ({ ...now, time: seconds }));
+  };
+
+  // K and the space bar play and pause, M mutes, unless one's typing somewhere (the space bar presses a button that has
+  // the focus)
+  useEffect(() => {
+    function key(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
       if (event.metaKey || event.ctrlKey || event.altKey || target.isContentEditable) return;
-      if (["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(target.tagName) && event.key === " ") return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-      const command = { " ": "toggle", k: "toggle", m: "mute" }[event.key];
-      if (!command) return;
+      if (event.key === " " && ["BUTTON", "A"].includes(target.tagName)) return;
+      if (event.key === " " || event.key === "k") toggle();
+      else if (event.key === "m") mute();
+      else return;
       event.preventDefault();
-      const message = command === "mute" ? (last.current.muted ? "unMute" : "mute") : undefined;
-      if (message) {
-        player.contentWindow?.postMessage(JSON.stringify({ event: "command", func: message, args: [] }), PLAYER);
-        setState((now) => ({ ...now, muted: !now.muted }));
-      } else {
-        const func = last.current.playing ? "pauseVideo" : "playVideo";
-        player.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args: [] }), PLAYER);
-      }
-    };
-    window.addEventListener("message", heard);
+    }
     window.addEventListener("keydown", key);
-    player.addEventListener("load", listen);
-    player.src = embed(video.id, Math.floor(last.current.time)); // from the start, or from where it was
-    return () => {
-      window.removeEventListener("message", heard);
-      window.removeEventListener("keydown", key);
-      player.removeEventListener("load", listen);
-      player.src = "about:blank";
-    };
-  }, [video.id]);
+    return () => window.removeEventListener("keydown", key);
+  });
 
   return (
     <>
@@ -391,11 +382,13 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
         title={video.title ?? video.id}
         allow="autoplay; encrypted-media; picture-in-picture; web-share"
         tabIndex={-1}
+        style={scaled(SCALE, CROP)}
         className={cn(
-          "pointer-events-none absolute inset-x-0 -top-[160px] h-[calc(100%+320px)] w-full transition-opacity duration-300",
+          "pointer-events-none absolute max-w-none transition-opacity duration-300",
           state.started ? "opacity-100" : "opacity-0",
         )}
       />
+      {hushed && state.started && <Hush size={30} />}
       <button
         type="button"
         onClick={toggle}

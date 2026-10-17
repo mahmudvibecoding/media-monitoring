@@ -76,6 +76,32 @@
       transform: scaleX(0.95);
     }
   }
+  /* The player's sign in the middle as one plays, pauses or changes the sound: it grows as it fades, in half a second */
+  --animate-yt-bezel: yt-bezel 0.5s ease-out forwards;
+  @keyframes yt-bezel {
+    from {
+      opacity: 1;
+      scale: 1;
+    }
+    to {
+      opacity: 0;
+      scale: 2;
+    }
+  }
+  /* A jump's sign at the side, and the sound's level at the top: it comes, stays a moment, and goes */
+  --animate-yt-seek: yt-seek 0.8s ease-out forwards;
+  @keyframes yt-seek {
+    0% {
+      opacity: 0;
+    }
+    15%,
+    65% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
   /* Telegram Web's */
   --color-tg-blue: #3390ec;
   --color-tg-text: #000000;

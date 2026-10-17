@@ -72,6 +72,14 @@ function VideoDetails({ id }: { id: string }) {
   const channelTexts = useTranslations("youtubeChannel");
   const locale = useLocale();
   const { data, error, isFetching, refetch } = useQuery(youtubeVideoOptions({ path: { video_id: id } }));
+  // The next video, for the player's ⏭: the first of those beside it (the same list, from the cache)
+  const others = useInfiniteQuery({
+    ...youtubeChannelVideosInfiniteOptions({ path: { channel_id: data?.channel_id ?? "" }, query: { kind: "video" } }),
+    ...FIRST_PAGE,
+    getNextPageParam: nextPage("videos"),
+    enabled: !!data,
+  }).data;
+  const following = others?.pages.flatMap((page) => page.videos).find((other) => other.id !== id && other.available);
   if (!data) {
     return error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <DetailsSkeleton />;
   }
@@ -79,7 +87,11 @@ function VideoDetails({ id }: { id: string }) {
   const channel = data.channel_title?.trim() || data.channel_id;
   return (
     <section>
-      <Player id={id} title={title} />
+      <Player
+        id={id}
+        title={title}
+        next={following && { id: following.id, title: following.title?.trim() || following.id }}
+      />
       <h1 className="mt-3 line-clamp-2 text-xl leading-7 font-bold break-words" title={title}>
         {title}
       </h1>

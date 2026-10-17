@@ -46,7 +46,16 @@
     "previous": "Предыдущее видео",
     "next": "Следующее видео",
     "likes": "Отметки «Нравится»",
-    "views": "Просмотры"
+    "views": "Просмотры",
+    "nextVideo": "Далее (SHIFT+n)",
+    "seek": "Перемотка",
+    "volume": "Громкость",
+    "settings": "Настройки",
+    "speed": "Скорость воспроизведения",
+    "normal": "Обычная",
+    "fullscreen": "Во весь экран (f)",
+    "exitFullscreen": "Выход из полноэкранного режима (f)",
+    "seconds": "{count, plural, one {# секунда} few {# секунды} many {# секунд} other {# секунды}}"
   },
   "youtubeChannels": {
     "title": "Каналы YouTube",

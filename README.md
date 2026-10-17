@@ -130,15 +130,15 @@ Telegram Web's chat list, with their latest messages, in two folders (the bigges
 one types; and at the bottom the activity, every round with its steps and every run started by hand, newest first, with
 their numbers, and a page for each run with all its numbers. YouTube's pages are under YouTube's top bar, whose search
 box suggests channels as one types. A YouTube channel's page is laid out like the channel on YouTube, with its About
-box, its videos and Shorts in grids, newest, most viewed or oldest first, that load more as they're scrolled, each
+box, its videos and Shorts in grids, newest, most viewed or oldest first, that load more as they're scrolled, each video
 playing silently while the mouse stays on it, and its search by title; a video's, like YouTube's watch page, with
-YouTube's player, which starts as the page opens and takes YouTube's keys, its description, its comments, a Share box
-and more from its channel; a Short's, like YouTube's Shorts, a feed that slides from one upright Short to the next with
-the wheel, a two-finger swipe or ↑ and ↓, with the comments and the description in panels beside it; Telegram's pages
-look like Telegram Web, its wallpaper under floating panels: the chat list at the left, and beside it a channel's chat,
-its messages as bubbles, the newest at the bottom, under their dates, with its search (which a hashtag starts too) and
-its info panel. Anything in a list opens wherever it's clicked. Customers, for now, see a greeting. The menu's foot has
-the user's name, the language and signing out.
+YouTube's player and controls drawn by the page as YouTube's, which starts as the page opens and takes YouTube's keys,
+its description, its comments, a Share box and more from its channel; a Short's, like YouTube's Shorts, a feed that
+slides from one upright Short to the next with the wheel, a two-finger swipe or ↑ and ↓, with the comments and the
+description in panels beside it; Telegram's pages look like Telegram Web, its wallpaper under floating panels: the chat
+list at the left, and beside it a channel's chat, its messages as bubbles, the newest at the bottom, under their dates,
+with its search (which a hashtag starts too) and its info panel. Anything in a list opens wherever it's clicked.
+Customers, for now, see a greeting. The menu's foot has the user's name, the language and signing out.
 
 A visitor sees Russian until they choose another language, in the menu's foot (or the sign-in page's header); the choice
 is kept in a cookie for a year, and, once they're signed in, in their account, which the site switches to when they sign

@@ -46,7 +46,16 @@
     "previous": "Oldingi video",
     "next": "Keyingi video",
     "likes": "Layklar",
-    "views": "Koʻrishlar"
+    "views": "Koʻrishlar",
+    "nextVideo": "Keyingisi (SHIFT+n)",
+    "seek": "Oʻtkazish",
+    "volume": "Ovoz balandligi",
+    "settings": "Sozlamalar",
+    "speed": "Ijro tezligi",
+    "normal": "Oddiy",
+    "fullscreen": "Butun ekran (f)",
+    "exitFullscreen": "Butun ekrandan chiqish (f)",
+    "seconds": "{count} soniya"
   },
   "youtubeChannels": {
     "title": "YouTube kanallari",

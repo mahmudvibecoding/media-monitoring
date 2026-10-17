@@ -46,7 +46,16 @@
     "previous": "Previous video",
     "next": "Next video",
     "likes": "Likes",
-    "views": "Views"
+    "views": "Views",
+    "nextVideo": "Next (SHIFT+n)",
+    "seek": "Seek",
+    "volume": "Volume",
+    "settings": "Settings",
+    "speed": "Playback speed",
+    "normal": "Normal",
+    "fullscreen": "Full screen (f)",
+    "exitFullscreen": "Exit full screen (f)",
+    "seconds": "{count, plural, one {# second} other {# seconds}}"
   },
   "youtubeChannels": {
     "title": "YouTube channels",

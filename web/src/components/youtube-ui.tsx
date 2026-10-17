@@ -8,6 +8,7 @@ import { type ComponentProps, type ReactElement, type SVGProps, useEffect, useRe
 
 import type { YouTubeVideo } from "@/api/types.gen";
 import { When } from "@/components/when";
+import { embed, ENDED, Hush, PLAYING, scaled, useEmbedded, useHush } from "@/components/youtube-embed";
 import { useNow } from "@/lib/use-now";
 import { formatCompact, formatCount, formatDuration, pluralOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -269,31 +270,44 @@ function Cover({
 // The video playing over its cover, as YouTube's previews play: the video alone, without sound, controls or the player's
 // own lines. The player still puts the video's title along its top and its logo along its bottom, so it's 60 px taller
 // than the cover at each end: the video, as wide as the cover, fills the cover's height in its middle, and what's
-// along its ends falls outside the cover, which cuts it off. The cover shows through until the player has loaded. As
-// its page goes (Next keeps it alive, hidden), the player is unloaded at once.
+// along its ends falls outside the cover, which cuts it off. It's drawn four times as big and shrunk back, with a blur
+// over the middle while YouTube's own ⏸ is there, and started again at its end by the page (see youtube-embed). The
+// cover shows until it plays. As its page goes (Next keeps it alive, hidden), the player is unloaded at once.
 function Preview({ video }: { video: YouTubeVideo }) {
-  const [loaded, setLoaded] = useState(false);
-  const frame = useRef<HTMLIFrameElement>(null);
-  useEffect(() => {
-    const player = frame.current;
-    return () => {
-      if (player) player.src = "about:blank";
-    };
-  }, []);
+  const [started, setStarted] = useState(false);
+  const [hushed, hush] = useHush();
+  const frame = useEmbedded(
+    video.id,
+    () => embed(video.id, { muted: true }),
+    (info, send) => {
+      if (info.playerState === ENDED) {
+        hush();
+        send("seekTo", [0, true]);
+        send("playVideo");
+      }
+      if (info.playerState === PLAYING && !started) {
+        hush();
+        setStarted(true);
+      }
+    },
+  );
   return (
-    <iframe
-      ref={frame}
-      src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=1&playlist=${video.id}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
-      title={video.title ?? video.id}
-      allow="autoplay; encrypted-media; picture-in-picture"
-      tabIndex={-1}
-      aria-hidden="true"
-      onLoad={() => setLoaded(true)}
-      className={cn(
-        "pointer-events-none absolute inset-x-0 -top-[60px] h-[calc(100%+120px)] w-full transition-opacity duration-300",
-        loaded ? "opacity-100" : "opacity-0",
-      )}
-    />
+    <>
+      <iframe
+        ref={frame}
+        src="about:blank"
+        title={video.title ?? video.id}
+        allow="autoplay; encrypted-media; picture-in-picture"
+        tabIndex={-1}
+        aria-hidden="true"
+        style={scaled(4, 60)}
+        className={cn(
+          "pointer-events-none absolute max-w-none transition-opacity duration-300",
+          started ? "opacity-100" : "opacity-0",
+        )}
+      />
+      {hushed && started && <Hush size={28} />}
+    </>
   );
 }
 
@@ -319,16 +333,16 @@ export function VideoCard({ video }: { video: YouTubeVideo }) {
   );
 }
 
-// A Short in a grid, as on a channel's Shorts tab: its upright cover, which plays it while the mouse stays on the card,
-// its title, and its views. It opens on its Shorts page, which goes on to the next ones in the grid's order (sort).
+// A Short in a grid, as on a channel's Shorts tab: its upright cover (which doesn't play under the mouse, as YouTube's
+// don't), its title, and its views. It opens on its Shorts page, which goes on to the next ones in the grid's order
+// (sort).
 export function ShortCard({ video, sort }: { video: YouTubeVideo; sort?: string }) {
   const t = useTranslations("youtubeChannel");
   const locale = useLocale();
-  const { playing, ...hover } = usePreview();
   return (
-    <li className="group relative isolate font-roboto" {...hover}>
+    <li className="group relative isolate font-roboto">
       <Tint />
-      <Cover video={video} vertical playing={playing} />
+      <Cover video={video} vertical />
       <div className="pt-2 pr-4">
         <YouTubeLink
           href={`/youtube/shorts/${video.id}${sort ? `?sort=${sort}` : ""}`}
@@ -348,13 +362,13 @@ export function ShortCard({ video, sort }: { video: YouTubeVideo; sort?: string 
 }
 
 // A video found by a channel's search, as YouTube lists results: its cover beside its title, in bigger type, and its
-// views and how long ago; a Short opens on its Shorts page
+// views and how long ago; a Short opens on its Shorts page, and doesn't play under the mouse, as on YouTube
 export function ResultCard({ video }: { video: YouTubeVideo }) {
   const { playing, ...hover } = usePreview();
   return (
     <li className="group relative isolate flex gap-4 font-roboto" {...hover}>
       <Tint />
-      <Cover video={video} playing={playing} className="w-[min(360px,45%)] shrink-0" />
+      <Cover video={video} playing={playing && video.kind !== "short"} className="w-[min(360px,45%)] shrink-0" />
       <div className="min-w-0 flex-1 pt-0.5">
         <YouTubeLink
           href={`/youtube/${video.kind === "short" ? "shorts" : "videos"}/${video.id}`}
