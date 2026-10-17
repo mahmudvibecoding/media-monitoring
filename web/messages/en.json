@@ -78,6 +78,33 @@
     "edited": "edited",
     "none": "No comments collected."
   },
+  "telegramChannels": {
+    "title": "Telegram channels",
+    "count": "{count, plural, one {{formatted} channel} other {{formatted} channels}}",
+    "found": "Found: {formatted}",
+    "search": "Search by name or @username",
+    "order": "Order",
+    "biggest": "Biggest first",
+    "byName": "By name",
+    "latest": "Latest post first",
+    "channel": "Channel",
+    "username": "Username",
+    "latestPost": "Latest post",
+    "subscribers": "Subscribers",
+    "open": "Open in Telegram",
+    "none": "No channels yet.",
+    "noMatch": "No channels match “{search}”."
+  },
+  "telegramChannel": {
+    "back": "Telegram channels",
+    "subscribers": "{count, plural, one {{formatted} subscriber} other {{formatted} subscribers}}",
+    "latestPost": "Latest post: {when}",
+    "open": "Open in Telegram",
+    "messagesTitle": "Messages",
+    "saved": "{count, plural, one {{formatted} message saved} other {{formatted} messages saved}}",
+    "openMessage": "Open in Telegram",
+    "none": "No messages saved."
+  },
   "common": {
     "loading": "Loading…",
     "more": "Show more",

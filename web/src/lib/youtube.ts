@@ -1,25 +1,17 @@
 import type { YoutubeChannelsData, YoutubeChannelVideosData, YoutubeVideoCommentsData } from "@/api/types.gen";
-import { addressOf } from "@/lib/address";
+import { addressOf, pageOf, searchOf } from "@/lib/address";
 
 export type ChannelsQuery = NonNullable<YoutubeChannelsData["query"]>;
 export type VideosQuery = NonNullable<YoutubeChannelVideosData["query"]>;
 export type CommentsQuery = NonNullable<YoutubeVideoCommentsData["query"]>;
 
-export const SEARCH_MAX = 100; // characters, the most the API takes
-const LAST_PAGE = 10_000; // the furthest page the API gives
-
 // The queries below come from a page's address: only values the API takes, and none that's its default, so the server
 // and the browser build the same query, and so the same key for TanStack Query's cache
-
-function pageOf(params: URLSearchParams): number | undefined {
-  const page = Number(params.get("page"));
-  return Number.isInteger(page) && page > 1 ? Math.min(page, LAST_PAGE) : undefined;
-}
 
 // The channel list's search, order and page (?search=…&sort=name&page=2)
 export function channelsQuery(params: URLSearchParams): ChannelsQuery {
   const query: ChannelsQuery = {};
-  const search = (params.get("search") ?? "").split(/\s+/).filter(Boolean).join(" ").slice(0, SEARCH_MAX);
+  const search = searchOf(params);
   if (search) query.search = search;
   if (params.get("sort") === "name") query.sort = "name";
   const page = pageOf(params);

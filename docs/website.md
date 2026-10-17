@@ -74,6 +74,16 @@ sorted by their time on each request, so the video with the most, 128,669, takes
 the last. YouTube says only how long ago a comment was written ("2 months ago"), which the collector counted back from
 when it read it; the API also gives the unit it was said in, and whether the comment was edited.
 
+### Telegram
+
+`/api/telegram/channels` lists the Telegram channels the way YouTube's are listed: a search column and its trigram
+index, an index for each order holding the search column, the page picked from the index alone, all in `app.sql`. Its
+orders are the biggest first, by name, and the latest to post first; by name, the names without a letter or a digit come
+after the rest, as 3,466 channels are called ".", "-" or an emoji. Without a search, how many there are is PostgreSQL's
+running count, as on the overview: counting the 310,431 channels takes 80 ms each time. `/api/telegram/channels/{id}` is
+a channel's details, with how many of its messages have been saved, and `/api/telegram/channels/{id}/messages` a page of
+its messages, newest first, by the messages table's key: a few milliseconds, even for the channel with the most.
+
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
@@ -84,10 +94,10 @@ when it read it; the API also gives the unit it was said in, and whether the com
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
 - Admins have a menu at the side (shadcn's sidebar): the overview, then each kind of collected data. It folds down to
   its icons, which it remembers in a cookie, and slides in over the page on a phone.
-- The channel list keeps its search, order and page in the address, so Back, Forward and a copied link bring them back.
-  It changes the address through the browser's history rather than by loading the page again, and asks the API itself,
-  through Caddy; the server renders the list only when the page is loaded. A search starts 300 ms after the last key,
-  and the last list stays, dimmed, while the next one loads.
+- The lists keep their search, order and page in the address, so Back, Forward and a copied link bring them back. They
+  change the address through the browser's history rather than by loading the page again, and ask the API themselves,
+  through Caddy; the server renders a list only when the page is loaded. A search starts 300 ms after the last key, and
+  the last list stays, dimmed, while the next one loads.
 - Channel pictures come from YouTube's image server at 88 px (8 KB each), not at the 900 px saved (114 KB).
 - Video covers come from YouTube's image server at 320 × 180 (15 KB), loaded as they scroll into view: Next's image
   optimizer would fetch them through the site's server, which can't reach the internet.

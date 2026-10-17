@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
+import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -122,6 +122,30 @@ export const youtubeVideo = <ThrowOnError extends boolean = false>(options: Opti
  * collected has none). How many there are is in the video's details, so that a page isn't counted again.
  */
 export const youtubeVideoComments = <ThrowOnError extends boolean = false>(options: Options<YoutubeVideoCommentsData, ThrowOnError>): RequestResult<YoutubeVideoCommentsResponses, YoutubeVideoCommentsErrors, ThrowOnError> => (options.client ?? client).get<YoutubeVideoCommentsResponses, YoutubeVideoCommentsErrors, ThrowOnError>({ url: '/api/youtube/videos/{video_id}/comments', ...options });
+
+/**
+ * Telegram Channels
+ *
+ * The monitored channels, a page at a time, the biggest first, by name, or the latest to post first. With a search,
+ * only the channels whose name or username has it in them, whatever the case of its letters, and apostrophes
+ * aside.
+ */
+export const telegramChannels = <ThrowOnError extends boolean = false>(options?: Options<TelegramChannelsData, ThrowOnError>): RequestResult<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError> => (options?.client ?? client).get<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError>({ url: '/api/telegram/channels', ...options });
+
+/**
+ * Telegram Channel
+ *
+ * A monitored channel's details, and how many of its messages have been saved
+ */
+export const telegramChannel = <ThrowOnError extends boolean = false>(options: Options<TelegramChannelData, ThrowOnError>): RequestResult<TelegramChannelResponses, TelegramChannelErrors, ThrowOnError> => (options.client ?? client).get<TelegramChannelResponses, TelegramChannelErrors, ThrowOnError>({ url: '/api/telegram/channels/{channel_id}', ...options });
+
+/**
+ * Telegram Channel Messages
+ *
+ * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none). How many
+ * there are is in the channel's details, so that a page isn't counted again.
+ */
+export const telegramChannelMessages = <ThrowOnError extends boolean = false>(options: Options<TelegramChannelMessagesData, ThrowOnError>): RequestResult<TelegramChannelMessagesResponses, TelegramChannelMessagesErrors, ThrowOnError> => (options.client ?? client).get<TelegramChannelMessagesResponses, TelegramChannelMessagesErrors, ThrowOnError>({ url: '/api/telegram/channels/{channel_id}/messages', ...options });
 
 /**
  * Health

@@ -147,6 +147,84 @@ export type Status = {
 };
 
 /**
+ * TelegramChannel
+ */
+export type TelegramChannel = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Subscribers
+     */
+    subscribers: number | null;
+    /**
+     * Last Message At
+     */
+    last_message_at: string | null;
+};
+
+/**
+ * TelegramChannelDetails
+ */
+export type TelegramChannelDetails = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Subscribers
+     */
+    subscribers: number | null;
+    /**
+     * Last Message At
+     */
+    last_message_at: string | null;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Messages
+     */
+    messages: number;
+};
+
+/**
+ * TelegramChannels
+ */
+export type TelegramChannels = {
+    /**
+     * Channels
+     */
+    channels: Array<TelegramChannel>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
  * TelegramCounts
  */
 export type TelegramCounts = {
@@ -158,6 +236,38 @@ export type TelegramCounts = {
      * Messages
      */
     messages: number;
+};
+
+/**
+ * TelegramMessage
+ */
+export type TelegramMessage = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Published At
+     */
+    published_at: string;
+    /**
+     * Text
+     */
+    text: string;
+};
+
+/**
+ * TelegramMessages
+ */
+export type TelegramMessages = {
+    /**
+     * Messages
+     */
+    messages: Array<TelegramMessage>;
+    /**
+     * Page Size
+     */
+    page_size: number;
 };
 
 /**
@@ -1010,6 +1120,181 @@ export type YoutubeVideoCommentsResponses = {
 };
 
 export type YoutubeVideoCommentsResponse = YoutubeVideoCommentsResponses[keyof YoutubeVideoCommentsResponses];
+
+export type TelegramChannelsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Search
+         *
+         * Part of a channel's name or username
+         */
+        search?: string;
+        /**
+         * Sort
+         *
+         * The biggest first, by name, or the latest to post
+         */
+        sort?: 'subscribers' | 'name' | 'latest';
+        /**
+         * Page
+         *
+         * 50 channels to a page
+         */
+        page?: number;
+    };
+    url: '/api/telegram/channels';
+};
+
+export type TelegramChannelsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: a parameter is out of its range
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type TelegramChannelsError = TelegramChannelsErrors[keyof TelegramChannelsErrors];
+
+export type TelegramChannelsResponses = {
+    /**
+     * Successful Response
+     */
+    200: TelegramChannels;
+};
+
+export type TelegramChannelsResponse = TelegramChannelsResponses[keyof TelegramChannelsResponses];
+
+export type TelegramChannelData = {
+    body?: never;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: number;
+    };
+    query?: never;
+    url: '/api/telegram/channels/{channel_id}';
+};
+
+export type TelegramChannelErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no channel with that ID is monitored
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a channel's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type TelegramChannelError = TelegramChannelErrors[keyof TelegramChannelErrors];
+
+export type TelegramChannelResponses = {
+    /**
+     * Successful Response
+     */
+    200: TelegramChannelDetails;
+};
+
+export type TelegramChannelResponse = TelegramChannelResponses[keyof TelegramChannelResponses];
+
+export type TelegramChannelMessagesData = {
+    body?: never;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: number;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * 50 messages to a page
+         */
+        page?: number;
+    };
+    url: '/api/telegram/channels/{channel_id}/messages';
+};
+
+export type TelegramChannelMessagesErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: that isn't a channel's ID, or a parameter is out of its range
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type TelegramChannelMessagesError = TelegramChannelMessagesErrors[keyof TelegramChannelMessagesErrors];
+
+export type TelegramChannelMessagesResponses = {
+    /**
+     * Successful Response
+     */
+    200: TelegramMessages;
+};
+
+export type TelegramChannelMessagesResponse = TelegramChannelMessagesResponses[keyof TelegramChannelMessagesResponses];
 
 export type HealthData = {
     body?: never;

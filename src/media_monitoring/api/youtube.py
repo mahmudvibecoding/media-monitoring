@@ -16,10 +16,8 @@ from pydantic import BaseModel
 
 from media_monitoring.api.accounts import Admin
 from media_monitoring.api.errors import Failure, failures
+from media_monitoring.api.lists import LAST_PAGE, PAGE_SIZE, SEARCH_MAX, anywhere
 
-PAGE_SIZE = 50  # channels, videos or comments
-LAST_PAGE = 10_000  # the furthest a page may be, so that skipping to it stays quick
-SEARCH_MAX = 100  # characters
 CHANNEL_ID = r"^UC[A-Za-z0-9_-]{22}$"  # YouTube's: UC and 22 more characters
 VIDEO_ID = r"^[A-Za-z0-9_-]{11}$"  # YouTube's: 11 characters
 
@@ -83,11 +81,6 @@ ORDERS = {
     "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
     "name": sql.SQL("title COLLATE app.names, channel_id"),  # alphabetical, the channels without a name yet last
 }
-
-
-def anywhere(text: str) -> str:
-    """A LIKE pattern for the text anywhere in a value: the text's own %, _ and \\ count as themselves"""
-    return "%" + text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
 
 @router.get(

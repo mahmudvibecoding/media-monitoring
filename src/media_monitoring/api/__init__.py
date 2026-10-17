@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 
-from media_monitoring.api import accounts, errors, logs, status, youtube
+from media_monitoring.api import accounts, errors, logs, status, telegram, youtube
 from media_monitoring.api.settings import load
 
 CONNECTIONS = 2  # database connections kept open
@@ -67,6 +67,7 @@ app.add_middleware(logs.RequestLog, crashed=errors.internal_error)
 app.include_router(accounts.router)
 app.include_router(status.router)
 app.include_router(youtube.router)
+app.include_router(telegram.router)
 
 
 class Health(BaseModel):

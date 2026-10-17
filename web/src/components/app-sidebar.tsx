@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboardIcon, type LucideIcon, RadarIcon, TvIcon } from "lucide-react";
+import { LayoutDashboardIcon, type LucideIcon, RadarIcon, SendIcon, TvIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -52,6 +52,12 @@ export function AppSidebar() {
           <SidebarGroupLabel>YouTube</SidebarGroupLabel>
           <SidebarMenu>
             <Item href="/youtube/channels" also="/youtube/videos" icon={TvIcon} label={t("nav.channels")} />
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Telegram</SidebarGroupLabel>
+          <SidebarMenu>
+            <Item href="/telegram/channels" icon={SendIcon} label={t("nav.channels")} />
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

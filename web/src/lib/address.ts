@@ -1,3 +1,17 @@
+export const SEARCH_MAX = 100; // characters, the most the API takes
+const LAST_PAGE = 10_000; // the furthest page the API gives
+
+// A list's search in its address (?search=…): its words, one space apart, as the API takes it; "" for none
+export function searchOf(params: URLSearchParams): string {
+  return (params.get("search") ?? "").split(/\s+/).filter(Boolean).join(" ").slice(0, SEARCH_MAX);
+}
+
+// A list's page in its address (?page=2), the first being none
+export function pageOf(params: URLSearchParams): number | undefined {
+  const page = Number(params.get("page"));
+  return Number.isInteger(page) && page > 1 ? Math.min(page, LAST_PAGE) : undefined;
+}
+
 // The part of a page's address after its path, from values, leaving out the undefined ones: "" when none are left
 export function addressOf(values: Record<string, string | number | undefined>): string {
   const params = new URLSearchParams();

@@ -73,6 +73,19 @@ CREATE INDEX IF NOT EXISTS youtube_channels_subscribers
 CREATE INDEX IF NOT EXISTS youtube_channels_name
     ON youtube_channels (title COLLATE app.names, channel_id) INCLUDE (search_text);
 
+-- The Telegram channels page, in the same way: its search looks in each channel's name and username (with its @), and
+-- its orders are the biggest first, by name, and the latest to post first. By name, the names without a letter or a
+-- digit come after the rest: 3,466 channels are called ".", "-", "..." or an emoji, which would fill the first 70 pages.
+ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS search_text text
+    GENERATED ALWAYS AS (app.searchable(coalesce(title, '') || ' @' || username)) STORED;
+CREATE INDEX IF NOT EXISTS telegram_channels_search ON telegram_channels USING gin (search_text gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS telegram_channels_subscribers
+    ON telegram_channels (subscriber_count DESC NULLS LAST, channel_id) INCLUDE (search_text);
+CREATE INDEX IF NOT EXISTS telegram_channels_name
+    ON telegram_channels ((title !~ '[[:alnum:]]'), title COLLATE app.names, channel_id) INCLUDE (search_text);
+CREATE INDEX IF NOT EXISTS telegram_channels_latest
+    ON telegram_channels (last_message_at DESC NULLS LAST, channel_id) INCLUDE (search_text);
+
 -- The API's user (run.sh setup makes it) may read and change every table here, and create none
 GRANT USAGE ON SCHEMA app TO media_monitoring_api;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO media_monitoring_api;

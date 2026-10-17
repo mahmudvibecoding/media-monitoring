@@ -53,3 +53,9 @@ export function formatWhen(iso: string, precision: YouTubeComment["precision"], 
       return formatDateTime(iso, locale);
   }
 }
+
+// The letter a picture stands in with, for a name: its first letter or digit, as a capital ("🇺🇿Toshkent" gives T, not
+// half a flag), or else its first character
+export function initialOf(name: string): string {
+  return (name.match(/[\p{L}\p{N}]/u)?.[0] ?? Array.from(name)[0] ?? "").toUpperCase();
+}

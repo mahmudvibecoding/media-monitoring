@@ -19,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { go } from "@/lib/address";
-import { formatCount, formatDateTime, formatDuration } from "@/lib/format";
+import { formatCount, formatDateTime, formatDuration, initialOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { avatarAt, channelOnYouTube, thumbnail, videoOnYouTube, videosAddress, videosQuery } from "@/lib/youtube";
 
@@ -47,7 +47,7 @@ export function ChannelDetails({ id }: { id: string }) {
           {data.avatar_url && (
             <AvatarImage src={avatarAt(data.avatar_url, AVATAR_SIZE)} alt="" referrerPolicy="no-referrer" />
           )}
-          <AvatarFallback className="text-2xl">{Array.from(name)[0]?.toUpperCase()}</AvatarFallback>
+          <AvatarFallback className="text-2xl">{initialOf(name)}</AvatarFallback>
         </Avatar>
         {/* At least 15rem wide beside the picture: on a phone, the YouTube button goes to the next line instead */}
         <div className="min-w-0 flex-1 basis-60">

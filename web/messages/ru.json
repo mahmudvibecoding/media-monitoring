@@ -78,6 +78,33 @@
     "edited": "изменён",
     "none": "Комментариев не собрано."
   },
+  "telegramChannels": {
+    "title": "Каналы Telegram",
+    "count": "{count, plural, one {{formatted} канал} few {{formatted} канала} many {{formatted} каналов} other {{formatted} канала}}",
+    "found": "Найдено: {formatted}",
+    "search": "Название или @юзернейм",
+    "order": "Порядок",
+    "biggest": "Сначала крупные",
+    "byName": "По названию",
+    "latest": "Сначала недавние посты",
+    "channel": "Канал",
+    "username": "Юзернейм",
+    "latestPost": "Последний пост",
+    "subscribers": "Подписчики",
+    "open": "Открыть в Telegram",
+    "none": "Каналов пока нет.",
+    "noMatch": "По запросу «{search}» каналов нет."
+  },
+  "telegramChannel": {
+    "back": "Каналы Telegram",
+    "subscribers": "{count, plural, one {{formatted} подписчик} few {{formatted} подписчика} many {{formatted} подписчиков} other {{formatted} подписчика}}",
+    "latestPost": "Последний пост: {when}",
+    "open": "Открыть в Telegram",
+    "messagesTitle": "Сообщения",
+    "saved": "{count, plural, one {Сохранено {formatted} сообщение} few {Сохранено {formatted} сообщения} many {Сохранено {formatted} сообщений} other {Сохранено {formatted} сообщения}}",
+    "openMessage": "Открыть в Telegram",
+    "none": "Сообщений не сохранено."
+  },
   "common": {
     "loading": "Загрузка…",
     "more": "Показать полностью",

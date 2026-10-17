@@ -90,6 +90,11 @@ and `/api/youtube/channels/{id}/videos` its videos, newest first, 50 to a page, 
 video's details, with how many of its comments have been collected, and `/api/youtube/videos/{id}/comments` its
 comments, newest first, 50 to a page, each with when it was written, as precisely as YouTube said it.
 
+`/api/telegram/channels` lists the monitored Telegram channels in the same way, the biggest first, by name, or the
+latest to post first (`sort=latest`), searched by name or @username; `/api/telegram/channels/{id}` gives a channel's
+details, with how many of its messages have been saved, and `/api/telegram/channels/{id}/messages` its messages, newest
+first, 50 to a page.
+
 ## The website
 
 `web/` is the website: a Next.js app in TypeScript, in Russian, Uzbek and English. In `web/`:
@@ -110,7 +115,9 @@ channels, a list searched as one types, the biggest first or by name, 50 to a pa
 order and the page. Each channel has a page of its own: its details and description, and its videos, newest first, all
 of them or only videos or only Shorts, with when each came out (in Tashkent's time), its length, views, likes and
 comments. Each video has one too: its details, numbers and description, and its comments, newest first, with their
-authors and when they were written. Customers, for now, see a greeting. The header has the user's name and signing out.
+authors and when they were written. Telegram's channels have a list and pages of their own in the same way, the list
+also in the order of their latest posts, and a channel's page with its saved messages. Customers, for now, see a
+greeting. The header has the user's name and signing out.
 
 A visitor sees Russian until they choose another language in the header; the choice is kept in a cookie for a year,
 and, once they're signed in, in their account, which the site switches to when they sign in in another browser.
