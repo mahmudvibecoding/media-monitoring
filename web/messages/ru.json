@@ -29,11 +29,29 @@
     "activity": "Activity",
     "toggle": "Показать или скрыть меню"
   },
+  "youtube": {
+    "search": "Поиск",
+    "clearSearch": "Очистить строку поиска",
+    "share": "Поделиться",
+    "copy": "Копировать",
+    "copied": "Ссылка скопирована в буфер обмена",
+    "startAt": "Начало: {time}",
+    "close": "Закрыть",
+    "play": "Смотреть (k)",
+    "pause": "Пауза (k)",
+    "mute": "Отключить звук (m)",
+    "unmute": "Включить звук (m)",
+    "comments": "Комментарии",
+    "description": "Описание",
+    "previous": "Предыдущее видео",
+    "next": "Следующее видео",
+    "likes": "Отметки «Нравится»",
+    "views": "Просмотры"
+  },
   "youtubeChannels": {
     "title": "Каналы YouTube",
     "count": "{count, plural, one {{formatted} канал} few {{formatted} канала} many {{formatted} каналов} other {{formatted} канала}}",
     "found": "Найдено: {formatted}",
-    "search": "Название или псевдоним",
     "hidden": "скрыто",
     "none": "Каналов пока нет.",
     "noMatch": "По запросу «{search}» каналов нет."
@@ -46,19 +64,31 @@
     "unavailable": "Недоступно",
     "none": "Видео пока нет.",
     "viewCount": "{count, plural, one {{formatted} просмотр} few {{formatted} просмотра} many {{formatted} просмотров} other {{formatted} просмотра}}",
-    "videoCount": "{formatted} видео"
+    "videoCount": "{formatted} видео",
+    "sorts": {
+      "newest": "Новые",
+      "popular": "Популярные",
+      "oldest": "Старые"
+    },
+    "more": "…ещё",
+    "moreAbout": "Подробнее о канале",
+    "about": "О канале",
+    "description": "Описание",
+    "details": "Сведения о канале"
   },
   "youtubeVideo": {
     "unavailable": "Недоступно",
-    "views": "Просмотры",
     "likes": "Лайки",
-    "comments": "Комментарии",
     "statsAsOf": "Просмотры и лайки на {when}",
     "noStats": "Просмотры и лайки ещё не прочитаны",
-    "edited": "изменён",
+    "edited": "изменено",
     "none": "Комментариев не собрано.",
     "commentCount": "{count, plural, one {{formatted} комментарий} few {{formatted} комментария} many {{formatted} комментариев} other {{formatted} комментария}}",
-    "moreFrom": "Ещё от {channel}"
+    "like": "Нравится",
+    "more": "…ещё",
+    "less": "Свернуть",
+    "readMore": "Читать дальше",
+    "readLess": "Свернуть"
   },
   "telegramChannels": {
     "title": "Каналы Telegram",
@@ -100,6 +130,14 @@
       "weeks": "{count, plural, one {# неделю назад} few {# недели назад} many {# недель назад} other {# недели назад}}",
       "months": "{count, plural, one {# месяц назад} few {# месяца назад} many {# месяцев назад} other {# месяца назад}}",
       "years": "{count, plural, one {# год назад} few {# года назад} many {# лет назад} other {# года назад}}"
+    },
+    "youtubeShort": {
+      "minutes": "{count} мин. назад",
+      "hours": "{count} ч назад",
+      "days": "{count} дн. назад",
+      "weeks": "{count} нед. назад",
+      "months": "{count} мес. назад",
+      "years": "{count, plural, one {# г. назад} few {# г. назад} many {# л. назад} other {# г. назад}}"
     }
   },
   "pages": {

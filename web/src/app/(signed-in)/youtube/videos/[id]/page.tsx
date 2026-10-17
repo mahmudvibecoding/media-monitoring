@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 
 import {
-  youtubeChannelVideosOptions,
+  youtubeChannelVideosInfiniteOptions,
   youtubeVideoCommentsInfiniteOptions,
   youtubeVideoQueryKey,
 } from "@/api/@tanstack/react-query.gen";
@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: PageProps<"/youtube/videos/[i
 }
 
 // A collected YouTube video, for admins, laid out like YouTube's page: its details, its first comments and its
-// channel's newest videos arrive with the page, and the browser takes over from there
+// channel's newest videos (the first page of the channel's Videos tab, which its page then has already) arrive with
+// the page, and the browser takes over from there
 export default async function YouTubeVideoPage({ params }: PageProps<"/youtube/videos/[id]">) {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();
@@ -43,9 +44,14 @@ export default async function YouTubeVideoPage({ params }: PageProps<"/youtube/v
       ...FIRST_PAGE,
     }),
     video &&
-      queryClient.prefetchQuery(
-        youtubeChannelVideosOptions({ client: serverClient, path: { channel_id: video.channel_id } }),
-      ),
+      queryClient.prefetchInfiniteQuery({
+        ...youtubeChannelVideosInfiniteOptions({
+          client: serverClient,
+          path: { channel_id: video.channel_id },
+          query: { kind: "video" },
+        }),
+        ...FIRST_PAGE,
+      }),
   ]);
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>

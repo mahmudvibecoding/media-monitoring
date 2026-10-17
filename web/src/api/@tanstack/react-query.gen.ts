@@ -141,7 +141,8 @@ export const statusQueryKey = (options?: Options<StatusData>) => createQueryKey(
 /**
  * Status
  *
- * How many YouTube channels, videos and comments, and Telegram channels and messages the database holds.
+ * How many YouTube channels (with a video), videos and comments, and Telegram channels (with a saved message) and
+ * messages the database holds.
  */
 export const statusOptions = (options?: Options<StatusData>) => queryOptions<StatusResponse, StatusError, StatusResponse, ReturnType<typeof statusQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -161,8 +162,9 @@ export const youtubeChannelsQueryKey = (options?: Options<YoutubeChannelsData>) 
 /**
  * Youtube Channels
  *
- * The monitored channels, a page at a time, the biggest first. With a search, only the channels whose name or
- * handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
+ * The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the
+ * channels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds
+ * Zo‘r.
  */
 export const youtubeChannelsOptions = (options?: Options<YoutubeChannelsData>) => queryOptions<YoutubeChannelsResponse, YoutubeChannelsError, YoutubeChannelsResponse, ReturnType<typeof youtubeChannelsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -211,8 +213,9 @@ export const youtubeChannelsInfiniteQueryKey = (options?: Options<YoutubeChannel
 /**
  * Youtube Channels
  *
- * The monitored channels, a page at a time, the biggest first. With a search, only the channels whose name or
- * handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
+ * The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the
+ * channels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds
+ * Zo‘r.
  */
 export const youtubeChannelsInfiniteOptions = (options?: Options<YoutubeChannelsData>) => {
     const opts = infiniteQueryOptions<YoutubeChannelsResponse, YoutubeChannelsError, InfiniteData<YoutubeChannelsResponse>, QueryKey<Options<YoutubeChannelsData>>, number | Pick<QueryKey<Options<YoutubeChannelsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -265,9 +268,9 @@ export const youtubeChannelVideosQueryKey = (options: Options<YoutubeChannelVide
 /**
  * Youtube Channel Videos
  *
- * A channel's collected videos, newest first, a page at a time, with their views, likes and comments (a channel
- * that isn't monitored has none). How many there are of each kind is in the channel's details: counted again for
- * every page, they'd take 50 ms of each page of the biggest channel.
+ * A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their
+ * views, likes and comments (a channel that isn't monitored has none). How many there are of each kind is in the
+ * channel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel.
  */
 export const youtubeChannelVideosOptions = (options: Options<YoutubeChannelVideosData>) => queryOptions<YoutubeChannelVideosResponse, YoutubeChannelVideosError, YoutubeChannelVideosResponse, ReturnType<typeof youtubeChannelVideosQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -287,9 +290,9 @@ export const youtubeChannelVideosInfiniteQueryKey = (options: Options<YoutubeCha
 /**
  * Youtube Channel Videos
  *
- * A channel's collected videos, newest first, a page at a time, with their views, likes and comments (a channel
- * that isn't monitored has none). How many there are of each kind is in the channel's details: counted again for
- * every page, they'd take 50 ms of each page of the biggest channel.
+ * A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their
+ * views, likes and comments (a channel that isn't monitored has none). How many there are of each kind is in the
+ * channel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel.
  */
 export const youtubeChannelVideosInfiniteOptions = (options: Options<YoutubeChannelVideosData>) => {
     const opts = infiniteQueryOptions<YoutubeChannelVideosResponse, YoutubeChannelVideosError, InfiniteData<YoutubeChannelVideosResponse>, QueryKey<Options<YoutubeChannelVideosData>>, number | Pick<QueryKey<Options<YoutubeChannelVideosData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -396,8 +399,9 @@ export const telegramChannelsQueryKey = (options?: Options<TelegramChannelsData>
 /**
  * Telegram Channels
  *
- * The monitored channels, a page at a time, the biggest first or the latest to post first. With a search, only the
- * channels whose name or username has it in them, whatever the case of its letters, and apostrophes aside.
+ * The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
+ * first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
+ * apostrophes aside.
  */
 export const telegramChannelsOptions = (options?: Options<TelegramChannelsData>) => queryOptions<TelegramChannelsResponse, TelegramChannelsError, TelegramChannelsResponse, ReturnType<typeof telegramChannelsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -417,8 +421,9 @@ export const telegramChannelsInfiniteQueryKey = (options?: Options<TelegramChann
 /**
  * Telegram Channels
  *
- * The monitored channels, a page at a time, the biggest first or the latest to post first. With a search, only the
- * channels whose name or username has it in them, whatever the case of its letters, and apostrophes aside.
+ * The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
+ * first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
+ * apostrophes aside.
  */
 export const telegramChannelsInfiniteOptions = (options?: Options<TelegramChannelsData>) => {
     const opts = infiniteQueryOptions<TelegramChannelsResponse, TelegramChannelsError, InfiniteData<TelegramChannelsResponse>, QueryKey<Options<TelegramChannelsData>>, number | Pick<QueryKey<Options<TelegramChannelsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(

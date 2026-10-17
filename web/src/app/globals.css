@@ -55,10 +55,27 @@
 @theme {
   --color-yt-text: #0f0f0f;
   --color-yt-muted: #606060;
-  --color-yt-chip: #f2f2f2;
-  --color-yt-chip-hover: #e5e5e5;
+  --color-yt-chip: #f2f2f2; /* YouTube's 5 % black on white: its pills, chips and the description's box */
+  --color-yt-chip-hover: #e5e5e5; /* 10 % black: the same under the mouse */
   --color-yt-line: #e5e5e5;
+  --color-yt-divider: #cccccc; /* 20 % black: under a channel's tabs, between a like and a dislike */
   --color-yt-red: #ff0033;
+  --color-yt-blue: #065fd4; /* links in descriptions and comments */
+  --color-yt-field: #d3d3d3; /* the search box's edge, */
+  --color-yt-focus: #1c62b9; /* and while typing in it */
+  --color-yt-placeholder: #757575;
+  --color-yt-tint: rgb(69 110 201 / 0.13); /* the blue that comes round a video under the mouse */
+  /* The red line along the top of the window while the next page loads, as YouTube's: it grows quickly at first, then
+     slower and slower, as long as the page takes */
+  --animate-yt-loading: yt-loading 10s cubic-bezier(0.05, 0.8, 0.2, 1) forwards;
+  @keyframes yt-loading {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(0.95);
+    }
+  }
   --color-tg-blue: #3390ec;
   --color-tg-text: #000000;
   --color-tg-muted: #707579;

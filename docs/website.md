@@ -62,10 +62,11 @@ name or handle has it in them. Through Caddy, a search takes about 13 ms, the fi
 
 A channel's page asks for two things. `/api/youtube/channels/{id}` is the channel's details, with how many of its videos
 there are of each kind: counting them takes a few milliseconds for most channels (40 videos, the median), and 50 ms for
-the one with the most (20,176). `/api/youtube/channels/{id}/videos` is a page of its videos, newest first: the
-collectors' own index, by channel and day, gives them in that order, so a page takes about 15 ms through Caddy even for
-that channel, and one 400 pages down 100 ms. The videos aren't counted again for each page, which would add those 50 ms
-to every page.
+the one with the most (20,176). `/api/youtube/channels/{id}/videos` is a page of its videos, newest first, or the oldest
+first (`sort=oldest`): the collectors' own index, by channel and day, gives them in either order, so a page takes about
+15 ms through Caddy even for that channel, and one 400 pages down 100 ms. The most viewed first (`sort=popular`) read
+every video's views, which are a table of their own: a few milliseconds for most channels, 0.25 s for the biggest (0.9 s
+the first time, from disk). The videos aren't counted again for each page, which would add those 50 ms to every page.
 
 A video's page asks for three things. `/api/youtube/videos/{id}` is its details, its channel's picture and subscribers,
 and how many of its comments have been collected (YouTube's own count has the replies too, which aren't).
@@ -74,7 +75,8 @@ theirs take milliseconds, but a video's comments are sorted by their time on eac
 128,669, takes 0.3 s for the first page and 0.75 s for the last. YouTube says only how long ago a comment was written
 ("2 months ago"), which the collector counted back from when it read it; the API also gives the unit it was said in, and
 whether the comment was edited. Beside the video, its channel's newest videos are the first page the channel's own page
-asks for.
+asks for. A Short's page asks for its details, its channel's, and its channel's Shorts in the order of the grid it was
+opened from; the Shorts after it are in that list, and only each one's details and comments are asked for as it comes.
 
 ### Which channels are listed
 
@@ -111,10 +113,14 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
 - Light only, and sober: white, near-black and greys, with color only for a status (running, stopped, failed). YouTube's
-  pages look like YouTube's own (its font, Roboto, its greys, its header with a way up (from a video to its channel,
-  from a channel to the channels), its logo (the very one its site shows) and the search box, its black button and grey
-  pills, its grids of covers and its watch page), and Telegram's like Telegram's (its list of chats, its blue, its chat
-  with bubbles on its background, its info panel).
+  pages look like YouTube's own, in its sizes, measured on youtube.com: its font, Roboto, and its colors; its top bar,
+  which stays at the top as a page scrolls and from page to page, with a way up (from a video to its channel, from a
+  Short to its channel's Shorts, from a channel to the channels), its logo (the very one its site shows) and its search
+  box; its pills, chips, tabs and tooltips; its grids of covers, with the views by its play sign and how long ago the
+  short way (▷ 48K • 3d ago, as YouTube's lists write them now), and the blue that comes round a card under the mouse;
+  its watch page, its Shorts' player, its channel's About box and its Share box; its red line along the top while a page
+  loads, and its pages' shapes in grey while they do. Telegram's look like Telegram's (its list of chats, its blue, its
+  chat with bubbles on its background, its info panel).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
@@ -122,10 +128,10 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
 - Admins have a menu at the side (shadcn's sidebar) and no bar above the page, which takes the window's whole width
   (each page keeps its own: the overview and the activity 1,280 px at most, a YouTube channel's page 1,284 px as
-  YouTube's, a video's page 1,706 px, its player up to 1,280 px beside a column of 402 px, as on YouTube): the overview,
-  YouTube and Telegram, then apart at the bottom the activity, and at its foot who's signed in, with the language and
-  signing out. It folds down to its icons (its button, a click on its edge, or Ctrl+B), which it remembers in a cookie,
-  and slides in over the page on a phone, where a thin bar opens it.
+  YouTube's): the overview, YouTube and Telegram, then apart at the bottom the activity, and at its foot who's signed
+  in, with the language and signing out. It folds down to its icons (its button, a click on its edge, or Ctrl+B), which
+  it remembers in a cookie, and slides in over the page on a phone, where a thin bar opens it (on YouTube's pages, the ☰
+  in YouTube's top bar).
 - Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
   middle-click opens it in a new tab, as a link does.
 - The channel lists keep their search, order and page in the address, so Back, Forward and a copied link bring them
@@ -134,31 +140,48 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   the grid. A list's pages have a button to the one before and the next, and ← and → turn them. They change the address
   through the browser's history rather than by loading the page again, and ask the API themselves, through Caddy; the
   server renders Telegram's list only when the page is loaded. A search starts 300 ms after the last key, "/" goes to
-  the search box and Escape empties it, and the last list stays, dimmed, while the next one loads.
+  the search box and Escape empties it, and the last list stays, dimmed, while the next one loads. YouTube's search box
+  is in its top bar: on the channels' list it searches them as one types; on its other pages it suggests channels as one
+  types, as YouTube suggests searches (↑ and ↓ go through them, Enter or a click opens one), and Enter searches the
+  list.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
-  it as the page opens: with sound once one has clicked something on the site, as browsers allow. Next keeps a page one
-  has left alive, hidden, for going back to it, so the player is unloaded as its page goes (nothing plays unseen), and
-  loaded again on going back, from the second it had got to (which the player tells a page that says it's listening); a
-  card's preview is unloaded too. In a channel's grid and beside a video, a video plays silently in its card once the
-  mouse has stayed on it half a second, as on YouTube, until the mouse leaves; a click still opens its page.
+  it as the page opens: with sound once one has clicked something on the site, as browsers allow. The player is as wide
+  as its column but no taller than leaves room for the title under it (16:9 of the screen's height less 116 px), as on
+  YouTube, with the next videos beside it from 1,000 px of the page's width, and under the description below that
+  (full-width cards on a phone). YouTube's keys work on the page (K or the space bar, J and L, ← and →, M, F, 0 to 9),
+  times in the description and the comments take the player there, and Share gives the video's link, from the second
+  it's at if asked. Next keeps a page one has left alive, hidden, for going back to it, so the player is unloaded as its
+  page goes (nothing plays unseen), and loaded again on going back, from the second it had got to (which the player
+  tells a page that says it's listening); a card's preview is unloaded too. In a channel's grid and beside a video, a
+  video plays silently in its card once the mouse has stayed on it half a second, as on YouTube, until the mouse leaves;
+  a click still opens its page.
+- A Short opens on its own page, `/youtube/shorts/{id}`, as YouTube's do: upright, as tall as the screen allows, with
+  the page's own controls over YouTube's player (a click plays and pauses, the sound button, the red line that says
+  where it's at), the channel and the title over its bottom, and YouTube's round buttons beside it, whose comments open
+  their panel; the title opens the description's. ↑, ↓, the wheel and the arrows at the right go through the channel's
+  Shorts in the order of the grid it was opened from, changing the address without asking the server for a page, so Back
+  goes back through them. The player is 160 px taller than its frame at each end, so what YouTube puts along them (its
+  title, its logo, a Short's like count) falls outside it.
 - A channel's videos, a video's comments and a channel's messages load more as they're scrolled, as on YouTube and in
   Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest message, at the
   bottom, and loads older ones above as it's scrolled up.
 - Counts in lists are cut short, as YouTube and Telegram write them (2.19M subscribers, 48K views), with the exact
-  number on hover; times are how long ago (3 h ago, 2 days ago), with the exact time on hover. How long ago is counted
-  in the browser: Next won't let the server read the clock while it prerenders a page, so the server writes the date and
-  the browser turns it into how long ago.
+  number on hover; times are how long ago (3 h ago, 2 days ago; in YouTube's lists 3d ago, 3 дн. назад, as YouTube's
+  lists write them), with the exact time on hover. How long ago is counted in the browser: Next won't let the server
+  read the clock while it prerenders a page, so the server writes the date and the browser turns it into how long ago.
 - The activity (`/activity`) shows the runs as the API gives them, and a page for each with every number it kept: its
   items' outcomes, its requests and proxy tests by outcome, its proxies; for `uv run proxies`, a row per list. A step's
   texts are looked up by its name as the table has it (`activity.steps` in the messages), and so are its outcomes'
   names; one without a text shows as it is. The activity's first page, the overview's runs, and any page with a run
   going are asked for again every 5 s. How long a run has been going is counted to its last update, not to the
   browser's clock, so the server's page and the browser's agree.
-- Channel pictures come from YouTube's image server at twice the size shown (208 px in the grid), not at the 900 px
+- Channel pictures come from YouTube's image server at twice the size shown (192 px in the grid), not at the 900 px
   saved (114 KB), and Telegram's from its own, at the one size its pages give, 160 px (10 KB). Video covers come from
-  YouTube's image server, 480 × 360 (23 KB) in grids and 320 × 180 beside a video, loaded as they scroll into view:
-  Next's image optimizer would fetch them through the site's server, which can't reach the internet. A picture that
-  doesn't load leaves a figure (YouTube) or the channel's initials on Telegram's colors (Telegram).
+  YouTube's image server, loaded as they scroll into view: 640 × 480 (27 KB as WebP) in a channel's grids, or 480 × 360
+  for a video that hasn't got the bigger one (YouTube answers with a 120 × 90 grey picture instead), and 480 × 360
+  beside a video; a Short's is its upright picture, cut out of those. Next's image optimizer would fetch them through
+  the site's server, which can't reach the internet. A picture that doesn't load leaves a figure (YouTube) or the
+  channel's initials on Telegram's colors (Telegram).
 - Dates and times are Tashkent's (UTC+5, the same all year), written by the site's own function (`src/lib/format.ts`),
   for the same reason as counts. A comment's time is only as precise as YouTube's wording: 16.10.2026, 14:05 for
   minutes, 16.10.2026, ≈14:00 for hours, ≈16.10.2026 for days and weeks, ≈10.2026 for months, ≈2025 for years.

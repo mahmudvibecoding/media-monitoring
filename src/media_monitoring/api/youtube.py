@@ -1,8 +1,9 @@
 """The collected YouTube data, for admins: the monitored channels a page at a time, searched and in the order the
 site's channels page asks for (GET /api/youtube/channels), a channel's details (.../{channel_id}), and its videos,
-newest first (.../{channel_id}/videos); a video's details (GET /api/youtube/videos/{video_id}) and its comments, newest
-first (.../{video_id}/comments). The column and the indexes the channel list reads them by are in app.sql; a channel's
-videos come by the collectors' own index, by channel and day, and a video's comments by the comments table's key."""
+newest, most viewed or oldest first (.../{channel_id}/videos); a video's details (GET /api/youtube/videos/{video_id})
+and its comments, newest first (.../{video_id}/comments). The column and the indexes the channel list reads them by are
+in app.sql; a channel's videos come by the collectors' own index, by channel and day, and a video's comments by the
+comments table's key."""
 
 import asyncio
 import re
@@ -170,21 +171,34 @@ async def youtube_channel(
     return YouTubeChannelDetails(**channel, videos=videos)
 
 
-# Newest first: the collectors' index gives a channel's videos by the day they came out, and they're sorted by the time
-# within each day. The page's videos are picked first, and only those 50 are read with their stats.
+# A page of a channel's videos: its videos are picked first, and only those 50 are read with their stats. The newest or
+# the oldest first come by the collectors' index, which gives a channel's videos by the day they came out (sorted by
+# the time within each day): a millisecond. The most viewed first read every video's views: a few milliseconds for most
+# channels, 0.25 s for the biggest (20,176 videos), as the stats are a table of their own.
 VIDEOS = sql.SQL("""
     SELECT v.video_id AS id, v.title, v.published_at, v.duration_seconds AS duration, v.kind,
         v.status = 'available' AS available, s.views, s.likes, s.comments
-    FROM (
-        SELECT video_id FROM youtube_videos WHERE channel_id = %(channel)s {kind}
-        ORDER BY upload_date DESC NULLS FIRST, published_at DESC NULLS LAST, video_id
-        LIMIT %(limit)s OFFSET %(offset)s
-    ) AS page
+    FROM ({page}) AS page
     JOIN youtube_videos AS v USING (video_id)
     LEFT JOIN youtube_video_stats AS s USING (video_id)
-    ORDER BY v.upload_date DESC NULLS FIRST, v.published_at DESC NULLS LAST, v.video_id
+    ORDER BY {order}
 """)
-OF_KIND = sql.SQL("AND kind = %(kind)s")
+BY_DAY = sql.SQL("""
+    SELECT video_id FROM youtube_videos AS v WHERE channel_id = %(channel)s {kind}
+    ORDER BY {order} LIMIT %(limit)s OFFSET %(offset)s
+""")
+BY_VIEWS = sql.SQL("""
+    SELECT v.video_id FROM youtube_videos AS v LEFT JOIN youtube_video_stats AS s USING (video_id)
+    WHERE v.channel_id = %(channel)s {kind}
+    ORDER BY {order} LIMIT %(limit)s OFFSET %(offset)s
+""")
+# Each order ends with the video's ID, so that videos that tie keep their places from one page to the next
+ORDERS = {
+    "newest": sql.SQL("v.upload_date DESC NULLS FIRST, v.published_at DESC NULLS LAST, v.video_id"),
+    "popular": sql.SQL("s.views DESC NULLS LAST, v.video_id"),
+    "oldest": sql.SQL("v.upload_date ASC NULLS LAST, v.published_at ASC NULLS LAST, v.video_id"),
+}
+OF_KIND = sql.SQL("AND v.kind = %(kind)s")
 
 
 @router.get(
@@ -202,16 +216,20 @@ async def youtube_channel_videos(
     _: Admin,
     channel_id: Annotated[str, Path(pattern=CHANNEL_ID)],
     kind: Annotated[Literal["video", "short"] | None, Query(description="Only videos, or only Shorts")] = None,
+    sort: Annotated[
+        Literal["newest", "popular", "oldest"], Query(description="Newest, most viewed, or oldest first")
+    ] = "newest",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} videos to a page")] = 1,
 ) -> YouTubeVideos:
-    """A channel's collected videos, newest first, a page at a time, with their views, likes and comments (a channel
-    that isn't monitored has none). How many there are of each kind is in the channel's details: counted again for
-    every page, they'd take 50 ms of each page of the biggest channel."""
+    """A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their
+    views, likes and comments (a channel that isn't monitored has none). How many there are of each kind is in the
+    channel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel."""
     values = {"channel": channel_id, "kind": kind, "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
+    order = ORDERS[sort]
+    picked = (BY_VIEWS if sort == "popular" else BY_DAY).format(kind=OF_KIND if kind else sql.SQL(""), order=order)
     async with request.state.pool.connection() as conn:
         cursor = conn.cursor(row_factory=class_row(YouTubeVideo))
-        query = VIDEOS.format(kind=OF_KIND if kind else sql.SQL(""))
-        videos = await (await cursor.execute(query, values)).fetchall()
+        videos = await (await cursor.execute(VIDEOS.format(page=picked, order=order), values)).fetchall()
     return YouTubeVideos(videos=videos, page_size=PAGE_SIZE)
 
 

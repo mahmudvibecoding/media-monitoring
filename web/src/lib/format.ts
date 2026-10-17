@@ -129,6 +129,34 @@ export function formatDay(iso: string, now: number | null, locale: string): stri
   return now !== null && year === inTashkent(new Date(now)).getUTCFullYear() ? said : `${said} ${year}`;
 }
 
+const SHORT_MONTHS = {
+  en: MONTHS,
+  ru: ["янв.", "февр.", "мар.", "апр.", "мая", "июн.", "июл.", "авг.", "сент.", "окт.", "нояб.", "дек."],
+  uz: ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"],
+} as const;
+
+// The day a video came out, as YouTube writes it in its open description: Oct 15, 2026, 15 окт. 2026 г., 15-okt, 2026
+export function formatYouTubeDate(iso: string, locale: string): string {
+  const moment = inTashkent(iso);
+  const [day, month, year] = [moment.getUTCDate(), moment.getUTCMonth(), moment.getUTCFullYear()];
+  const words = wordsOf(locale);
+  const name = SHORT_MONTHS[words][month];
+  if (words === "ru") return `${day} ${name} ${year} г.`;
+  if (words === "uz") return `${day}-${name}, ${year}`;
+  return `${name} ${day}, ${year}`;
+}
+
+// The same day in two parts, as YouTube writes it big over the year in a Short's description: 15 окт. over 2026 г.
+export function formatYouTubeDay(iso: string, locale: string): [string, string] {
+  const moment = inTashkent(iso);
+  const [day, month, year] = [moment.getUTCDate(), moment.getUTCMonth(), moment.getUTCFullYear()];
+  const words = wordsOf(locale);
+  const name = SHORT_MONTHS[words][month];
+  if (words === "ru") return [`${day} ${name}`, `${year} г.`];
+  if (words === "uz") return [`${day}-${name}`, `${year}`];
+  return [`${name} ${day}`, `${year}`];
+}
+
 // Whether two moments fall on the same day in Tashkent
 export function sameDay(a: string, b: string): boolean {
   return dayOf(inTashkent(a)) === dayOf(inTashkent(b));

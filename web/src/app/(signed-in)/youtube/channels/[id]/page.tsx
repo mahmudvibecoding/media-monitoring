@@ -6,12 +6,11 @@ import { cache } from "react";
 import { youtubeChannelQueryKey, youtubeChannelVideosInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import { youtubeChannel } from "@/api/sdk.gen";
 import { ChannelDetails, ChannelVideos } from "@/components/youtube-channel";
-import { YouTubeMasthead } from "@/components/youtube-ui";
 import { toSearchParams } from "@/lib/address";
 import { serverClient, signedInUser } from "@/lib/api-server";
 import { FIRST_PAGE } from "@/lib/pages";
 import { getQueryClient } from "@/lib/query-client";
-import { videosQuery } from "@/lib/youtube";
+import { firstKind, videosQuery } from "@/lib/youtube";
 
 // The channel, asked for once per page load though both the tab's title and the page need it: null when there's no
 // such channel, undefined when the API didn't say (the browser then asks again, and shows why if it fails again)
@@ -26,15 +25,16 @@ export async function generateMetadata({ params }: PageProps<"/youtube/channels/
   return channel ? { title: channel.title?.trim() || channel.id } : {};
 }
 
-// A monitored YouTube channel, for admins: its details, and its videos of the kind the address asks for. The page
-// arrives with both (the first 50 videos), and the browser takes over from there.
+// A monitored YouTube channel, for admins: its details, and its videos of the kind and in the order the address asks
+// for (by default, its videos, or its Shorts when it has only those, newest first). The page arrives with both (the
+// first 50 videos), and the browser takes over from there.
 export default async function YouTubeChannelPage({ params, searchParams }: PageProps<"/youtube/channels/[id]">) {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();
   const { id } = await params;
   const channel = await loadChannel(id);
   if (channel === null) notFound();
-  const query = videosQuery(toSearchParams(await searchParams));
+  const query = videosQuery(toSearchParams(await searchParams), firstKind(channel?.videos));
   const queryClient = getQueryClient();
   if (channel) queryClient.setQueryData(youtubeChannelQueryKey({ path: { channel_id: id } }), channel);
   await queryClient.prefetchInfiniteQuery({
@@ -43,8 +43,7 @@ export default async function YouTubeChannelPage({ params, searchParams }: PageP
   });
   return (
     // As wide as YouTube's channel pages at most
-    <div className="mx-auto max-w-[1284px] space-y-6">
-      <YouTubeMasthead up="/youtube/channels" />
+    <div className="mx-auto max-w-[1284px] space-y-4 px-4 pb-10 sm:px-6">
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ChannelDetails id={id} />
         <ChannelVideos id={id} />

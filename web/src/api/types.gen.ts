@@ -1106,6 +1106,12 @@ export type YoutubeChannelVideosData = {
          */
         kind?: 'video' | 'short' | null;
         /**
+         * Sort
+         *
+         * Newest, most viewed, or oldest first
+         */
+        sort?: 'newest' | 'popular' | 'oldest';
+        /**
          * Page
          *
          * 50 videos to a page

@@ -71,7 +71,6 @@ export function TelegramChannels() {
     <div className="mx-auto max-w-3xl space-y-3 font-roboto text-tg-text">
       <div className="flex flex-wrap items-center gap-3">
         <SearchBox
-          look="telegram"
           search={search ?? ""}
           placeholder={t("search")}
           onSearch={(next) => go(telegramChannelsAddress({ search: next || undefined, sort }), "replace")}

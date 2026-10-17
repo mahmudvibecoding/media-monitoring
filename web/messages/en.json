@@ -29,11 +29,29 @@
     "activity": "Activity",
     "toggle": "Show or hide the menu"
   },
+  "youtube": {
+    "search": "Search",
+    "clearSearch": "Clear search query",
+    "share": "Share",
+    "copy": "Copy",
+    "copied": "Link copied to clipboard",
+    "startAt": "Start at {time}",
+    "close": "Close",
+    "play": "Play (k)",
+    "pause": "Pause (k)",
+    "mute": "Mute (m)",
+    "unmute": "Unmute (m)",
+    "comments": "Comments",
+    "description": "Description",
+    "previous": "Previous video",
+    "next": "Next video",
+    "likes": "Likes",
+    "views": "Views"
+  },
   "youtubeChannels": {
     "title": "YouTube channels",
     "count": "{count, plural, one {{formatted} channel} other {{formatted} channels}}",
     "found": "Found: {formatted}",
-    "search": "Search by name or handle",
     "hidden": "hidden",
     "none": "No channels yet.",
     "noMatch": "No channels match “{search}”."
@@ -46,19 +64,31 @@
     "unavailable": "Unavailable",
     "none": "No videos here yet.",
     "viewCount": "{count, plural, one {{formatted} view} other {{formatted} views}}",
-    "videoCount": "{count, plural, one {{formatted} video} other {{formatted} videos}}"
+    "videoCount": "{count, plural, one {{formatted} video} other {{formatted} videos}}",
+    "sorts": {
+      "newest": "Latest",
+      "popular": "Popular",
+      "oldest": "Oldest"
+    },
+    "more": "...more",
+    "moreAbout": "More about this channel",
+    "about": "About",
+    "description": "Description",
+    "details": "Channel details"
   },
   "youtubeVideo": {
     "unavailable": "Unavailable",
-    "views": "Views",
     "likes": "Likes",
-    "comments": "Comments",
     "statsAsOf": "Views and likes as of {when}",
     "noStats": "Views and likes haven't been read yet",
     "edited": "edited",
     "none": "No comments collected.",
     "commentCount": "{count, plural, one {{formatted} comment} other {{formatted} comments}}",
-    "moreFrom": "More from {channel}"
+    "like": "Like",
+    "more": "...more",
+    "less": "Show less",
+    "readMore": "Read more",
+    "readLess": "Show less"
   },
   "telegramChannels": {
     "title": "Telegram channels",
@@ -267,6 +297,14 @@
       "weeks": "{count, plural, one {# week ago} other {# weeks ago}}",
       "months": "{count, plural, one {# month ago} other {# months ago}}",
       "years": "{count, plural, one {# year ago} other {# years ago}}"
+    },
+    "youtubeShort": {
+      "minutes": "{count}m ago",
+      "hours": "{count}h ago",
+      "days": "{count}d ago",
+      "weeks": "{count}w ago",
+      "months": "{count}mo ago",
+      "years": "{count}y ago"
     }
   },
   "pages": {

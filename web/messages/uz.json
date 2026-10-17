@@ -29,11 +29,29 @@
     "activity": "Activity",
     "toggle": "Menyuni koʻrsatish yoki yashirish"
   },
+  "youtube": {
+    "search": "Qidiruv",
+    "clearSearch": "Qidiruv soʻrovini tozalash",
+    "share": "Ulashish",
+    "copy": "Nusxa olish",
+    "copied": "Havoladan nusxa olindi",
+    "startAt": "Boshlanishi: {time}",
+    "close": "Yopish",
+    "play": "Ijro etish (k)",
+    "pause": "Pauza (k)",
+    "mute": "Ovozsiz (m)",
+    "unmute": "Ovozni yoqish (m)",
+    "comments": "Izohlar",
+    "description": "Tavsif",
+    "previous": "Oldingi video",
+    "next": "Keyingi video",
+    "likes": "Layklar",
+    "views": "Koʻrishlar"
+  },
   "youtubeChannels": {
     "title": "YouTube kanallari",
     "count": "{formatted} ta kanal",
     "found": "Topildi: {formatted} ta",
-    "search": "Nomi yoki taxallusi",
     "hidden": "yashirin",
     "none": "Hozircha kanallar yoʻq.",
     "noMatch": "«{search}» boʻyicha kanal topilmadi."
@@ -46,19 +64,31 @@
     "unavailable": "Mavjud emas",
     "none": "Hozircha video yoʻq.",
     "viewCount": "{formatted} marta koʻrilgan",
-    "videoCount": "{formatted} ta video"
+    "videoCount": "{formatted} ta video",
+    "sorts": {
+      "newest": "Eng oxirgi",
+      "popular": "Mashhur",
+      "oldest": "Eng eski"
+    },
+    "more": "...yana",
+    "moreAbout": "Kanal haqida batafsil",
+    "about": "Kanal haqida",
+    "description": "Tavsif",
+    "details": "Kanal maʼlumotlari"
   },
   "youtubeVideo": {
     "unavailable": "Mavjud emas",
-    "views": "Koʻrishlar",
     "likes": "Layklar",
-    "comments": "Izohlar",
     "statsAsOf": "Koʻrishlar va layklar {when} holatiga",
     "noStats": "Koʻrishlar va layklar hali oʻqilmagan",
     "edited": "tahrirlangan",
     "none": "Izohlar yigʻilmagan.",
     "commentCount": "{formatted} ta izoh",
-    "moreFrom": "{channel}: boshqa videolar"
+    "like": "Yoqdi",
+    "more": "...yana",
+    "less": "Kamroq",
+    "readMore": "Batafsil",
+    "readLess": "Kamroq"
   },
   "telegramChannels": {
     "title": "Telegram kanallari",
@@ -94,6 +124,14 @@
     "hoursAgo": "{count} soat oldin",
     "daysAgo": "{count} kun oldin",
     "youtube": {
+      "minutes": "{count} daqiqa oldin",
+      "hours": "{count} soat oldin",
+      "days": "{count} kun oldin",
+      "weeks": "{count} hafta oldin",
+      "months": "{count} oy oldin",
+      "years": "{count} yil oldin"
+    },
+    "youtubeShort": {
       "minutes": "{count} daqiqa oldin",
       "hours": "{count} soat oldin",
       "days": "{count} kun oldin",

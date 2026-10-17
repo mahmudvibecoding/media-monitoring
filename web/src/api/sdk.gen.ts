@@ -78,15 +78,17 @@ export const changeLocale = <ThrowOnError extends boolean = false>(options: Opti
 /**
  * Status
  *
- * How many YouTube channels, videos and comments, and Telegram channels and messages the database holds.
+ * How many YouTube channels (with a video), videos and comments, and Telegram channels (with a saved message) and
+ * messages the database holds.
  */
 export const status = <ThrowOnError extends boolean = false>(options?: Options<StatusData, ThrowOnError>): RequestResult<StatusResponses, StatusErrors, ThrowOnError> => (options?.client ?? client).get<StatusResponses, StatusErrors, ThrowOnError>({ url: '/api/status', ...options });
 
 /**
  * Youtube Channels
  *
- * The monitored channels, a page at a time, the biggest first. With a search, only the channels whose name or
- * handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
+ * The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the
+ * channels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds
+ * Zo‘r.
  */
 export const youtubeChannels = <ThrowOnError extends boolean = false>(options?: Options<YoutubeChannelsData, ThrowOnError>): RequestResult<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError> => (options?.client ?? client).get<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError>({ url: '/api/youtube/channels', ...options });
 
@@ -101,9 +103,9 @@ export const youtubeChannel = <ThrowOnError extends boolean = false>(options: Op
 /**
  * Youtube Channel Videos
  *
- * A channel's collected videos, newest first, a page at a time, with their views, likes and comments (a channel
- * that isn't monitored has none). How many there are of each kind is in the channel's details: counted again for
- * every page, they'd take 50 ms of each page of the biggest channel.
+ * A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their
+ * views, likes and comments (a channel that isn't monitored has none). How many there are of each kind is in the
+ * channel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel.
  */
 export const youtubeChannelVideos = <ThrowOnError extends boolean = false>(options: Options<YoutubeChannelVideosData, ThrowOnError>): RequestResult<YoutubeChannelVideosResponses, YoutubeChannelVideosErrors, ThrowOnError> => (options.client ?? client).get<YoutubeChannelVideosResponses, YoutubeChannelVideosErrors, ThrowOnError>({ url: '/api/youtube/channels/{channel_id}/videos', ...options });
 
@@ -126,8 +128,9 @@ export const youtubeVideoComments = <ThrowOnError extends boolean = false>(optio
 /**
  * Telegram Channels
  *
- * The monitored channels, a page at a time, the biggest first or the latest to post first. With a search, only the
- * channels whose name or username has it in them, whatever the case of its letters, and apostrophes aside.
+ * The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
+ * first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
+ * apostrophes aside.
  */
 export const telegramChannels = <ThrowOnError extends boolean = false>(options?: Options<TelegramChannelsData, ThrowOnError>): RequestResult<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError> => (options?.client ?? client).get<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError>({ url: '/api/telegram/channels', ...options });
 

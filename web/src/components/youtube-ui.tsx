@@ -1,58 +1,86 @@
 "use client";
 
-import { ArrowLeftIcon, UserIcon } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
+import { PlayIcon, UserIcon } from "lucide-react";
+import Link, { useLinkStatus } from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { type ComponentProps, type ReactElement, type SVGProps, useEffect, useRef, useState } from "react";
 
 import type { YouTubeVideo } from "@/api/types.gen";
-import { YouTubeLogo } from "@/components/brand-icons";
-import { SearchBox } from "@/components/search-box";
 import { When } from "@/components/when";
 import { formatCompact, formatCount, formatDuration, pluralOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { avatarAt, channelsAddress, thumbnail } from "@/lib/youtube";
+import { avatarAt, bigThumbnail, thumbnail } from "@/lib/youtube";
 
-// The pieces YouTube's pages here are made of, looking like YouTube's own: its font (Roboto), its near-black and grey,
-// pill buttons, and video cards with the length on the cover
+// The pieces YouTube's pages here are made of, looking like YouTube's own, in its sizes: its font (Roboto), its
+// near-black and grey, its pills, its tooltips, and its videos' cards, with the length on the cover and, under the
+// title, the views by its play sign and how long ago
 
-// The top of a YouTube channel's or video's page, as YouTube's own: a way up (to up: a video's channel, or the channels),
-// its logo, which goes to the channels, and its search box, which searches them (on Enter, in the channels' list), as
-// the list's own top has them
-export function YouTubeMasthead({ up }: { up: string }) {
-  const t = useTranslations("youtubeChannels");
-  const common = useTranslations("common");
-  const router = useRouter();
+// A link between YouTube's pages here, which shows YouTube's red line along the top of the window while the page it
+// opens is on its way (unless it's there already)
+export function YouTubeLink({ children, ...props }: ComponentProps<typeof Link>) {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-3 font-roboto text-yt-text">
-      <div className="flex items-center gap-2">
-        <Link
-          href={up}
-          aria-label={common("back")}
-          title={common("back")}
-          className="-ml-2 flex size-10 items-center justify-center rounded-full hover:bg-yt-chip"
-        >
-          <ArrowLeftIcon className="size-6" strokeWidth={1.5} />
-        </Link>
-        <Link href="/youtube/channels" aria-label="YouTube">
-          <YouTubeLogo className="h-5 w-[93px]" />
-        </Link>
-      </div>
-      <SearchBox
-        look="youtube"
-        search=""
-        placeholder={t("search")}
-        onEnter
-        onSearch={(search) => router.push(`/youtube/channels${channelsAddress({ search: search || undefined })}`)}
-      />
-    </div>
+    <Link {...props}>
+      {children}
+      <Loading />
+    </Link>
   );
 }
 
-// YouTube's grey pill, for a count, which can't be clicked
+function Loading() {
+  const { pending } = useLinkStatus();
+  return pending ? (
+    <span aria-hidden="true" className="fixed inset-x-0 top-0 z-50 h-0.5 origin-left animate-yt-loading bg-yt-red" />
+  ) : null;
+}
+
+// YouTube's tooltip: a grey label under what's pointed at, once the mouse has stayed on it a moment
+export function YouTubeTip({ label, children }: { label: string; children: ReactElement }) {
+  return (
+    <TooltipPrimitive.Root>
+      <TooltipPrimitive.Trigger delay={400} render={children} />
+      <TooltipPrimitive.Portal>
+        <TooltipPrimitive.Positioner side="bottom" sideOffset={8} className="z-50">
+          <TooltipPrimitive.Popup className="rounded bg-[#616161]/90 p-2 font-roboto text-xs leading-[18px] text-white">
+            {label}
+          </TooltipPrimitive.Popup>
+        </TooltipPrimitive.Positioner>
+      </TooltipPrimitive.Portal>
+    </TooltipPrimitive.Root>
+  );
+}
+
+// YouTube's grey pill, 40 px high, for a count (which can't be clicked) or, under the mouse a shade darker, a button
 export const YT_PILL =
-  "inline-flex h-9 items-center gap-2 rounded-full bg-yt-chip px-4 text-sm font-medium text-yt-text";
+  "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-yt-chip px-4 text-sm font-medium text-yt-text";
+
+// YouTube's round grey button for an icon: 40 px, darker under the mouse
+export const YT_ICON_BUTTON =
+  "flex size-10 shrink-0 items-center justify-center rounded-full text-yt-text hover:bg-yt-chip-hover";
+
+// YouTube's share sign, an arrow leaving to the right, drawn like lucide's lines
+export function ShareIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M13.5 4.5 21 11.25 13.5 18v-3.75c-5 0-8.25 1.5-10.5 5 .75-5.5 3.75-10 10.5-11Z" />
+    </svg>
+  );
+}
+
+// The bullet YouTube puts between two things said on one line: @handle • 1,2 млн подписчиков. The line wraps at its
+// spaces, as text does, when it doesn't fit.
+export function Dot() {
+  return <span aria-hidden="true"> • </span>;
+}
 
 // A channel's picture, round; a grey circle with a figure while it has none, or until it loads
 export function ChannelPicture({ url, size, className }: { url: string | null; size: number; className?: string }) {
@@ -83,20 +111,36 @@ export function ChannelPicture({ url, size, className }: { url: string | null; s
   );
 }
 
-// "48K views · 3 days ago", as under a video on YouTube
-export function ViewsAndAge({ video, className }: { video: YouTubeVideo; className?: string }) {
+// Under a video's title, as YouTube's lists write it: ▷ 2,6 тыс. • 1 ч назад, the views by YouTube's play sign, cut
+// short, then how long ago, the short way; the exact views on hover
+export function VideoMeta({ video, className }: { video: YouTubeVideo; className?: string }) {
   const t = useTranslations("youtubeChannel");
   const locale = useLocale();
   return (
-    <p className={cn("text-sm text-yt-muted", className)}>
+    <p className={cn("text-yt-muted", className)}>
       {video.views !== null && (
-        <span title={formatCount(video.views, locale)}>
-          {t("viewCount", { count: pluralOf(video.views), formatted: formatCompact(video.views, locale, true) })}
+        <span
+          className="whitespace-nowrap"
+          title={t("viewCount", { count: video.views, formatted: formatCount(video.views, locale) })}
+        >
+          <PlayIcon className="mr-1 inline size-3 align-[-1px]" strokeWidth={2.5} aria-hidden="true" />
+          {formatCompact(video.views, locale, true)}
         </span>
       )}
-      {video.views !== null && video.published_at && " · "}
-      {video.published_at && <When iso={video.published_at} youtube />}
+      {video.views !== null && video.published_at && <Dot />}
+      {video.published_at && <When iso={video.published_at} youtube="short" className="whitespace-nowrap" />}
     </p>
+  );
+}
+
+// The blue YouTube puts round a video's card under the mouse, a little wider than the card, with round corners (the
+// card is a group, and isolated, so the tint stays behind its content)
+export function Tint() {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute -inset-1.5 -z-10 rounded-2xl bg-yt-tint opacity-0 transition-opacity group-hover:opacity-100"
+    />
   );
 }
 
@@ -127,10 +171,41 @@ function usePreview() {
   };
 }
 
-// A video's cover with its length in the corner, or "Unavailable" across a video YouTube no longer shows. Small covers
-// take YouTube's 320 × 180 picture, the rest its 480 × 360 one, whose black bars the frame cuts off. While playing, the
-// video plays over it in YouTube's player, without sound or controls, from the start and round again; the player
-// takes no clicks, so a click still opens the video's page.
+// A cover's picture from YouTube's image server: the first of sources it has, the next when it answers with an error or
+// with its 120 × 90 grey stand-in for a picture it hasn't got (looked at once in the browser too, for a picture that
+// came before the page was the browser's)
+function CoverImage({ sources, className }: { sources: string[]; className?: string }) {
+  const [tried, setTried] = useState(0);
+  const image = useRef<HTMLImageElement>(null);
+  const missing = (picture: HTMLImageElement) => picture.complete && picture.naturalWidth <= 120;
+  const next = () => setTried((last) => Math.min(last + 1, sources.length - 1));
+  useEffect(() => {
+    if (image.current && missing(image.current)) next();
+  });
+  return (
+    // Straight from YouTube, as the channel's picture
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      ref={image}
+      src={sources[tried]}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={next}
+      onLoad={(event) => {
+        if (missing(event.currentTarget)) next();
+      }}
+      className={className}
+    />
+  );
+}
+
+// A video's cover with its length in YouTube's dark label at the bottom right, or "Unavailable" across a video YouTube
+// no longer shows. A grid's covers take the 640 × 480 picture, the side list's the 480 × 360 one, whose black bars a
+// 16:9 frame cuts off. A Short's is upright, in YouTube's 2:3 frame: its picture, which is the upright one in the middle
+// of a wider one, is enlarged until the upright one fills the frame's width. While playing, the video plays over it in
+// YouTube's player, without sound or controls, from the start and round again; the player takes no clicks, so a click
+// still opens the video's page.
 function Cover({
   video,
   vertical = false,
@@ -148,20 +223,18 @@ function Cover({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl bg-yt-chip",
-        vertical ? "aspect-[9/16]" : "aspect-video",
+        "relative overflow-hidden bg-yt-chip",
+        vertical ? "aspect-[2/3] rounded-lg" : "aspect-video rounded-xl",
         className,
       )}
     >
-      {/* Straight from YouTube, as the channel's picture. A Short's cover is 4:3 with the video upright in its middle,
-          which a 9:16 frame keeps. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={thumbnail(video.id, small ? "mq" : "hq")}
-        alt=""
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        className={cn("size-full object-cover", !video.available && "opacity-40 grayscale")}
+      <CoverImage
+        sources={small ? [thumbnail(video.id, "hq")] : [bigThumbnail(video.id), thumbnail(video.id, "hq")]}
+        className={cn(
+          "size-full object-cover",
+          vertical && "scale-[1.185]",
+          !video.available && "opacity-40 grayscale",
+        )}
       />
       {playing && video.available && <Preview video={video} />}
       {!video.available ? (
@@ -172,7 +245,7 @@ function Cover({
         video.duration !== null &&
         !vertical &&
         !playing && (
-          <span className="absolute right-1.5 bottom-1.5 rounded bg-black/80 px-1 py-px text-xs font-medium text-white tabular-nums">
+          <span className="absolute right-1 bottom-1 rounded bg-black/60 px-1 py-px text-xs leading-[18px] font-medium text-white">
             {formatDuration(video.duration)}
           </span>
         )
@@ -213,68 +286,80 @@ function Preview({ video }: { video: YouTubeVideo }) {
 }
 
 // A video in a grid, as on a channel's Videos tab: its cover, which plays the video while the mouse stays on the card,
-// its title in up to two lines, its views and age. The whole card opens the video's page.
+// its title in up to two lines, then its views and how long ago. The whole card opens the video's page.
 export function VideoCard({ video }: { video: YouTubeVideo }) {
   const { playing, ...hover } = usePreview();
   return (
-    <li className="group relative font-roboto" {...hover}>
+    <li className="group relative isolate font-roboto" {...hover}>
+      <Tint />
       <Cover video={video} playing={playing} />
-      <div className="mt-3 pr-2">
-        <Link
+      <div className="mt-3 pr-6">
+        <YouTubeLink
           href={`/youtube/videos/${video.id}`}
           prefetch={false}
-          className="line-clamp-2 text-base leading-snug font-medium text-yt-text after:absolute after:inset-0"
+          className="line-clamp-2 text-base leading-[22px] font-medium break-words text-yt-text after:absolute after:inset-0"
         >
           {video.title?.trim() || video.id}
-        </Link>
-        <ViewsAndAge video={video} className="mt-1" />
+        </YouTubeLink>
+        <VideoMeta video={video} className="mt-0.5 text-sm leading-5" />
       </div>
     </li>
   );
 }
 
-// A Short in a grid, as on a channel's Shorts tab: an upright cover, which plays it while the mouse stays on the card,
-// its title, and its views
-export function ShortCard({ video }: { video: YouTubeVideo }) {
+// A Short in a grid, as on a channel's Shorts tab: its upright cover, which plays it while the mouse stays on the card,
+// its title, and its views. It opens on its Shorts page, which goes on to the next ones in the grid's order (sort).
+export function ShortCard({ video, sort }: { video: YouTubeVideo; sort?: string }) {
   const t = useTranslations("youtubeChannel");
   const locale = useLocale();
   const { playing, ...hover } = usePreview();
   return (
-    <li className="relative font-roboto" {...hover}>
+    <li className="group relative isolate font-roboto" {...hover}>
+      <Tint />
       <Cover video={video} vertical playing={playing} />
-      <Link
-        href={`/youtube/videos/${video.id}`}
-        prefetch={false}
-        className="mt-2 line-clamp-2 text-base leading-snug font-medium text-yt-text after:absolute after:inset-0"
-      >
-        {video.title?.trim() || video.id}
-      </Link>
-      {video.views !== null && (
-        <p className="mt-1 text-sm text-yt-muted" title={formatCount(video.views, locale)}>
-          {t("viewCount", { count: pluralOf(video.views), formatted: formatCompact(video.views, locale, true) })}
-        </p>
-      )}
+      <div className="pt-2 pr-4">
+        <YouTubeLink
+          href={`/youtube/shorts/${video.id}${sort ? `?sort=${sort}` : ""}`}
+          prefetch={false}
+          className="mb-1 line-clamp-2 text-base leading-[22px] font-medium break-words text-yt-text after:absolute after:inset-0"
+        >
+          {video.title?.trim() || video.id}
+        </YouTubeLink>
+        {video.views !== null && (
+          <p className="text-sm leading-5 text-yt-muted" title={formatCount(video.views, locale)}>
+            {t("viewCount", { count: pluralOf(video.views), formatted: formatCompact(video.views, locale, true) })}
+          </p>
+        )}
+      </div>
     </li>
   );
 }
 
-// A video beside another's page, as YouTube lists the next ones: a small cover, which plays the video while the mouse
-// stays on the card, the title, the channel, views and age
+// A video beside another's page, as YouTube lists the next ones: its cover (which plays the video while the mouse stays
+// on the card) beside its title in up to three lines, its channel, its views and how long ago. On a phone's width
+// (of the page, which is a container), the cover takes the whole width and the rest goes under it, as in YouTube's
+// app.
 export function SmallVideoCard({ video, channel }: { video: YouTubeVideo; channel: string }) {
   const { playing, ...hover } = usePreview();
   return (
-    <li className="relative flex gap-2 font-roboto" {...hover}>
-      <Cover video={video} small playing={playing} className="w-[168px] shrink-0 rounded-lg" />
-      <div className="min-w-0">
-        <Link
+    <li className="group relative isolate flex gap-3 font-roboto @max-[600px]:flex-col @max-[600px]:gap-2" {...hover}>
+      <Tint />
+      <Cover
+        video={video}
+        small
+        playing={playing}
+        className="w-[min(248px,58%)] shrink-0 rounded-lg @max-[600px]:w-full @max-[600px]:rounded-xl"
+      />
+      <div className="min-w-0 flex-1 @max-[600px]:pb-4">
+        <YouTubeLink
           href={`/youtube/videos/${video.id}`}
           prefetch={false}
-          className="line-clamp-2 text-sm leading-5 font-medium text-yt-text after:absolute after:inset-0"
+          className="line-clamp-3 text-sm leading-5 font-medium break-words text-yt-text after:absolute after:inset-0 @max-[600px]:line-clamp-2 @max-[600px]:text-base @max-[600px]:leading-[22px]"
         >
           {video.title?.trim() || video.id}
-        </Link>
-        <p className="mt-1 truncate text-xs text-yt-muted">{channel}</p>
-        <ViewsAndAge video={video} className="text-xs" />
+        </YouTubeLink>
+        <p className="mt-1 truncate text-xs leading-[18px] text-yt-muted">{channel}</p>
+        <VideoMeta video={video} className="text-xs leading-[18px]" />
       </div>
     </li>
   );
