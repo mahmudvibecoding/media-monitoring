@@ -985,17 +985,15 @@ export type YoutubeChannelsData = {
          */
         search?: string;
         /**
-         * Sort
-         *
-         * The biggest first, or by name
-         */
-        sort?: 'subscribers' | 'name';
-        /**
          * Page
-         *
-         * 50 channels to a page
          */
         page?: number;
+        /**
+         * Size
+         *
+         * Channels to a page: as many as fit the screen
+         */
+        size?: number;
     };
     url: '/api/youtube/channels';
 };
@@ -1279,9 +1277,9 @@ export type TelegramChannelsData = {
         /**
          * Sort
          *
-         * The biggest first, by name, or the latest to post
+         * The biggest first, or the latest to post
          */
-        sort?: 'subscribers' | 'name' | 'latest';
+        sort?: 'subscribers' | 'latest';
         /**
          * Page
          *

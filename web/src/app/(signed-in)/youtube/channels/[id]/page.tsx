@@ -1,14 +1,12 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { ChevronLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import { cache } from "react";
 
 import { youtubeChannelQueryKey, youtubeChannelVideosInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import { youtubeChannel } from "@/api/sdk.gen";
 import { ChannelDetails, ChannelVideos } from "@/components/youtube-channel";
+import { YouTubeMasthead } from "@/components/youtube-ui";
 import { toSearchParams } from "@/lib/address";
 import { serverClient, signedInUser } from "@/lib/api-server";
 import { FIRST_PAGE } from "@/lib/pages";
@@ -36,7 +34,6 @@ export default async function YouTubeChannelPage({ params, searchParams }: PageP
   const { id } = await params;
   const channel = await loadChannel(id);
   if (channel === null) notFound();
-  const t = await getTranslations("youtubeChannel");
   const query = videosQuery(toSearchParams(await searchParams));
   const queryClient = getQueryClient();
   if (channel) queryClient.setQueryData(youtubeChannelQueryKey({ path: { channel_id: id } }), channel);
@@ -45,14 +42,9 @@ export default async function YouTubeChannelPage({ params, searchParams }: PageP
     ...FIRST_PAGE,
   });
   return (
-    <div className="space-y-6">
-      <Link
-        href="/youtube/channels"
-        className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeftIcon className="size-4" />
-        {t("back")}
-      </Link>
+    // As wide as YouTube's channel pages at most
+    <div className="mx-auto max-w-[1284px] space-y-6">
+      <YouTubeMasthead />
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ChannelDetails id={id} />
         <ChannelVideos id={id} />

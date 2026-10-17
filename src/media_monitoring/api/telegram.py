@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from media_monitoring.api.accounts import Admin
 from media_monitoring.api.errors import Failure, failures
 from media_monitoring.api.lists import LAST_PAGE, PAGE_SIZE, SEARCH_MAX, anywhere
-from media_monitoring.api.status import COUNTS
 
 router = APIRouter()
 
@@ -59,16 +58,14 @@ CHANNELS = sql.SQL("""
     ORDER BY {order}
 """)
 COUNT = sql.SQL("SELECT count(*) FROM telegram_channels {where}")
-SEARCHED = sql.SQL("WHERE search_text LIKE app.searchable(%(pattern)s)")  # lowercase, apostrophes left out (app.sql)
+# Only the channels with a saved message (app.sql), and with a search, those it matches: lowercase, apostrophes left out
+LISTED = sql.SQL("WHERE has_messages")
+SEARCHED = sql.SQL("WHERE has_messages AND search_text LIKE app.searchable(%(pattern)s)")
 # Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
 ORDERS = {
     "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
-    "name": sql.SQL("title !~ '[[:alnum:]]', title COLLATE app.names, channel_id"),  # names like "." last (app.sql)
     "latest": sql.SQL("last_message_at DESC NULLS LAST, channel_id"),
 }
-# Without a search, how many there are is PostgreSQL's own running count, as on the overview: counting all 310,431
-# channels takes 80 ms each time
-EVERY_CHANNEL = COUNTS + " AND s.relname = 'telegram_channels'"
 
 
 @router.get(
@@ -86,15 +83,15 @@ async def telegram_channels(
     _: Admin,
     search: Annotated[str, Query(max_length=SEARCH_MAX, description="Part of a channel's name or username")] = "",
     sort: Annotated[
-        Literal["subscribers", "name", "latest"], Query(description="The biggest first, by name, or the latest to post")
+        Literal["subscribers", "latest"], Query(description="The biggest first, or the latest to post")
     ] = "subscribers",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} channels to a page")] = 1,
 ) -> TelegramChannels:
-    """The monitored channels, a page at a time, the biggest first, by name, or the latest to post first. With a search,
-    only the channels whose name or username has it in them, whatever the case of its letters, and apostrophes
-    aside."""
+    """The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
+    first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
+    apostrophes aside."""
     search = " ".join(search.split())
-    where = SEARCHED if search else sql.SQL("")
+    where = SEARCHED if search else LISTED
     values = {"pattern": anywhere(search), "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
 
     # Planned for the search they're given (prepare=False), as for YouTube's channels
@@ -106,8 +103,6 @@ async def telegram_channels(
 
     async def total() -> int:
         async with request.state.pool.connection() as conn:
-            if not search:
-                return (await (await conn.execute(EVERY_CHANNEL)).fetchone())[1]
             (count,) = await (await conn.execute(COUNT.format(where=where), values, prepare=False)).fetchone()
             return count
 

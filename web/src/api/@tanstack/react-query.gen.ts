@@ -161,8 +161,8 @@ export const youtubeChannelsQueryKey = (options?: Options<YoutubeChannelsData>) 
 /**
  * Youtube Channels
  *
- * The monitored channels, a page at a time, the biggest first or by name. With a search, only the channels whose
- * name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
+ * The monitored channels, a page at a time, the biggest first. With a search, only the channels whose name or
+ * handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
  */
 export const youtubeChannelsOptions = (options?: Options<YoutubeChannelsData>) => queryOptions<YoutubeChannelsResponse, YoutubeChannelsError, YoutubeChannelsResponse, ReturnType<typeof youtubeChannelsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -211,8 +211,8 @@ export const youtubeChannelsInfiniteQueryKey = (options?: Options<YoutubeChannel
 /**
  * Youtube Channels
  *
- * The monitored channels, a page at a time, the biggest first or by name. With a search, only the channels whose
- * name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
+ * The monitored channels, a page at a time, the biggest first. With a search, only the channels whose name or
+ * handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
  */
 export const youtubeChannelsInfiniteOptions = (options?: Options<YoutubeChannelsData>) => {
     const opts = infiniteQueryOptions<YoutubeChannelsResponse, YoutubeChannelsError, InfiniteData<YoutubeChannelsResponse>, QueryKey<Options<YoutubeChannelsData>>, number | Pick<QueryKey<Options<YoutubeChannelsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -396,9 +396,8 @@ export const telegramChannelsQueryKey = (options?: Options<TelegramChannelsData>
 /**
  * Telegram Channels
  *
- * The monitored channels, a page at a time, the biggest first, by name, or the latest to post first. With a search,
- * only the channels whose name or username has it in them, whatever the case of its letters, and apostrophes
- * aside.
+ * The monitored channels, a page at a time, the biggest first or the latest to post first. With a search, only the
+ * channels whose name or username has it in them, whatever the case of its letters, and apostrophes aside.
  */
 export const telegramChannelsOptions = (options?: Options<TelegramChannelsData>) => queryOptions<TelegramChannelsResponse, TelegramChannelsError, TelegramChannelsResponse, ReturnType<typeof telegramChannelsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -418,9 +417,8 @@ export const telegramChannelsInfiniteQueryKey = (options?: Options<TelegramChann
 /**
  * Telegram Channels
  *
- * The monitored channels, a page at a time, the biggest first, by name, or the latest to post first. With a search,
- * only the channels whose name or username has it in them, whatever the case of its letters, and apostrophes
- * aside.
+ * The monitored channels, a page at a time, the biggest first or the latest to post first. With a search, only the
+ * channels whose name or username has it in them, whatever the case of its letters, and apostrophes aside.
  */
 export const telegramChannelsInfiniteOptions = (options?: Options<TelegramChannelsData>) => {
     const opts = infiniteQueryOptions<TelegramChannelsResponse, TelegramChannelsError, InfiniteData<TelegramChannelsResponse>, QueryKey<Options<TelegramChannelsData>>, number | Pick<QueryKey<Options<TelegramChannelsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(

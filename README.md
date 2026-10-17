@@ -59,14 +59,14 @@ The database is `media_monitoring`; set `DATABASE_URL` to use another.
 ## The API
 
 `uv run api` serves the web API on 127.0.0.1:8000, which only the server itself can reach: `/api/health` answers while
-it runs, `/api/health/ready` once the database answers too (503 until then), `/api/status` how many YouTube channels,
-videos and comments and Telegram channels and messages the database holds (PostgreSQL's own counts, which take a
-millisecond to read), and `/api/docs` lists every endpoint, for admins. A failure is answered with one JSON shape,
-`{"error": "<code>", "message": "...", "request_id": "..."}`, and the HTTP status that fits: a request waits at most 5 s
-for a database connection (503 after that), and a query runs at most 5 s (504). Every answer carries its request's ID in
-`X-Request-ID` (the one the request came with, if any), and every log line is a JSON object, with that ID while a
-request is answered. Its settings come from environment variables: `API_DATABASE_URL` (`dbname=media_monitoring` by
-default), `API_HOST` and `API_PORT`. `uv run ruff check` and `uv run ruff format` check its code and lay it out.
+it runs, `/api/health/ready` once the database answers too (503 until then), `/api/status` how many YouTube channels
+(with a video), videos and comments and Telegram channels (with a saved message) and messages the database holds, and
+`/api/docs` lists every endpoint, for admins. A failure is answered with one JSON shape, `{"error": "<code>", "message":
+"...", "request_id": "..."}`, and the HTTP status that fits: a request waits at most 5 s for a database connection (503
+after that), and a query runs at most 5 s (504). Every answer carries its request's ID in `X-Request-ID` (the one the
+request came with, if any), and every log line is a JSON object, with that ID while a request is answered. Its settings
+come from environment variables: `API_DATABASE_URL` (`dbname=media_monitoring` by default), `API_HOST` and `API_PORT`.
+`uv run ruff check` and `uv run ruff format` check its code and lay it out.
 
 `uv run api openapi` writes the description `/api/openapi.json` serves admins to `openapi.json`, without starting the
 API: every endpoint, its parameters, and the exact JSON of its answers and errors. A change to the API goes into the
@@ -84,20 +84,20 @@ There's no signing up: the first admin is added on the server, as root, from the
 uv run api add-admin admin@example.com "Ali Valiyev"   # prints a temporary password, changed at the first sign-in
 ```
 
-`/api/youtube/channels`, for admins, lists the monitored YouTube channels, 50 to a page, the biggest first or by name,
-and how many match; with `search`, only those whose name or handle has it in them, whatever the case of its letters and
-apostrophes aside (zor finds Zo‘r). `app.sql` has the column and the indexes it reads them by.
-`/api/youtube/channels/{id}` gives a channel's details, with how many of its videos have been collected, of each kind,
-and `/api/youtube/channels/{id}/videos` its videos, newest first, 50 to a page, all of them or only videos
-(`kind=video`) or only Shorts (`kind=short`), with their views, likes and comments. `/api/youtube/videos/{id}` gives a
-video's details, with its channel's picture and subscribers and how many of its comments have been collected, and
-`/api/youtube/videos/{id}/comments` its comments, newest first, 50 to a page, each with when it was written, as
-precisely as YouTube said it.
+`/api/youtube/channels`, for admins, lists the monitored YouTube channels that have a video collected, the biggest
+first, a page at a time (`size`: up to 100 to a page, 50 by default), and how many match; with `search`, only those
+whose name or handle has it in them, whatever the case of its letters and apostrophes aside (zor finds Zo‘r). `app.sql`
+has the column and the indexes it reads them by. `/api/youtube/channels/{id}` gives a channel's details, with how many
+of its videos have been collected, of each kind, and `/api/youtube/channels/{id}/videos` its videos, newest first, 50 to
+a page, all of them or only videos (`kind=video`) or only Shorts (`kind=short`), with their views, likes and comments.
+`/api/youtube/videos/{id}` gives a video's details, with its channel's picture and subscribers and how many of its
+comments have been collected, and `/api/youtube/videos/{id}/comments` its comments, newest first, 50 to a page, each
+with when it was written, as precisely as YouTube said it.
 
-`/api/telegram/channels` lists the monitored Telegram channels in the same way, the biggest first, by name, or the
-latest to post first (`sort=latest`), searched by name or @username; `/api/telegram/channels/{id}` gives a channel's
-details, with how many of its messages have been saved, and `/api/telegram/channels/{id}/messages` its messages, newest
-first, 50 to a page.
+`/api/telegram/channels` lists the monitored Telegram channels that have a message saved in the same way, 50 to a page,
+the biggest first or the latest to post first (`sort=latest`), searched by name or @username;
+`/api/telegram/channels/{id}` gives a channel's details, with how many of its messages have been saved, and
+`/api/telegram/channels/{id}/messages` its messages, newest first, 50 to a page.
 
 `/api/runs`, for admins, lists the runs the `runs` table keeps, newest first, 20 to a page: each round with its steps,
 and the runs started by hand; with `step`, only that step's runs. `/api/runs/latest` gives the newest round and every
@@ -120,15 +120,18 @@ versions are pinned exactly, and pnpm only installs releases at least a day old.
 Every page but `/sign-in` needs someone signed in: a visitor who isn't goes to `/sign-in`, and back afterwards, and an
 account with a temporary password to `/change-password` until it has its own. The site is light and sober, and its
 YouTube and Telegram pages look like YouTube's and Telegram's own. Admins have a menu at the side, which folds down to
-its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds, the last round and what
-runs now; YouTube's channels, a grid of their pictures searched as one types, the biggest first or by name, 50 to a
-page, whose address keeps the search, the order and the page; Telegram's channels, a list like Telegram's chats, also in
-the order of their latest posts; and at the bottom the activity, every round with its steps and every run started by
-hand, newest first, with their numbers, and a page for each run with all its numbers. A YouTube channel's page is laid
-out like the channel on YouTube, its videos and Shorts in grids that load more as they're scrolled; a video's, like
-YouTube's watch page, with its comments and more from its channel; a Telegram channel's, like the channel in Telegram,
-its messages as bubbles, the newest at the bottom, with its info beside them. Anything in a list opens wherever it's
-clicked. Customers, for now, see a greeting. The menu's foot has the user's name, the language and signing out.
+its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds (the channels with something
+collected, and every video, comment and message), the last round and what runs now; YouTube's channels with a video
+collected, a grid of their pictures, the biggest first, searched as one types, which fills the screen with as many as
+fit, whose address keeps the search and the page (← and → turn the pages); Telegram's channels with a message saved, a
+list like Telegram's chats, also in the order of their latest posts; and at the bottom the activity, every round with
+its steps and every run started by hand, newest first, with their numbers, and a page for each run with all its numbers.
+A YouTube channel's page is laid out like the channel on YouTube, its videos and Shorts in grids that load more as
+they're scrolled, each playing silently while the mouse stays on it; a video's, like YouTube's watch page, with
+YouTube's player, which starts as the page opens, its comments and more from its channel; a Telegram channel's, like the
+channel in Telegram, its messages as bubbles, the newest at the bottom, with its info beside them. Anything in a list
+opens wherever it's clicked. Customers, for now, see a greeting. The menu's foot has the user's name, the language and
+signing out.
 
 A visitor sees Russian until they choose another language, in the menu's foot (or the sign-in page's header); the choice
 is kept in a cookie for a year, and, once they're signed in, in their account, which the site switches to when they sign

@@ -34,15 +34,11 @@
     "count": "{count, plural, one {{formatted} канал} few {{formatted} канала} many {{formatted} каналов} other {{formatted} канала}}",
     "found": "Найдено: {formatted}",
     "search": "Название или псевдоним",
-    "order": "Порядок",
-    "biggest": "Сначала крупные",
-    "byName": "По названию",
     "hidden": "скрыто",
     "none": "Каналов пока нет.",
     "noMatch": "По запросу «{search}» каналов нет."
   },
   "youtubeChannel": {
-    "back": "Каналы YouTube",
     "subscribers": "{count, plural, one {{formatted} подписчик} few {{formatted} подписчика} many {{formatted} подписчиков} other {{formatted} подписчика}}",
     "subscribersHidden": "Подписчики скрыты",
     "open": "Открыть на YouTube",
@@ -55,13 +51,10 @@
     "videoCount": "{formatted} видео"
   },
   "youtubeVideo": {
-    "watch": "Смотреть на YouTube",
     "unavailable": "Недоступно",
     "views": "Просмотры",
     "likes": "Лайки",
     "comments": "Комментарии",
-    "complete": "Список прочитан полностью",
-    "incomplete": "Список ещё не прочитан до конца",
     "statsAsOf": "Просмотры и лайки на {when}",
     "noStats": "Просмотры и лайки ещё не прочитаны",
     "edited": "изменён",
@@ -76,7 +69,6 @@
     "search": "Название или @юзернейм",
     "order": "Порядок",
     "biggest": "Сначала крупные",
-    "byName": "По названию",
     "latest": "Сначала недавние посты",
     "none": "Каналов пока нет.",
     "noMatch": "По запросу «{search}» каналов нет."
@@ -84,7 +76,6 @@
   "telegramChannel": {
     "back": "Каналы Telegram",
     "subscribers": "{count, plural, one {{formatted} подписчик} few {{formatted} подписчика} many {{formatted} подписчиков} other {{formatted} подписчика}}",
-    "open": "Открыть в Telegram",
     "openMessage": "Открыть в Telegram",
     "none": "Сообщений не сохранено.",
     "info": "Информация",
@@ -263,7 +254,8 @@
   "common": {
     "loading": "Загрузка…",
     "more": "Показать полностью",
-    "less": "Свернуть"
+    "less": "Свернуть",
+    "back": "Назад"
   },
   "time": {
     "justNow": "только что",
@@ -281,10 +273,8 @@
   },
   "pages": {
     "page": "Страница {page} из {pages}",
-    "first": "Первая страница",
     "previous": "Предыдущая страница",
-    "next": "Следующая страница",
-    "last": "Последняя страница"
+    "next": "Следующая страница"
   },
   "errors": {
     "unavailable": "Сервис временно недоступен. Попробуйте позже.",

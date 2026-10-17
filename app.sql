@@ -55,36 +55,73 @@ CREATE OR REPLACE FUNCTION app.searchable(value text) RETURNS text
     LANGUAGE sql IMMUTABLE PARALLEL SAFE
     RETURN lower(regexp_replace(value, '[''ʻʼ‘’`´]', '', 'g'));
 
--- Names in alphabetical order, as people read them: Unicode's order (the database's own, by character codes, would put
--- Zebra before apple), with spaces, punctuation, symbols and currency signs passed over, which many channels' names
--- start with ("    UZ News", "👤 Aziz", "£LUNORIA£"): those would otherwise come first
-CREATE COLLATION IF NOT EXISTS app.names (provider = icu, locale = 'und-u-ka-shifted-kv-currency');
+-- The channel lists show only the channels with something collected, and count only those: a YouTube channel with a
+-- video, a Telegram channel with a saved message (55,600 of 55,859, and 30,272 of 310,431, on October 17, 2026). Each
+-- channel keeps whether it has, set by a trigger as its videos or messages are saved: looked up in their tables
+-- instead, counting the listed channels took 0.9 s (YouTube) and 0.3 s (Telegram). Videos and messages aren't deleted,
+-- so it doesn't go back.
+ALTER TABLE youtube_channels ADD COLUMN IF NOT EXISTS has_videos boolean NOT NULL DEFAULT false;
+ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS has_messages boolean NOT NULL DEFAULT false;
+
+CREATE OR REPLACE FUNCTION app.note_videos() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE youtube_channels SET has_videos = true WHERE NOT has_videos AND channel_id IN (SELECT channel_id FROM saved);
+    RETURN NULL;
+END
+$$;
+CREATE OR REPLACE TRIGGER app_note_videos AFTER INSERT ON youtube_videos
+    REFERENCING NEW TABLE AS saved FOR EACH STATEMENT EXECUTE FUNCTION app.note_videos();
+
+CREATE OR REPLACE FUNCTION app.note_messages() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE telegram_channels SET has_messages = true
+    WHERE NOT has_messages AND channel_id IN (SELECT channel_id FROM saved);
+    RETURN NULL;
+END
+$$;
+CREATE OR REPLACE TRIGGER app_note_messages AFTER INSERT ON telegram_messages
+    REFERENCING NEW TABLE AS saved FOR EACH STATEMENT EXECUTE FUNCTION app.note_messages();
+
+-- The channels whose videos or messages were saved before the triggers: a few seconds the first time, under a second
+-- after
+UPDATE youtube_channels AS c SET has_videos = true
+WHERE NOT has_videos AND EXISTS (SELECT 1 FROM youtube_videos AS v WHERE v.channel_id = c.channel_id);
+UPDATE telegram_channels AS c SET has_messages = true
+WHERE NOT has_messages AND EXISTS (SELECT 1 FROM telegram_messages AS m WHERE m.channel_id = c.channel_id);
 
 -- The YouTube channels page. Its search looks in each channel's name and handle, kept searchable in a column of their
 -- own, which PostgreSQL brings up to date whenever a collector changes them: worked out during each search instead,
--- that took 0.5 s for a search the index can't narrow down, like a single letter. Its orders are the biggest first,
--- and by name. Their indexes hold the search column too, so that a search the index can't narrow reads them alone, not
--- the table.
+-- that took 0.5 s for a search the index can't narrow down, like a single letter. Its order is the biggest first, by
+-- an index that holds the search column too, so that a search the trigram index can't narrow reads it alone, not the
+-- table. The indexes hold only the listed channels.
 ALTER TABLE youtube_channels ADD COLUMN IF NOT EXISTS search_text text
     GENERATED ALWAYS AS (app.searchable(coalesce(title, '') || ' ' || coalesce(handle, ''))) STORED;
-CREATE INDEX IF NOT EXISTS youtube_channels_search ON youtube_channels USING gin (search_text gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS youtube_channels_subscribers
-    ON youtube_channels (subscriber_count DESC NULLS LAST, channel_id) INCLUDE (search_text);
-CREATE INDEX IF NOT EXISTS youtube_channels_name
-    ON youtube_channels (title COLLATE app.names, channel_id) INCLUDE (search_text);
+CREATE INDEX IF NOT EXISTS youtube_channels_listed_search
+    ON youtube_channels USING gin (search_text gin_trgm_ops) WHERE has_videos;
+CREATE INDEX IF NOT EXISTS youtube_channels_listed
+    ON youtube_channels (subscriber_count DESC NULLS LAST, channel_id) INCLUDE (search_text) WHERE has_videos;
 
 -- The Telegram channels page, in the same way: its search looks in each channel's name and username (with its @), and
--- its orders are the biggest first, by name, and the latest to post first. By name, the names without a letter or a
--- digit come after the rest: 3,466 channels are called ".", "-", "..." or an emoji, which would fill the first 70 pages.
+-- its orders are the biggest first and the latest to post first.
 ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS search_text text
     GENERATED ALWAYS AS (app.searchable(coalesce(title, '') || ' @' || username)) STORED;
-CREATE INDEX IF NOT EXISTS telegram_channels_search ON telegram_channels USING gin (search_text gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS telegram_channels_subscribers
-    ON telegram_channels (subscriber_count DESC NULLS LAST, channel_id) INCLUDE (search_text);
-CREATE INDEX IF NOT EXISTS telegram_channels_name
-    ON telegram_channels ((title !~ '[[:alnum:]]'), title COLLATE app.names, channel_id) INCLUDE (search_text);
-CREATE INDEX IF NOT EXISTS telegram_channels_latest
-    ON telegram_channels (last_message_at DESC NULLS LAST, channel_id) INCLUDE (search_text);
+CREATE INDEX IF NOT EXISTS telegram_channels_listed_search
+    ON telegram_channels USING gin (search_text gin_trgm_ops) WHERE has_messages;
+CREATE INDEX IF NOT EXISTS telegram_channels_listed
+    ON telegram_channels (subscriber_count DESC NULLS LAST, channel_id) INCLUDE (search_text) WHERE has_messages;
+CREATE INDEX IF NOT EXISTS telegram_channels_listed_latest
+    ON telegram_channels (last_message_at DESC NULLS LAST, channel_id) INCLUDE (search_text) WHERE has_messages;
+
+-- Indexes the lists no longer read: by name (no list is ordered so any more, nor sorted with app.names), and over
+-- every channel, listed or not
+DROP INDEX IF EXISTS youtube_channels_name;
+DROP INDEX IF EXISTS telegram_channels_name;
+DROP COLLATION IF EXISTS app.names;
+DROP INDEX IF EXISTS youtube_channels_search;
+DROP INDEX IF EXISTS youtube_channels_subscribers;
+DROP INDEX IF EXISTS telegram_channels_search;
+DROP INDEX IF EXISTS telegram_channels_subscribers;
+DROP INDEX IF EXISTS telegram_channels_latest;
 
 -- The API's user (run.sh setup makes it) may read and change every table here, and create none
 GRANT USAGE ON SCHEMA app TO media_monitoring_api;

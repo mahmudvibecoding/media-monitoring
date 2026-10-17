@@ -7,19 +7,18 @@ export type VideosQuery = NonNullable<YoutubeChannelVideosData["query"]>;
 // The queries below come from a page's address: only values the API takes, and none that's its default, so the server
 // and the browser build the same query, and so the same key for TanStack Query's cache
 
-// The channel list's search, order and page (?search=…&sort=name&page=2)
+// The channel list's search and page (?search=…&page=2)
 export function channelsQuery(params: URLSearchParams): ChannelsQuery {
   const query: ChannelsQuery = {};
   const search = searchOf(params);
   if (search) query.search = search;
-  if (params.get("sort") === "name") query.sort = "name";
   const page = pageOf(params);
   if (page) query.page = page;
   return query;
 }
 
 export function channelsAddress(query: ChannelsQuery): string {
-  return addressOf({ search: query.search, sort: query.sort, page: query.page });
+  return addressOf({ search: query.search, page: query.page });
 }
 
 // A channel's videos: of which kind (?kind=short); more of them load as the list is scrolled, so no page
@@ -34,7 +33,6 @@ export function videosAddress(query: VideosQuery): string {
 
 // Addresses on YouTube itself
 export const channelOnYouTube = (id: string) => `https://www.youtube.com/channel/${id}`;
-export const videoOnYouTube = (id: string) => `https://www.youtube.com/watch?v=${id}`;
 
 // A channel's picture at a size: they're saved at 900 × 900 (114 KB), and YouTube's image server makes any size the
 // address names

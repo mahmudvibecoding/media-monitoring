@@ -18,8 +18,10 @@ to keep it fresh.
 - `/api/health` answers while it runs, `/api/health/ready` once the database answers too, `/api/status` with how much
   the database holds, and `/api/docs` lists them all. It and the description it shows, `/api/openapi.json`, are for
   admins only; `openapi.json` in the repo is the same description (`uv run api openapi`).
-- The counts are PostgreSQL's own running count of each table's rows: reading it takes a millisecond, while counting
-  the rows takes 0.15 s for Telegram messages and minutes for the 194 million comments.
+- The counts of videos, comments and messages are PostgreSQL's own running count of each table's rows: reading it takes
+  a millisecond, while counting the rows takes 0.15 s for Telegram messages and minutes for the 194 million comments.
+  The channels counted are those the lists show, with something collected (see below), counted from their indexes: 46 ms
+  for YouTube's and 20 ms for Telegram's, at the same time.
 - Every failure is the same JSON, `{"error": code, "message", "request_id"}`, with codes like `database_unavailable`
   (503), `database_timeout` (504) and `internal` (500); a crash's details only go to the log.
 - A request waits at most 5 s for a database connection, and a query runs at most 5 s.
@@ -44,28 +46,26 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
 
 ### YouTube
 
-`/api/youtube/channels` gives admins 50 channels at a time, the biggest first or by name, and how many match; with
-`search`, those whose name or handle has it in them. Through Caddy, a search takes about 13 ms, the first page 41 ms
+`/api/youtube/channels` gives admins the channels a page at a time, the biggest first, and how many match: as many to a
+page as `size` asks for, up to 100, as the site's grid asks for as many as fit the screen; with `search`, those whose
+name or handle has it in them. Through Caddy, a search takes about 13 ms, the first page 41 ms
 (counting all 55,859 channels) and a search for a single letter 60 ms:
 - Each channel's name and handle are kept searchable in a column of their own, `search_text`: in lowercase, and without
   apostrophes, which Uzbek writes oʻ and gʻ with in seven ways (Zo'r, Zoʻr, Zo‘r...), so that zor, zo'r and zoʻr find
   the same 442 channels. PostgreSQL brings it up to date as the collectors change them. A trigram index (pg_trgm) finds
   any part of it. Worked out during each search instead, it took 0.5 s for a search the index can't narrow down, like
   one letter.
-- By name is alphabetical as people read it (ICU, with spaces, punctuation, symbols and currency signs passed over): the
-  database's own order is by character codes, Zebra before apple, and many names start with spaces, 👤 or £.
-- A page's channels are picked from its order's index alone, which holds their IDs and the search column, and only those
-  50 are read from the table: a page far down takes milliseconds, not the 0.4 s of reading and sorting every channel.
+- A page's channels are picked from the order's index alone, which holds their IDs and the search column, and only
+  those are read from the table: a page far down takes milliseconds, not the 0.4 s of reading and sorting every channel.
   The page and the count are asked for at the same time, on two connections.
-- `app.sql` has the column, the indexes and the order (`app.names`), so a deploy makes them: 3 s the first time, nothing
-  after.
+- `app.sql` has the column and the indexes, so a deploy makes them: 3 s the first time, nothing after.
 
 A channel's page asks for two things. `/api/youtube/channels/{id}` is the channel's details, with how many of its videos
 there are of each kind: counting them takes a few milliseconds for most channels (40 videos, the median), and 50 ms for
 the one with the most (20,176). `/api/youtube/channels/{id}/videos` is a page of its videos, newest first: the
 collectors' own index, by channel and day, gives them in that order, so a page takes about 15 ms through Caddy even for
 that channel, and one 400 pages down 100 ms. The videos aren't counted again for each page, which would add those 50 ms
-to every page; the site takes their number from the channel's details.
+to every page.
 
 A video's page asks for three things. `/api/youtube/videos/{id}` is its details, its channel's picture and subscribers,
 and how many of its comments have been collected (YouTube's own count has the replies too, which aren't).
@@ -76,15 +76,22 @@ theirs take milliseconds, but a video's comments are sorted by their time on eac
 whether the comment was edited. Beside the video, its channel's newest videos are the first page the channel's own page
 asks for.
 
+### Which channels are listed
+
+Both lists show only the channels with something collected, and count only those: a YouTube channel with a video, a
+Telegram channel with a saved message (55,600 of 55,859, and 30,272 of 310,431, on October 17, 2026). Each channel keeps
+whether it has in a column of its own, `has_videos` or `has_messages`, which a trigger sets as the collectors save
+videos and messages; the lists' indexes hold only those channels. Looked up in the videos' and messages' tables on each
+request, counting them took 0.9 s and 0.3 s. A channel's page can still be opened by its address.
+
 ### Telegram
 
 `/api/telegram/channels` lists the Telegram channels the way YouTube's are listed: a search column and its trigram
 index, an index for each order holding the search column, the page picked from the index alone, all in `app.sql`. Its
-orders are the biggest first, by name, and the latest to post first; by name, the names without a letter or a digit come
-after the rest, as 3,466 channels are called ".", "-" or an emoji. Without a search, how many there are is PostgreSQL's
-running count, as on the overview: counting the 310,431 channels takes 80 ms each time. `/api/telegram/channels/{id}` is
-a channel's details, with how many of its messages have been saved, and `/api/telegram/channels/{id}/messages` a page of
-its messages, newest first, by the messages table's key: a few milliseconds, even for the channel with the most.
+orders are the biggest first and the latest to post first, 50 to a page. Counting the 30,272 channels with a saved
+message takes 20 ms. `/api/telegram/channels/{id}` is a channel's details, with how many of its messages have been
+saved, and `/api/telegram/channels/{id}/messages` a page of its messages, newest first, by the messages table's key: a
+few milliseconds, even for the channel with the most.
 
 ### Runs
 
@@ -104,24 +111,34 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
 - Light only, and sober: white, near-black and greys, with color only for a status (running, stopped, failed). YouTube's
-  pages look like YouTube's own (its font, Roboto, its greys, its black and grey pill buttons and chips, its grids of
-  covers and its watch page), and Telegram's like Telegram's (its list of chats, its blue, its chat with bubbles on
-  its background, its info panel).
+  pages look like YouTube's own (its font, Roboto, its greys, its header with a way back, its logo (the very one its
+  site shows) and the search box, its black button and grey pills, its grids of covers and its watch page), and
+  Telegram's like Telegram's (its list of chats, its blue, its chat with bubbles on its background, its info panel).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
   inside a page comes after Next has begun sending it: a 200, followed only by the browser's scripts. The site's server
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
-- Admins have a menu at the side (shadcn's sidebar) and no bar above the page: the overview, YouTube and Telegram, then
-  apart at the bottom the activity, and at its foot who's signed in, with the language and signing out. It folds down to
-  its icons (its button, a click on its edge, or Ctrl+B), which it remembers in a cookie, and slides in over the page on
-  a phone, where a thin bar opens it.
+- Admins have a menu at the side (shadcn's sidebar) and no bar above the page, which takes the window's whole width
+  (each page keeps its own: the overview and the activity 1,280 px at most, a YouTube channel's page 1,284 px as
+  YouTube's, a video's page 1,706 px, its player up to 1,280 px beside a column of 402 px, as on YouTube): the overview,
+  YouTube and Telegram, then apart at the bottom the activity, and at its foot who's signed in, with the language and
+  signing out. It folds down to its icons (its button, a click on its edge, or Ctrl+B), which it remembers in a cookie,
+  and slides in over the page on a phone, where a thin bar opens it.
 - Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
   middle-click opens it in a new tab, as a link does.
 - The channel lists keep their search, order and page in the address, so Back, Forward and a copied link bring them
-  back. They change the address through the browser's history rather than by loading the page again, and ask the API
-  themselves, through Caddy; the server renders a list only when the page is loaded. A search starts 300 ms after the
-  last key, "/" goes to the search box and Escape empties it, and the last list stays, dimmed, while the next one loads.
+  back. YouTube's grid fills the screen and no more, so its page's buttons are always in view: a page holds as many
+  channels as fit (36 on a 2000 × 1200 window, 4 on a phone), so the browser asks for them itself, once it has measured
+  the grid. A list's pages have a button to the one before and the next, and ← and → turn them. They change the address
+  through the browser's history rather than by loading the page again, and ask the API themselves, through Caddy; the
+  server renders Telegram's list only when the page is loaded. A search starts 300 ms after the last key, "/" goes to
+  the search box and Escape empties it, and the last list stays, dimmed, while the next one loads.
+- A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
+  it as the page opens: with sound once one has clicked something on the site, as browsers allow. Next keeps a page one
+  has left alive, hidden, for going back to it, so the player is paused (through its own messages) as its page goes, and
+  a card's preview stops. In a channel's grid and beside a video, a video plays silently in its card once the mouse has
+  stayed on it half a second, as on YouTube, until the mouse leaves; a click still opens its page.
 - A channel's videos, a video's comments and a channel's messages load more as they're scrolled, as on YouTube and in
   Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest message, at the
   bottom, and loads older ones above as it's scrolled up.

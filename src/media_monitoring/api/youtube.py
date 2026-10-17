@@ -75,12 +75,12 @@ PAGE = sql.SQL("""
     ORDER BY {order}
 """)
 COUNT = sql.SQL("SELECT count(*) FROM youtube_channels {where}")
-SEARCHED = sql.SQL("WHERE search_text LIKE app.searchable(%(pattern)s)")  # lowercase, apostrophes left out (app.sql)
-# Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
-ORDERS = {
-    "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
-    "name": sql.SQL("title COLLATE app.names, channel_id"),  # alphabetical, the channels without a name yet last
-}
+# Only the channels with a video (app.sql), and with a search, those it matches: lowercase, apostrophes left out
+LISTED = sql.SQL("WHERE has_videos")
+SEARCHED = sql.SQL("WHERE has_videos AND search_text LIKE app.searchable(%(pattern)s)")
+# The biggest first; the channel's ID last, so that channels that tie keep their places from one page to the next
+ORDER = sql.SQL("subscriber_count DESC NULLS LAST, channel_id")
+MOST_TO_A_PAGE = 100  # the site asks for as many channels as fit its grid on the screen
 
 
 @router.get(
@@ -97,21 +97,24 @@ async def youtube_channels(
     request: Request,
     _: Admin,
     search: Annotated[str, Query(max_length=SEARCH_MAX, description="Part of a channel's name or handle")] = "",
-    sort: Annotated[Literal["subscribers", "name"], Query(description="The biggest first, or by name")] = "subscribers",
-    page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} channels to a page")] = 1,
+    page: Annotated[int, Query(ge=1, le=LAST_PAGE)] = 1,
+    size: Annotated[
+        int, Query(ge=1, le=MOST_TO_A_PAGE, description="Channels to a page: as many as fit the screen")
+    ] = (PAGE_SIZE),
 ) -> YouTubeChannels:
-    """The monitored channels, a page at a time, the biggest first or by name. With a search, only the channels whose
-    name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r."""
+    """The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the
+    channels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds
+    Zo‘r."""
     search = " ".join(search.split())
-    where = SEARCHED if search else sql.SQL("")
-    values = {"pattern": anywhere(search), "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
+    where = SEARCHED if search else LISTED
+    values = {"pattern": anywhere(search), "limit": size, "offset": (page - 1) * size}
 
     # Both queries are planned for the search they're given (prepare=False): a plan made once for any search would
     # look up a single letter in the trigram index, which can't narrow it down
     async def channels() -> list[YouTubeChannel]:
         async with request.state.pool.connection() as conn:
             cursor = conn.cursor(row_factory=class_row(YouTubeChannel))
-            query = PAGE.format(where=where, order=ORDERS[sort])
+            query = PAGE.format(where=where, order=ORDER)
             return await (await cursor.execute(query, values, prepare=False)).fetchall()
 
     async def total() -> int:
@@ -121,7 +124,7 @@ async def youtube_channels(
 
     # Each on a connection of its own, at the same time: counting every match takes the longer, up to 50 ms
     found, count = await asyncio.gather(channels(), total())
-    return YouTubeChannels(channels=found, total=count, page_size=PAGE_SIZE)
+    return YouTubeChannels(channels=found, total=count, page_size=size)
 
 
 CHANNEL = """

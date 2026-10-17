@@ -9,17 +9,20 @@ import { cn } from "@/lib/utils";
 const SEARCH_WAIT = 300; // milliseconds after the last key before the list is searched
 
 // A list's search box, looking like YouTube's or like Telegram's: onSearch gets the search a moment after the last key,
-// to put in the address, so that Back and a copied link bring it back. When the address's search changes some other
-// way (Back, Forward, the menu), the box follows it. "/" anywhere on the page goes to it, and Escape empties it.
+// to put in the address, so that Back and a copied link bring it back; or, with onEnter, only on Enter or a click on
+// its button (a box that takes one to the list). When the address's search changes some other way (Back, Forward, the
+// menu), the box follows it. "/" anywhere on the page goes to it, and Escape empties it.
 export function SearchBox({
   search,
   placeholder,
   onSearch,
+  onEnter = false,
   look,
 }: {
   search: string;
   placeholder: string;
   onSearch: (search: string) => void;
+  onEnter?: boolean;
   look: "youtube" | "telegram";
 }) {
   const [text, setText] = useState(search);
@@ -47,6 +50,7 @@ export function SearchBox({
 
   function type(value: string) {
     setText(value);
+    if (onEnter) return;
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       const next = searchOf(new URLSearchParams({ search: value }));
@@ -64,6 +68,7 @@ export function SearchBox({
       onChange={(event) => type(event.target.value)}
       onKeyDown={(event) => {
         if (event.key === "Escape" && text) type("");
+        if (event.key === "Enter" && onEnter) onSearch(searchOf(new URLSearchParams({ search: text })));
       }}
       placeholder={placeholder}
       aria-label={placeholder}
@@ -85,7 +90,7 @@ export function SearchBox({
         <button
           type="button"
           aria-label={placeholder}
-          onClick={() => input.current?.focus()}
+          onClick={() => (onEnter ? onSearch(searchOf(new URLSearchParams({ search: text }))) : input.current?.focus())}
           className="flex h-10 w-16 shrink-0 items-center justify-center rounded-r-full border border-l-0 border-[#d3d3d3] bg-[#f8f8f8] text-yt-text hover:bg-yt-chip-hover"
         >
           <SearchIcon className="size-5" strokeWidth={1.75} />

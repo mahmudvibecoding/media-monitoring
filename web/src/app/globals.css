@@ -114,6 +114,20 @@
   body {
     @apply bg-background text-sm text-foreground;
   }
+  /* Whatever can be clicked shows the hand: links do by themselves, buttons and menu items here (Tailwind leaves them
+     with the arrow) */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([data-disabled]),
+  [role="menuitemradio"]:not([data-disabled]),
+  [role="option"]:not([data-disabled]),
+  [role="radio"]:not([data-disabled]),
+  [role="tab"],
+  summary,
+  label[for],
+  select {
+    cursor: pointer;
+  }
   html {
     @apply font-sans;
   }

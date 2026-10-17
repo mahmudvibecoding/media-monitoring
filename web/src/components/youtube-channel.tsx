@@ -67,12 +67,10 @@ export function ChannelDetails({ id }: { id: string }) {
 
 // The channel's videos, newest first, in YouTube's tabs (all of them, only videos, or only Shorts, as the address
 // asks: ?kind=short) and its grid of covers, upright for Shorts. More load as the grid is scrolled down, as on
-// YouTube; how many there are, for the tabs, comes with the channel's details.
+// YouTube.
 export function ChannelVideos({ id }: { id: string }) {
   const t = useTranslations("youtubeChannel");
-  const locale = useLocale();
   const query = videosQuery(useSearchParams());
-  const counts = useQuery(youtubeChannelOptions({ path: { channel_id: id } })).data?.videos;
   const { data, error, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } = useInfiniteQuery({
     ...youtubeChannelVideosInfiniteOptions({ path: { channel_id: id }, query }),
     ...FIRST_PAGE,
@@ -125,14 +123,6 @@ export function ChannelVideos({ id }: { id: string }) {
             )}
           >
             {labels[option]}
-            {counts && (
-              <span
-                className="text-sm font-normal text-yt-muted tabular-nums"
-                title={formatCount(counts[option], locale)}
-              >
-                {formatCompact(counts[option], locale)}
-              </span>
-            )}
           </button>
         ))}
       </nav>

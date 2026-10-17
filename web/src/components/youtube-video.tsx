@@ -1,10 +1,10 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { CheckIcon, EyeIcon, MessageCircleIcon, ThumbsUpIcon, UserIcon } from "lucide-react";
+import { EyeIcon, MessageCircleIcon, ThumbsUpIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 import {
   youtubeChannelVideosOptions,
@@ -13,27 +13,29 @@ import {
 } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeComment } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
-import { YouTubeLogo } from "@/components/brand-icons";
 import { FoldedText } from "@/components/folded-text";
 import { Skeleton } from "@/components/ui/skeleton";
 import { When } from "@/components/when";
-import { ChannelPicture, SmallVideoCard, YT_BUTTON_GREY } from "@/components/youtube-ui";
-import { formatCompact, formatCount, formatDateTime, formatDuration, formatWhen, pluralOf } from "@/lib/format";
+import { ChannelPicture, SmallVideoCard, YouTubeMasthead, YT_PILL } from "@/components/youtube-ui";
+import { formatCompact, formatCount, formatDateTime, formatWhen, pluralOf } from "@/lib/format";
 import { FIRST_PAGE, nextPage } from "@/lib/pages";
 import { useLoadMore } from "@/lib/use-load-more";
-import { channelOnYouTube, thumbnail, videoOnYouTube } from "@/lib/youtube";
+import { channelOnYouTube } from "@/lib/youtube";
 
-// A video's page, laid out like YouTube's: the cover where YouTube has the player (it opens the video on YouTube), the
-// title, the channel with its picture and subscribers, the counts in YouTube's pills, the description in its grey box,
+// A video's page, laid out like YouTube's: YouTube's header, its player, the title, the channel with its picture and subscribers, the counts in YouTube's pills, the description in its grey box,
 // and the comments; beside it, more from the same channel
 export function VideoPage({ id }: { id: string }) {
   return (
-    <div className="grid gap-6 font-roboto text-yt-text xl:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="min-w-0 space-y-6">
-        <VideoDetails id={id} />
-        <VideoComments id={id} />
+    // As YouTube's watch page: the player up to 1280 px wide, and beside it a column of 402 px
+    <div className="mx-auto max-w-[1706px] space-y-6">
+      <YouTubeMasthead />
+      <div className="grid gap-6 font-roboto text-yt-text xl:grid-cols-[minmax(0,1fr)_402px]">
+        <div className="min-w-0 space-y-6">
+          <VideoDetails id={id} />
+          <VideoComments id={id} />
+        </div>
+        <MoreFromChannel id={id} />
       </div>
-      <MoreFromChannel id={id} />
     </div>
   );
 }
@@ -49,7 +51,7 @@ function VideoDetails({ id }: { id: string }) {
   const channel = data.channel_title?.trim() || data.channel_id;
   const pill = (icon: ReactNode, value: number | null, label: string) =>
     value === null ? null : (
-      <span className={YT_BUTTON_GREY} title={`${label}: ${formatCount(value, locale)}`}>
+      <span className={YT_PILL} title={`${label}: ${formatCount(value, locale)}`}>
         {icon}
         <span className="tabular-nums">{formatCompact(value, locale, true)}</span>
         <span className="sr-only">{label}</span>
@@ -57,30 +59,7 @@ function VideoDetails({ id }: { id: string }) {
     );
   return (
     <section className="space-y-3">
-      <a
-        href={videoOnYouTube(id)}
-        target="_blank"
-        rel="noreferrer"
-        aria-label={t("watch")}
-        className="group relative block aspect-video overflow-hidden rounded-xl bg-black"
-      >
-        {/* Straight from YouTube, as the covers in the lists */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={thumbnail(id, "hq")}
-          alt=""
-          referrerPolicy="no-referrer"
-          className="size-full object-cover transition-opacity group-hover:opacity-85"
-        />
-        <span className="absolute inset-0 flex items-center justify-center">
-          <YouTubeLogo className="h-12 w-17 opacity-90 drop-shadow-lg transition-opacity group-hover:opacity-100" />
-        </span>
-        {data.duration !== null && (
-          <span className="absolute right-2 bottom-2 rounded bg-black/80 px-1.5 py-0.5 text-xs font-medium text-white tabular-nums">
-            {formatDuration(data.duration)}
-          </span>
-        )}
-      </a>
+      <Player id={id} title={data.title?.trim() || id} />
       <h1 className="text-xl leading-7 font-bold break-words">{data.title?.trim() || data.id}</h1>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <Link href={`/youtube/channels/${data.channel_id}`} className="flex min-w-0 items-center gap-3">
@@ -100,22 +79,19 @@ function VideoDetails({ id }: { id: string }) {
         <div className="flex flex-wrap gap-2 sm:ml-auto">
           {pill(<ThumbsUpIcon className="size-4" />, data.likes, t("likes"))}
           {pill(<MessageCircleIcon className="size-4" />, data.comments, t("comments"))}
-          <a href={channelOnYouTube(data.channel_id)} target="_blank" rel="noreferrer" className={YT_BUTTON_GREY}>
-            {channelTexts("open")}
-          </a>
         </div>
       </div>
       <div className="space-y-1 rounded-xl bg-yt-chip p-3 text-sm">
-        <p className="font-medium">
+        <p className="flex flex-wrap items-center gap-x-2 font-medium">
           {data.views !== null && (
-            <span className="mr-2 inline-flex items-center gap-1" title={t("views")}>
+            <span className="inline-flex items-center gap-1" title={t("views")}>
               <EyeIcon className="size-4" />
               {formatCount(data.views, locale)}
             </span>
           )}
           {data.published_at && <When iso={data.published_at} youtube />}
-          {data.kind === "short" && <span className="ml-2 text-yt-muted">#Shorts</span>}
-          {!data.available && <span className="ml-2 text-yt-muted">{t("unavailable")}</span>}
+          {data.kind === "short" && <span className="text-yt-muted">#Shorts</span>}
+          {!data.available && <span className="text-yt-muted">{t("unavailable")}</span>}
         </p>
         {data.description?.trim() && (
           <FoldedText
@@ -131,6 +107,35 @@ function VideoDetails({ id }: { id: string }) {
         </p>
       </div>
     </section>
+  );
+}
+
+// The video, played here by YouTube's own player (its privacy-enhanced address), which starts it as the page opens (with
+// sound once one has clicked anything on the site, as browsers allow; without, the player waits for a click). YouTube
+// wants to know which site the player is on (the address this page sends with the request), so unlike the pictures it
+// isn't asked for without one. Next keeps a page one has left alive, hidden, for going back to it: so that the video
+// doesn't go on playing there, unseen, it's paused (through the player's own messages) as the page goes.
+function Player({ id, title }: { id: string; title: string }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    const player = frame.current;
+    return () =>
+      player?.contentWindow?.postMessage(
+        JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
+        "https://www.youtube-nocookie.com",
+      );
+  }, []);
+  return (
+    <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
+      <iframe
+        ref={frame}
+        src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&enablejsapi=1`}
+        title={title}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        className="absolute inset-0 size-full"
+      />
+    </div>
   );
 }
 
@@ -170,21 +175,12 @@ function VideoComments({ id }: { id: string }) {
   return (
     <section className="space-y-6">
       {video && (
-        <div className="flex flex-wrap items-baseline gap-x-3">
-          <h2 className="text-xl font-bold">
-            {t("commentCount", {
-              count: video.comments_collected,
-              formatted: formatCount(video.comments_collected, locale),
-            })}
-          </h2>
-          <span
-            className="inline-flex items-center gap-1 text-sm text-yt-muted"
-            title={video.comments_complete ? t("complete") : t("incomplete")}
-          >
-            {video.comments_complete && <CheckIcon className="size-4" />}
-            {video.comments_complete ? t("complete") : t("incomplete")}
-          </span>
-        </div>
+        <h2 className="text-xl font-bold">
+          {t("commentCount", {
+            count: video.comments_collected,
+            formatted: formatCount(video.comments_collected, locale),
+          })}
+        </h2>
       )}
       {list}
     </section>

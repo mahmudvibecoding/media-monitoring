@@ -41,7 +41,8 @@ export default async function SignedInLayout({ children }: { children: ReactNode
             <SidebarTrigger aria-label={t("nav.toggle")} />
             <span className="font-semibold">{t("header.name")}</span>
           </div>
-          <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-8">{children}</div>
+          {/* As wide as the window: each page keeps its own width (YouTube's video page takes the most) */}
+          <div className="w-full px-4 py-6 sm:px-8">{children}</div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

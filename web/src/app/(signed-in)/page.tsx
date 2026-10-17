@@ -27,7 +27,7 @@ export default async function Home() {
     queryClient.prefetchQuery(latestRunsOptions({ client: serverClient })),
   ]);
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Status />

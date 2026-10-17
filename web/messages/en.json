@@ -34,15 +34,11 @@
     "count": "{count, plural, one {{formatted} channel} other {{formatted} channels}}",
     "found": "Found: {formatted}",
     "search": "Search by name or handle",
-    "order": "Order",
-    "biggest": "Biggest first",
-    "byName": "By name",
     "hidden": "hidden",
     "none": "No channels yet.",
     "noMatch": "No channels match “{search}”."
   },
   "youtubeChannel": {
-    "back": "YouTube channels",
     "subscribers": "{count, plural, one {{formatted} subscriber} other {{formatted} subscribers}}",
     "subscribersHidden": "Subscribers hidden",
     "open": "Open on YouTube",
@@ -55,13 +51,10 @@
     "videoCount": "{count, plural, one {{formatted} video} other {{formatted} videos}}"
   },
   "youtubeVideo": {
-    "watch": "Watch on YouTube",
     "unavailable": "Unavailable",
     "views": "Views",
     "likes": "Likes",
     "comments": "Comments",
-    "complete": "The whole list has been read",
-    "incomplete": "The list hasn't been read to the end yet",
     "statsAsOf": "Views and likes as of {when}",
     "noStats": "Views and likes haven't been read yet",
     "edited": "edited",
@@ -76,7 +69,6 @@
     "search": "Search by name or @username",
     "order": "Order",
     "biggest": "Biggest first",
-    "byName": "By name",
     "latest": "Latest post first",
     "none": "No channels yet.",
     "noMatch": "No channels match “{search}”."
@@ -84,7 +76,6 @@
   "telegramChannel": {
     "back": "Telegram channels",
     "subscribers": "{count, plural, one {{formatted} subscriber} other {{formatted} subscribers}}",
-    "open": "Open in Telegram",
     "openMessage": "Open in Telegram",
     "none": "No messages saved.",
     "info": "Info",
@@ -263,7 +254,8 @@
   "common": {
     "loading": "Loading…",
     "more": "Show more",
-    "less": "Show less"
+    "less": "Show less",
+    "back": "Back"
   },
   "time": {
     "justNow": "just now",
@@ -281,10 +273,8 @@
   },
   "pages": {
     "page": "Page {page} of {pages}",
-    "first": "First page",
     "previous": "Previous page",
-    "next": "Next page",
-    "last": "Last page"
+    "next": "Next page"
   },
   "errors": {
     "unavailable": "The service is temporarily unavailable. Please try again later.",

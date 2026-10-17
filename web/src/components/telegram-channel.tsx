@@ -43,8 +43,9 @@ export function TelegramChat({ id }: { id: number }) {
       ? `@${data.username}`
       : t("subscribers", { count: pluralOf(data.subscribers), formatted: formatCompact(data.subscribers, locale) });
   return (
-    // The whole height below the phone's bar, edge to edge: the page's margins are taken back
-    <div className="relative -mx-4 -my-6 flex h-[calc(100svh-3rem)] font-roboto text-tg-text sm:-mx-8 md:h-svh">
+    // All the room right of the menu (below the phone's bar), whatever the screen's width, as Telegram fills its
+    // window: laid over the page's width-capped, padded frame rather than inside it
+    <div className="absolute inset-x-0 top-12 bottom-0 flex font-roboto text-tg-text md:top-0">
       <section className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-white px-2 sm:px-3">
           <Link
@@ -70,14 +71,6 @@ export function TelegramChat({ id }: { id: number }) {
               </span>
             </span>
           </button>
-          <a
-            href={channelOnTelegram(data.username)}
-            target="_blank"
-            rel="noreferrer"
-            className="ml-auto shrink-0 rounded-full px-3 py-2 text-sm font-medium text-tg-blue hover:bg-tg-blue/10"
-          >
-            {t("open")}
-          </a>
         </header>
         <Messages id={id} username={data.username} />
       </section>
@@ -239,7 +232,7 @@ function ChannelInfo({
 
 function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: ReactNode }) {
   return (
-    <div className="flex gap-6 rounded-xl px-3 py-2.5 hover:bg-tg-hover">
+    <div className="flex gap-6 px-3 py-2.5">
       <Icon className="mt-0.5 size-6 shrink-0 text-tg-muted" strokeWidth={1.75} />
       <div className="min-w-0">
         <div className="text-[15px] break-words whitespace-pre-wrap">{children}</div>
@@ -253,7 +246,7 @@ function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: str
 function ChatSkeleton() {
   const t = useTranslations("common");
   return (
-    <div className="-mx-4 -my-6 flex h-[calc(100svh-3rem)] flex-col sm:-mx-8 md:h-svh" aria-busy="true">
+    <div className="absolute inset-x-0 top-12 bottom-0 flex flex-col md:top-0" aria-busy="true">
       <span className="sr-only">{t("loading")}</span>
       <div className="flex h-14 items-center gap-3 border-b px-4">
         <Skeleton className="size-10 rounded-full" />

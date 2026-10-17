@@ -34,15 +34,11 @@
     "count": "{formatted} ta kanal",
     "found": "Topildi: {formatted} ta",
     "search": "Nomi yoki taxallusi",
-    "order": "Tartib",
-    "biggest": "Avval yiriklari",
-    "byName": "Nomi boʻyicha",
     "hidden": "yashirin",
     "none": "Hozircha kanallar yoʻq.",
     "noMatch": "«{search}» boʻyicha kanal topilmadi."
   },
   "youtubeChannel": {
-    "back": "YouTube kanallari",
     "subscribers": "{formatted} ta obunachi",
     "subscribersHidden": "Obunachilar yashirin",
     "open": "YouTube saytida ochish",
@@ -55,13 +51,10 @@
     "videoCount": "{formatted} ta video"
   },
   "youtubeVideo": {
-    "watch": "YouTube saytida koʻrish",
     "unavailable": "Mavjud emas",
     "views": "Koʻrishlar",
     "likes": "Layklar",
     "comments": "Izohlar",
-    "complete": "Roʻyxat toʻliq oʻqilgan",
-    "incomplete": "Roʻyxat hali oxirigacha oʻqilmagan",
     "statsAsOf": "Koʻrishlar va layklar {when} holatiga",
     "noStats": "Koʻrishlar va layklar hali oʻqilmagan",
     "edited": "tahrirlangan",
@@ -76,7 +69,6 @@
     "search": "Nomi yoki @username",
     "order": "Tartib",
     "biggest": "Avval yiriklari",
-    "byName": "Nomi boʻyicha",
     "latest": "Avval yangi postlar",
     "none": "Hozircha kanallar yoʻq.",
     "noMatch": "«{search}» boʻyicha kanal topilmadi."
@@ -84,7 +76,6 @@
   "telegramChannel": {
     "back": "Telegram kanallari",
     "subscribers": "{formatted} ta obunachi",
-    "open": "Telegramda ochish",
     "openMessage": "Telegramda ochish",
     "none": "Xabarlar saqlanmagan.",
     "info": "Maʼlumot",
@@ -263,7 +254,8 @@
   "common": {
     "loading": "Yuklanmoqda…",
     "more": "Toʻliq koʻrsatish",
-    "less": "Yigʻish"
+    "less": "Yigʻish",
+    "back": "Orqaga"
   },
   "time": {
     "justNow": "hozirgina",
@@ -281,10 +273,8 @@
   },
   "pages": {
     "page": "Sahifa: {page} / {pages}",
-    "first": "Birinchi sahifa",
     "previous": "Oldingi sahifa",
-    "next": "Keyingi sahifa",
-    "last": "Oxirgi sahifa"
+    "next": "Keyingi sahifa"
   },
   "errors": {
     "unavailable": "Xizmat vaqtincha ishlamayapti. Keyinroq urinib koʻring.",

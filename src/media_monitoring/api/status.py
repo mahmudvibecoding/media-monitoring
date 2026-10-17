@@ -1,4 +1,7 @@
-"""GET /api/status: how much the database holds, for admins."""
+"""GET /api/status: how much the database holds, for admins: the channels the site lists, with something collected,
+and every video, comment and message."""
+
+import asyncio
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
@@ -19,6 +22,12 @@ COUNTS = """
     FROM pg_stat_user_tables s JOIN pg_class c ON c.oid = s.relid
     WHERE s.schemaname = 'public'
 """
+# The channels the lists show (app.sql): with a video, with a saved message, counted from their indexes, which hold only
+# those: 46 ms for YouTube's 55,600 and 20 ms for Telegram's 30,272
+LISTED = {
+    "youtube": "SELECT count(*) FROM youtube_channels WHERE has_videos",
+    "telegram": "SELECT count(*) FROM telegram_channels WHERE has_messages",
+}
 
 
 class YouTubeCounts(BaseModel):
@@ -47,12 +56,21 @@ class Status(BaseModel):
     ),
 )
 async def status(request: Request, _: Admin) -> Status:
-    """How many YouTube channels, videos and comments, and Telegram channels and messages the database holds."""
-    async with request.state.pool.connection() as conn:
-        rows = dict(await (await conn.execute(COUNTS)).fetchall())
+    """How many YouTube channels (with a video), videos and comments, and Telegram channels (with a saved message) and
+    messages the database holds."""
+
+    async def read(query: str) -> list[tuple]:
+        async with request.state.pool.connection() as conn:
+            return await (await conn.execute(query)).fetchall()
+
+    # Each on a connection of its own, at the same time
+    counts, [(youtube_channels,)], [(telegram_channels,)] = await asyncio.gather(
+        read(COUNTS), read(LISTED["youtube"]), read(LISTED["telegram"])
+    )
+    rows = dict(counts)
     return Status(
         youtube=YouTubeCounts(
-            channels=rows["youtube_channels"], videos=rows["youtube_videos"], comments=rows["youtube_comments"]
+            channels=youtube_channels, videos=rows["youtube_videos"], comments=rows["youtube_comments"]
         ),
-        telegram=TelegramCounts(channels=rows["telegram_channels"], messages=rows["telegram_messages"]),
+        telegram=TelegramCounts(channels=telegram_channels, messages=rows["telegram_messages"]),
     )

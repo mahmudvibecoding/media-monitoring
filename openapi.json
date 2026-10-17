@@ -372,7 +372,7 @@
     "/api/status": {
       "get": {
         "summary": "Status",
-        "description": "How many YouTube channels, videos and comments, and Telegram channels and messages the database holds.",
+        "description": "How many YouTube channels (with a video), videos and comments, and Telegram channels (with a saved message) and\nmessages the database holds.",
         "operationId": "status",
         "responses": {
           "200": {
@@ -441,7 +441,7 @@
     "/api/youtube/channels": {
       "get": {
         "summary": "Youtube Channels",
-        "description": "The monitored channels, a page at a time, the biggest first or by name. With a search, only the channels whose\nname or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.",
+        "description": "The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the\nchannels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds\nZo‘r.",
         "operationId": "youtube_channels",
         "parameters": [
           {
@@ -458,22 +458,6 @@
             "description": "Part of a channel's name or handle"
           },
           {
-            "name": "sort",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "enum": [
-                "subscribers",
-                "name"
-              ],
-              "type": "string",
-              "description": "The biggest first, or by name",
-              "default": "subscribers",
-              "title": "Sort"
-            },
-            "description": "The biggest first, or by name"
-          },
-          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -481,11 +465,23 @@
               "type": "integer",
               "maximum": 10000,
               "minimum": 1,
-              "description": "50 channels to a page",
               "default": 1,
               "title": "Page"
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Channels to a page: as many as fit the screen",
+              "default": 50,
+              "title": "Size"
             },
-            "description": "50 channels to a page"
+            "description": "Channels to a page: as many as fit the screen"
           }
         ],
         "responses": {
@@ -999,7 +995,7 @@
     "/api/telegram/channels": {
       "get": {
         "summary": "Telegram Channels",
-        "description": "The monitored channels, a page at a time, the biggest first, by name, or the latest to post first. With a search,\nonly the channels whose name or username has it in them, whatever the case of its letters, and apostrophes\naside.",
+        "description": "The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post\nfirst. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and\napostrophes aside.",
         "operationId": "telegram_channels",
         "parameters": [
           {
@@ -1022,15 +1018,14 @@
             "schema": {
               "enum": [
                 "subscribers",
-                "name",
                 "latest"
               ],
               "type": "string",
-              "description": "The biggest first, by name, or the latest to post",
+              "description": "The biggest first, or the latest to post",
               "default": "subscribers",
               "title": "Sort"
             },
-            "description": "The biggest first, by name, or the latest to post"
+            "description": "The biggest first, or the latest to post"
           },
           {
             "name": "page",

@@ -85,8 +85,8 @@ export const status = <ThrowOnError extends boolean = false>(options?: Options<S
 /**
  * Youtube Channels
  *
- * The monitored channels, a page at a time, the biggest first or by name. With a search, only the channels whose
- * name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
+ * The monitored channels, a page at a time, the biggest first. With a search, only the channels whose name or
+ * handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
  */
 export const youtubeChannels = <ThrowOnError extends boolean = false>(options?: Options<YoutubeChannelsData, ThrowOnError>): RequestResult<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError> => (options?.client ?? client).get<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError>({ url: '/api/youtube/channels', ...options });
 
@@ -126,9 +126,8 @@ export const youtubeVideoComments = <ThrowOnError extends boolean = false>(optio
 /**
  * Telegram Channels
  *
- * The monitored channels, a page at a time, the biggest first, by name, or the latest to post first. With a search,
- * only the channels whose name or username has it in them, whatever the case of its letters, and apostrophes
- * aside.
+ * The monitored channels, a page at a time, the biggest first or the latest to post first. With a search, only the
+ * channels whose name or username has it in them, whatever the case of its letters, and apostrophes aside.
  */
 export const telegramChannels = <ThrowOnError extends boolean = false>(options?: Options<TelegramChannelsData, ThrowOnError>): RequestResult<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError> => (options?.client ?? client).get<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError>({ url: '/api/telegram/channels', ...options });
 

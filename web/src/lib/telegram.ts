@@ -6,13 +6,14 @@ export type TelegramChannelsQuery = NonNullable<TelegramChannelsData["query"]>;
 // The queries below come from a page's address: only values the API takes, and none that's its default, so the server
 // and the browser build the same query, and so the same key for TanStack Query's cache
 
-// The Telegram channel list's search, order and page (?search=…&sort=latest&page=2)
+// The Telegram channel list's search, order and page (?search=…&sort=latest&page=2): the biggest first, or the latest
+// to post first
 export function telegramChannelsQuery(params: URLSearchParams): TelegramChannelsQuery {
   const query: TelegramChannelsQuery = {};
   const search = searchOf(params);
   if (search) query.search = search;
   const sort = params.get("sort");
-  if (sort === "name" || sort === "latest") query.sort = sort;
+  if (sort === "latest") query.sort = sort;
   const page = pageOf(params);
   if (page) query.page = page;
   return query;

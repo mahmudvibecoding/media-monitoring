@@ -19,12 +19,12 @@ import { telegramChannelsAddress, telegramChannelsQuery } from "@/lib/telegram";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
-const ORDERS = ["subscribers", "latest", "name"] as const;
+const ORDERS = ["subscribers", "latest"] as const;
 
 // The monitored Telegram channels, as the address asks for them, a page at a time, laid out like Telegram's list of
 // chats: a round picture, the name, @username and subscribers, and when the channel last posted. Searched as one types;
-// the biggest first, the latest to post first, or by name, in tabs like Telegram's folders. While the next page loads,
-// the last one stays, dimmed.
+// the biggest first or the latest to post first, in tabs like Telegram's folders. While the next page loads, the last
+// one stays, dimmed.
 export function TelegramChannels() {
   const t = useTranslations("telegramChannels");
   const locale = useLocale();
@@ -48,7 +48,7 @@ export function TelegramChannels() {
     window.scrollTo({ top: 0 });
   }
 
-  const labels = { subscribers: t("biggest"), latest: t("latest"), name: t("byName") };
+  const labels = { subscribers: t("biggest"), latest: t("latest") };
   let list;
   if (!data) {
     list = error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <ChatsSkeleton />;

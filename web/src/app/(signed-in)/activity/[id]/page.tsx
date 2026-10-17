@@ -44,7 +44,7 @@ export default async function RunPage({ params }: PageProps<"/activity/[id]">) {
   const queryClient = getQueryClient();
   if (run) queryClient.setQueryData(runDetailsQueryKey({ path: { run_id: id } }), run);
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
       <Link
         href="/activity"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
