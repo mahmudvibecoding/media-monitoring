@@ -23,17 +23,7 @@ import {
 } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannelDetails, YouTubeVideo } from "@/api/types.gen";
 import { CommentList } from "@/components/youtube-comments";
-import {
-  BUFFERING,
-  command,
-  embed,
-  ENDED,
-  Hush,
-  PLAYING,
-  scaled,
-  useEmbedded,
-  useHush,
-} from "@/components/youtube-embed";
+import { BUFFERING, command, embed, ENDED, PLAYING, scaled, useEmbedded } from "@/components/youtube-embed";
 import { ShortsGhost } from "@/components/youtube-ghosts";
 import { ShareButton } from "@/components/youtube-share";
 import { YouTubeText } from "@/components/youtube-text";
@@ -294,7 +284,6 @@ function Reel({
 
 // What the player last told about itself; started once it has played, which the picture shows until
 type State = { playing: boolean; muted: boolean; time: number; duration: number; started: boolean };
-const SCALE = 4; // the player is drawn four times as big as the frame and shrunk back (see youtube-embed)
 const CROP = 160; // px of the player above and below the frame
 
 // The Short playing, by YouTube's player over its picture, with the page's own controls, as YouTube's Shorts have them:
@@ -303,8 +292,8 @@ const CROP = 160; // px of the player above and below the frame
 // where it's clicked; at its end it starts again. The picture shows until the Short has started, so sliding to it
 // doesn't go black. The player is 160 px taller than the frame at each end, so what YouTube puts along them (the
 // title, its logo, and for a Short its own like count) falls outside it, while the Short, as wide as the frame, fills
-// it; and it's drawn four times as big and shrunk back, with a blur over the middle while YouTube's own ⏸ is there
-// (see youtube-embed). The player is loaded only once its page shows, and unloaded as it goes.
+// it; and it's drawn 48 times as big and shrunk back, so that YouTube's own ⏸ can't be seen (see youtube-embed). The
+// player is loaded only once its page shows, and unloaded as it goes.
 function ShortPlayer({ video }: { video: YouTubeVideo }) {
   const t = useTranslations("youtube");
   const [state, setState] = useState<State>({
@@ -314,7 +303,6 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
     duration: video.duration ?? 0,
     started: false,
   });
-  const [hushed, hush] = useHush();
   const last = useRef(state); // the same, for the handlers
   useEffect(() => {
     last.current = state;
@@ -325,11 +313,9 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
     (info, answer) => {
       if (info.playerState === ENDED) {
         // Round again, as YouTube's Shorts play
-        hush();
         answer("seekTo", [0, true]);
         answer("playVideo");
       }
-      if (info.playerState === PLAYING && !last.current.started) hush();
       setState((now) => ({
         playing:
           typeof info.playerState === "number"
@@ -343,16 +329,12 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
     },
   );
   const send = (func: string, args: unknown[] = []) => command(frame.current, func, args);
-  const toggle = () => {
-    if (!last.current.playing) hush(); // going on, YouTube shows its ⏸ again
-    send(last.current.playing ? "pauseVideo" : "playVideo");
-  };
+  const toggle = () => send(last.current.playing ? "pauseVideo" : "playVideo");
   const mute = () => {
     send(last.current.muted ? "unMute" : "mute");
     setState((now) => ({ ...now, muted: !now.muted }));
   };
   const seek = (seconds: number) => {
-    hush();
     send("seekTo", [seconds, true]);
     setState((now) => ({ ...now, time: seconds }));
   };
@@ -382,13 +364,12 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
         title={video.title ?? video.id}
         allow="autoplay; encrypted-media; picture-in-picture; web-share"
         tabIndex={-1}
-        style={scaled(SCALE, CROP)}
+        style={scaled(CROP)}
         className={cn(
           "pointer-events-none absolute max-w-none transition-opacity duration-300",
           state.started ? "opacity-100" : "opacity-0",
         )}
       />
-      {hushed && state.started && <Hush size={30} />}
       <button
         type="button"
         onClick={toggle}

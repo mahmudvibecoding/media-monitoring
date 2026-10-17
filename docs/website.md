@@ -188,10 +188,13 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   a click still opens its page. Shorts don't play under the mouse, as on YouTube. Whatever its address asks, YouTube's
   player puts its own ⏸ in the middle of the video for about 4 s each time a video starts, goes on after a pause, jumps
   or changes (and, as a playlist of itself, its way to play a video round again, ⏮ and ⏭ beside it). So the players here
-  are never playlists (the page starts a video again at its end), and each is drawn four times as big as it shows and
-  shrunk back: the ⏸ keeps its size whatever the player's, so it comes out a quarter of it, while the video, chosen for
-  the bigger player, stays sharp, and a soft blur over the middle hides what's left of it for those seconds
-  (`src/components/youtube-embed.tsx`).
+  are never playlists (the page starts a video again at its end), and each is drawn 48 times as big as it shows and
+  shrunk back: the ⏸ keeps its size (about 56 px) whatever the player's, so it comes out about a pixel across, which
+  can't be seen (at 16 and 24 times it still could, on a Retina screen; at 32, barely), while the video stays sharp
+  (`src/components/youtube-embed.tsx`). YouTube picks a video's quality for the player's size, so it streams its best
+  (4K, where a video has it; it still lowers it on a slow connection): about ten times the data of a player drawn at its
+  size, as at 4 times. Its quality settings (vq, setPlaybackQuality) no longer change that, and neither does CSS zoom in
+  place of the scaling.
 - A Short opens on its own page, `/youtube/shorts/{id}`, as YouTube's do: a feed that slides up and down, a Short to a
   screen, each upright, as tall as the screen allows, with the channel and the title over its bottom and YouTube's round
   buttons beside it (the comments open their panel, the title the description's), and the next one's top under it. The
@@ -204,7 +207,7 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   stay until a Short has started, so sliding to it doesn't go black. The address and the tab's title change to the Short
   playing in place, without a step in the history, as YouTube's: Back goes back to where the Shorts were opened from.
   The player is 160 px taller than its frame at each end, so what YouTube puts along them (its title, its logo, a
-  Short's like count) falls outside it, and it's drawn four times as big, as a video's.
+  Short's like count) falls outside it, and it's drawn 48 times as big, as a video's.
 - A channel's videos, a video's comments, Telegram's chat list and a channel's messages load more as they're scrolled,
   as on YouTube and in Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest
   message, at the bottom, and loads older ones above as it's scrolled up.

@@ -28,7 +28,7 @@ import {
   useState,
 } from "react";
 
-import { BUFFERING, command, embed, Hush, PLAYING, scaled, useEmbedded, useHush } from "@/components/youtube-embed";
+import { BUFFERING, command, embed, PLAYING, scaled, useEmbedded } from "@/components/youtube-embed";
 import { CoverImage } from "@/components/youtube-ui";
 import { formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -48,7 +48,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 // The page's player, once it's there (null outside a video's page)
 export const usePlayer = () => useContext(PlayerContext);
 
-const SCALE = 4; // the player is drawn four times as big as its frame and shrunk back (see youtube-embed)
 const CROP = 60; // px of the player above and below its frame
 const IDLE = 3000; // ms without the mouse moving after which the controls hide while the video plays, as YouTube's
 const BLOCKED_AFTER = 2500; // ms after which a video that hasn't started is taken as not allowed to start by itself
@@ -78,10 +77,10 @@ type Bezel = { kind: "play" | "pause" | "mute" | "volume" | "back" | "forward"; 
 // the space bar, J and L (10 s back and on), ← and → (5 s), ↑ and ↓ (the sound, while the player has the focus), M, F,
 // Shift+N (the next video), and 0 to 9 (that tenth of the video). The video starts as the page opens, with sound once
 // one has clicked something on the site, as browsers allow; without, YouTube's big red button waits for a click. Its
-// picture shows until it has started. YouTube's own controls are off and it takes no clicks; it's drawn four times as
-// big and shrunk back, with a blur over the middle while its own ⏸ is there (see youtube-embed). It's loaded only as
-// its page shows and unloaded as it goes (Next keeps a page one has left alive, hidden), and loaded again on coming
-// back, from the second it had got to.
+// picture shows until it has started. YouTube's own controls are off and it takes no clicks; it's drawn 48 times as big
+// and shrunk back, so that its own ⏸ can't be seen (see youtube-embed). It's loaded only as its page shows and unloaded
+// as it goes (Next keeps a page one has left alive, hidden), and loaded again on coming back, from the second it had
+// got to.
 export function Player({ id, title, next }: { id: string; title: string; next?: { id: string; title: string } }) {
   const t = useTranslations("youtube");
   const router = useRouter();
@@ -100,7 +99,6 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
   useEffect(() => {
     last.current = state;
   });
-  const [hushed, hush] = useHush();
   const [awake, setAwake] = useState(true); // whether the controls show
   const [menu, setMenu] = useState(false); // whether the speed's menu is open
   const [bezel, setBezel] = useState<Bezel | null>(null);
@@ -114,7 +112,6 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
     id,
     () => embed(id, { from: last.current.time }), // from the start, or from where it was
     (info) => {
-      if (info.playerState === PLAYING && !last.current.started) hush();
       if (info.playerState === PLAYING) setBlocked(false);
       setState((now) => ({
         state: typeof info.playerState === "number" ? info.playerState : now.state,
@@ -140,7 +137,6 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
   const isPlaying = () => last.current.state === PLAYING || last.current.state === BUFFERING;
 
   function play() {
-    hush(); // going on, YouTube shows its ⏸ again
     send("playVideo");
     setBlocked(false);
   }
@@ -155,7 +151,6 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
   }
   function seek(seconds: number) {
     const to = Math.max(0, last.current.duration > 0 ? Math.min(seconds, last.current.duration - 0.5) : seconds);
-    hush();
     send("seekTo", [to, true]);
     setState((now) => ({ ...now, time: to }));
   }
@@ -311,13 +306,12 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         title={title}
         allow="autoplay; encrypted-media; picture-in-picture"
         tabIndex={-1}
-        style={scaled(SCALE, CROP)}
+        style={scaled(CROP)}
         className={cn(
           "pointer-events-none absolute max-w-none transition-opacity duration-300",
           state.started ? "opacity-100" : "opacity-0",
         )}
       />
-      {hushed && state.started && <Hush size={28} />}
       {/* The video's face: a click plays and pauses it (or closes the menu), a double click fills the screen */}
       <div
         className="absolute inset-0"

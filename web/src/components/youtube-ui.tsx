@@ -8,7 +8,7 @@ import { type ComponentProps, type ReactElement, type SVGProps, useEffect, useRe
 
 import type { YouTubeVideo } from "@/api/types.gen";
 import { When } from "@/components/when";
-import { embed, ENDED, Hush, PLAYING, scaled, useEmbedded, useHush } from "@/components/youtube-embed";
+import { embed, ENDED, PLAYING, scaled, useEmbedded } from "@/components/youtube-embed";
 import { useNow } from "@/lib/use-now";
 import { formatCompact, formatCount, formatDuration, pluralOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -270,44 +270,36 @@ function Cover({
 // The video playing over its cover, as YouTube's previews play: the video alone, without sound, controls or the player's
 // own lines. The player still puts the video's title along its top and its logo along its bottom, so it's 60 px taller
 // than the cover at each end: the video, as wide as the cover, fills the cover's height in its middle, and what's
-// along its ends falls outside the cover, which cuts it off. It's drawn four times as big and shrunk back, with a blur
-// over the middle while YouTube's own ⏸ is there, and started again at its end by the page (see youtube-embed). The
-// cover shows until it plays. As its page goes (Next keeps it alive, hidden), the player is unloaded at once.
+// along its ends falls outside the cover, which cuts it off. It's drawn 48 times as big and shrunk back, so that
+// YouTube's own ⏸ can't be seen, and started again at its end by the page (see youtube-embed). The cover shows until it
+// plays. As its page goes (Next keeps it alive, hidden), the player is unloaded at once.
 function Preview({ video }: { video: YouTubeVideo }) {
   const [started, setStarted] = useState(false);
-  const [hushed, hush] = useHush();
   const frame = useEmbedded(
     video.id,
     () => embed(video.id, { muted: true }),
     (info, send) => {
       if (info.playerState === ENDED) {
-        hush();
         send("seekTo", [0, true]);
         send("playVideo");
       }
-      if (info.playerState === PLAYING && !started) {
-        hush();
-        setStarted(true);
-      }
+      if (info.playerState === PLAYING) setStarted(true);
     },
   );
   return (
-    <>
-      <iframe
-        ref={frame}
-        src="about:blank"
-        title={video.title ?? video.id}
-        allow="autoplay; encrypted-media; picture-in-picture"
-        tabIndex={-1}
-        aria-hidden="true"
-        style={scaled(4, 60)}
-        className={cn(
-          "pointer-events-none absolute max-w-none transition-opacity duration-300",
-          started ? "opacity-100" : "opacity-0",
-        )}
-      />
-      {hushed && started && <Hush size={28} />}
-    </>
+    <iframe
+      ref={frame}
+      src="about:blank"
+      title={video.title ?? video.id}
+      allow="autoplay; encrypted-media; picture-in-picture"
+      tabIndex={-1}
+      aria-hidden="true"
+      style={scaled(60)}
+      className={cn(
+        "pointer-events-none absolute max-w-none transition-opacity duration-300",
+        started ? "opacity-100" : "opacity-0",
+      )}
+    />
   );
 }
 
