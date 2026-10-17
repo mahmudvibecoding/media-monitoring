@@ -8,6 +8,7 @@ import { type ComponentProps, type ReactElement, type SVGProps, useEffect, useRe
 
 import type { YouTubeVideo } from "@/api/types.gen";
 import { When } from "@/components/when";
+import { useNow } from "@/lib/use-now";
 import { formatCompact, formatCount, formatDuration, pluralOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { avatarAt, bigThumbnail, thumbnail } from "@/lib/youtube";
@@ -145,6 +146,7 @@ export function Tint() {
 }
 
 const PREVIEW_AFTER = 500; // milliseconds the mouse stays on a video before it plays, so passing over doesn't start it
+const NEW_FOR = 7 * 24 * 60 * 60 * 1000; // how long YouTube marks a video "New" beside another: under a week
 
 // Whether a card's video plays, as on YouTube: once the mouse has stayed on the card a moment, until it leaves, or its
 // page goes (Next keeps a page one has left alive, hidden, where the mouse never leaves the card)
@@ -205,21 +207,26 @@ function CoverImage({ sources, className }: { sources: string[]; className?: str
 // 16:9 frame cuts off. A Short's is upright, in YouTube's 2:3 frame: its picture, which is the upright one in the middle
 // of a wider one, is enlarged until the upright one fills the frame's width. While playing, the video plays over it in
 // YouTube's player, without sound or controls, from the start and round again; the player takes no clicks, so a click
-// still opens the video's page.
+// still opens the video's page. With fresh, a video out less than a week has YouTube's white "New" at its top left
+// (once the browser knows the time: see useNow).
 function Cover({
   video,
   vertical = false,
   small = false,
   playing = false,
+  fresh = false,
   className,
 }: {
   video: YouTubeVideo;
   vertical?: boolean;
   small?: boolean;
   playing?: boolean;
+  fresh?: boolean;
   className?: string;
 }) {
   const t = useTranslations("youtubeChannel");
+  const now = useNow();
+  const isNew = fresh && now !== null && !!video.published_at && now - Date.parse(video.published_at) < NEW_FOR;
   return (
     <div
       className={cn(
@@ -237,6 +244,11 @@ function Cover({
         )}
       />
       {playing && video.available && <Preview video={video} />}
+      {isNew && !playing && (
+        <span className="absolute top-1 left-1 rounded bg-white px-1 py-px text-xs leading-[18px] font-medium text-yt-text">
+          {t("new")}
+        </span>
+      )}
       {!video.available ? (
         <span className="absolute inset-0 flex items-center justify-center text-sm font-medium text-yt-text">
           {t("unavailable")}
@@ -369,6 +381,7 @@ export function SmallVideoCard({ video, channel }: { video: YouTubeVideo; channe
       <Cover
         video={video}
         small
+        fresh
         playing={playing}
         className="w-[min(248px,58%)] shrink-0 rounded-lg @max-[600px]:w-full @max-[600px]:rounded-xl"
       />

@@ -75,7 +75,8 @@
     "about": "Kanal haqida",
     "description": "Tavsif",
     "details": "Kanal maʼlumotlari",
-    "noResults": "Hech narsa topilmadi"
+    "noResults": "Hech narsa topilmadi",
+    "new": "Yangi"
   },
   "youtubeVideo": {
     "unavailable": "Mavjud emas",

@@ -75,7 +75,8 @@
     "about": "О канале",
     "description": "Описание",
     "details": "Сведения о канале",
-    "noResults": "Ничего не найдено"
+    "noResults": "Ничего не найдено",
+    "new": "Новое"
   },
   "youtubeVideo": {
     "unavailable": "Недоступно",

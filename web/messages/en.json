@@ -75,7 +75,8 @@
     "about": "About",
     "description": "Description",
     "details": "Channel details",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "new": "New"
   },
   "youtubeVideo": {
     "unavailable": "Unavailable",

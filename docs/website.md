@@ -120,10 +120,11 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   which stays at the top as a page scrolls and from page to page, with a way up (from a video to its channel, from a
   Short to its channel's Shorts, from a channel to the channels), its logo (the very one its site shows) and its search
   box; its pills, chips, tabs and tooltips; its grids of covers, with the views by its play sign and how long ago the
-  short way (▷ 48K • 3d ago, as YouTube's lists write them now), and the blue that comes round a card under the mouse;
-  its watch page, its Shorts' player, its channel's About box and its Share box; its red line along the top while a page
-  loads, and its pages' shapes in grey while they do. Telegram's look like Telegram's (its list of chats, its blue, its
-  chat with bubbles on its background, its info panel).
+  short way (▷ 48K • 3d ago, as YouTube's lists write them now), the blue that comes round a card under the mouse, and
+  the white "New" on a video out less than a week beside another; its watch page, its Shorts' player, its channel's
+  About box and its Share box; its red line along the top while a page loads, and its pages' shapes in grey while they
+  do. Telegram's look like Telegram's (its list of chats, its blue, its chat with bubbles on its background, its info
+  panel).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
