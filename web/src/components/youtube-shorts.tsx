@@ -23,7 +23,7 @@ import {
 } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannelDetails, YouTubeVideo } from "@/api/types.gen";
 import { CommentList } from "@/components/youtube-comments";
-import { BUFFERING, command, embed, ENDED, PLAYING, scaled, useEmbedded } from "@/components/youtube-embed";
+import { BUFFERING, command, cropped, embed, ENDED, PLAYING, useEmbedded } from "@/components/youtube-embed";
 import { ShortsGhost } from "@/components/youtube-ghosts";
 import { ShareButton } from "@/components/youtube-share";
 import { YouTubeText } from "@/components/youtube-text";
@@ -292,8 +292,8 @@ const CROP = 160; // px of the player above and below the frame
 // where it's clicked; at its end it starts again. The picture shows until the Short has started, so sliding to it
 // doesn't go black. The player is 160 px taller than the frame at each end, so what YouTube puts along them (the
 // title, its logo, and for a Short its own like count) falls outside it, while the Short, as wide as the frame, fills
-// it; and it's drawn 48 times as big and shrunk back, so that YouTube's own ⏸ can't be seen (see youtube-embed). The
-// player is loaded only once its page shows, and unloaded as it goes.
+// it (YouTube's ⏸ still shows a moment as a Short starts: see youtube-embed). The player is loaded only once its page
+// shows, and unloaded as it goes.
 function ShortPlayer({ video }: { video: YouTubeVideo }) {
   const t = useTranslations("youtube");
   const [state, setState] = useState<State>({
@@ -364,9 +364,9 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
         title={video.title ?? video.id}
         allow="autoplay; encrypted-media; picture-in-picture; web-share"
         tabIndex={-1}
-        style={scaled(CROP)}
+        style={cropped(CROP)}
         className={cn(
-          "pointer-events-none absolute max-w-none transition-opacity duration-300",
+          "pointer-events-none absolute transition-opacity duration-300",
           state.started ? "opacity-100" : "opacity-0",
         )}
       />

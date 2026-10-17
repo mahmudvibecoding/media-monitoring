@@ -130,7 +130,7 @@ Telegram Web's chat list, with their latest messages, in two folders (the bigges
 one types; and at the bottom the activity, every round with its steps and every run started by hand, newest first, with
 their numbers, and a page for each run with all its numbers. YouTube's pages are under YouTube's top bar, whose search
 box suggests channels as one types. A YouTube channel's page is laid out like the channel on YouTube, with its About
-box, its videos and Shorts in grids, newest, most viewed or oldest first, that load more as they're scrolled, each video
+box, its videos and Shorts in grids, newest, most viewed or oldest first, that load more as they're scrolled, each
 playing silently while the mouse stays on it, and its search by title; a video's, like YouTube's watch page, with
 YouTube's player and controls drawn by the page as YouTube's, which starts as the page opens and takes YouTube's keys,
 its description, its comments, a Share box and more from its channel; a Short's, like YouTube's Shorts, a feed that

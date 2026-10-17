@@ -28,7 +28,7 @@ import {
   useState,
 } from "react";
 
-import { BUFFERING, command, embed, PLAYING, scaled, useEmbedded } from "@/components/youtube-embed";
+import { BUFFERING, command, cropped, embed, PLAYING, useEmbedded } from "@/components/youtube-embed";
 import { CoverImage } from "@/components/youtube-ui";
 import { formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -77,10 +77,10 @@ type Bezel = { kind: "play" | "pause" | "mute" | "volume" | "back" | "forward"; 
 // the space bar, J and L (10 s back and on), ← and → (5 s), ↑ and ↓ (the sound, while the player has the focus), M, F,
 // Shift+N (the next video), and 0 to 9 (that tenth of the video). The video starts as the page opens, with sound once
 // one has clicked something on the site, as browsers allow; without, YouTube's big red button waits for a click. Its
-// picture shows until it has started. YouTube's own controls are off and it takes no clicks; it's drawn 48 times as big
-// and shrunk back, so that its own ⏸ can't be seen (see youtube-embed). It's loaded only as its page shows and unloaded
-// as it goes (Next keeps a page one has left alive, hidden), and loaded again on coming back, from the second it had
-// got to.
+// picture shows until it has started. YouTube's own controls are off and it takes no clicks; it's 60 px taller than its
+// frame at each end, so that its title and logo fall outside it (its ⏸ still shows a moment as a video starts: see
+// youtube-embed). It's loaded only as its page shows and unloaded as it goes (Next keeps a page one has left alive,
+// hidden), and loaded again on coming back, from the second it had got to.
 export function Player({ id, title, next }: { id: string; title: string; next?: { id: string; title: string } }) {
   const t = useTranslations("youtube");
   const router = useRouter();
@@ -306,9 +306,9 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         title={title}
         allow="autoplay; encrypted-media; picture-in-picture"
         tabIndex={-1}
-        style={scaled(CROP)}
+        style={cropped(CROP)}
         className={cn(
-          "pointer-events-none absolute max-w-none transition-opacity duration-300",
+          "pointer-events-none absolute transition-opacity duration-300",
           state.started ? "opacity-100" : "opacity-0",
         )}
       />

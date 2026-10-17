@@ -8,7 +8,7 @@ import { type ComponentProps, type ReactElement, type SVGProps, useEffect, useRe
 
 import type { YouTubeVideo } from "@/api/types.gen";
 import { When } from "@/components/when";
-import { embed, ENDED, PLAYING, scaled, useEmbedded } from "@/components/youtube-embed";
+import { cropped, embed, ENDED, PLAYING, useEmbedded } from "@/components/youtube-embed";
 import { useNow } from "@/lib/use-now";
 import { formatCompact, formatCount, formatDuration, pluralOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -270,9 +270,8 @@ function Cover({
 // The video playing over its cover, as YouTube's previews play: the video alone, without sound, controls or the player's
 // own lines. The player still puts the video's title along its top and its logo along its bottom, so it's 60 px taller
 // than the cover at each end: the video, as wide as the cover, fills the cover's height in its middle, and what's
-// along its ends falls outside the cover, which cuts it off. It's drawn 48 times as big and shrunk back, so that
-// YouTube's own ⏸ can't be seen, and started again at its end by the page (see youtube-embed). The cover shows until it
-// plays. As its page goes (Next keeps it alive, hidden), the player is unloaded at once.
+// along its ends falls outside the cover, which cuts it off. At its end the page starts it again (see youtube-embed).
+// The cover shows until it plays. As its page goes (Next keeps it alive, hidden), the player is unloaded at once.
 function Preview({ video }: { video: YouTubeVideo }) {
   const [started, setStarted] = useState(false);
   const frame = useEmbedded(
@@ -294,9 +293,9 @@ function Preview({ video }: { video: YouTubeVideo }) {
       allow="autoplay; encrypted-media; picture-in-picture"
       tabIndex={-1}
       aria-hidden="true"
-      style={scaled(60)}
+      style={cropped(60)}
       className={cn(
-        "pointer-events-none absolute max-w-none transition-opacity duration-300",
+        "pointer-events-none absolute transition-opacity duration-300",
         started ? "opacity-100" : "opacity-0",
       )}
     />
@@ -325,16 +324,16 @@ export function VideoCard({ video }: { video: YouTubeVideo }) {
   );
 }
 
-// A Short in a grid, as on a channel's Shorts tab: its upright cover (which doesn't play under the mouse, as YouTube's
-// don't), its title, and its views. It opens on its Shorts page, which goes on to the next ones in the grid's order
-// (sort).
+// A Short in a grid, as on a channel's Shorts tab: its upright cover, which plays it while the mouse stays on the card,
+// its title, and its views. It opens on its Shorts page, which goes on to the next ones in the grid's order (sort).
 export function ShortCard({ video, sort }: { video: YouTubeVideo; sort?: string }) {
   const t = useTranslations("youtubeChannel");
   const locale = useLocale();
+  const { playing, ...hover } = usePreview();
   return (
-    <li className="group relative isolate font-roboto">
+    <li className="group relative isolate font-roboto" {...hover}>
       <Tint />
-      <Cover video={video} vertical />
+      <Cover video={video} vertical playing={playing} />
       <div className="pt-2 pr-4">
         <YouTubeLink
           href={`/youtube/shorts/${video.id}${sort ? `?sort=${sort}` : ""}`}
@@ -354,13 +353,13 @@ export function ShortCard({ video, sort }: { video: YouTubeVideo; sort?: string 
 }
 
 // A video found by a channel's search, as YouTube lists results: its cover beside its title, in bigger type, and its
-// views and how long ago; a Short opens on its Shorts page, and doesn't play under the mouse, as on YouTube
+// views and how long ago; a Short opens on its Shorts page
 export function ResultCard({ video }: { video: YouTubeVideo }) {
   const { playing, ...hover } = usePreview();
   return (
     <li className="group relative isolate flex gap-4 font-roboto" {...hover}>
       <Tint />
-      <Cover video={video} playing={playing && video.kind !== "short"} className="w-[min(360px,45%)] shrink-0" />
+      <Cover video={video} playing={playing} className="w-[min(360px,45%)] shrink-0" />
       <div className="min-w-0 flex-1 pt-0.5">
         <YouTubeLink
           href={`/youtube/${video.kind === "short" ? "shorts" : "videos"}/${video.id}`}
