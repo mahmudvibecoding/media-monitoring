@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { changeLocale, changePassword, health, me, type Options, ready, signIn, signOut, status, youtubeChannels } from '../sdk.gen';
-import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse } from '../types.gen';
+import { changeLocale, changePassword, health, me, type Options, ready, signIn, signOut, status, youtubeChannel, youtubeChannels, youtubeChannelVideos } from '../sdk.gen';
+import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -235,6 +235,83 @@ export const youtubeChannelsInfiniteOptions = (options?: Options<YoutubeChannels
             return data;
         },
         queryKey: youtubeChannelsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const youtubeChannelQueryKey = (options: Options<YoutubeChannelData>) => createQueryKey('youtubeChannel', options);
+
+/**
+ * Youtube Channel
+ *
+ * A monitored channel's details, and how many of its videos have been collected, of each kind. Counting takes a
+ * few milliseconds for most channels, and 50 ms for the one with the most videos (20,176).
+ */
+export const youtubeChannelOptions = (options: Options<YoutubeChannelData>) => queryOptions<YoutubeChannelResponse, YoutubeChannelError, YoutubeChannelResponse, ReturnType<typeof youtubeChannelQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await youtubeChannel({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: youtubeChannelQueryKey(options)
+});
+
+export const youtubeChannelVideosQueryKey = (options: Options<YoutubeChannelVideosData>) => createQueryKey('youtubeChannelVideos', options);
+
+/**
+ * Youtube Channel Videos
+ *
+ * A channel's collected videos, newest first, a page at a time, with their views, likes and comments (a channel
+ * that isn't monitored has none). How many there are of each kind is in the channel's details: counted again for
+ * every page, they'd take 50 ms of each page of the biggest channel.
+ */
+export const youtubeChannelVideosOptions = (options: Options<YoutubeChannelVideosData>) => queryOptions<YoutubeChannelVideosResponse, YoutubeChannelVideosError, YoutubeChannelVideosResponse, ReturnType<typeof youtubeChannelVideosQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await youtubeChannelVideos({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: youtubeChannelVideosQueryKey(options)
+});
+
+export const youtubeChannelVideosInfiniteQueryKey = (options: Options<YoutubeChannelVideosData>): QueryKey<Options<YoutubeChannelVideosData>> => createQueryKey('youtubeChannelVideos', options, true);
+
+/**
+ * Youtube Channel Videos
+ *
+ * A channel's collected videos, newest first, a page at a time, with their views, likes and comments (a channel
+ * that isn't monitored has none). How many there are of each kind is in the channel's details: counted again for
+ * every page, they'd take 50 ms of each page of the biggest channel.
+ */
+export const youtubeChannelVideosInfiniteOptions = (options: Options<YoutubeChannelVideosData>) => {
+    const opts = infiniteQueryOptions<YoutubeChannelVideosResponse, YoutubeChannelVideosError, InfiniteData<YoutubeChannelVideosResponse>, QueryKey<Options<YoutubeChannelVideosData>>, number | Pick<QueryKey<Options<YoutubeChannelVideosData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<YoutubeChannelVideosData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await youtubeChannelVideos({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: youtubeChannelVideosInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };

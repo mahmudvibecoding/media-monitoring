@@ -43,15 +43,36 @@
     "hidden": "yashirin",
     "open": "YouTube saytida ochish",
     "none": "Hozircha kanallar yoʻq.",
-    "noMatch": "«{search}» boʻyicha kanal topilmadi.",
+    "noMatch": "«{search}» boʻyicha kanal topilmadi."
+  },
+  "youtubeChannel": {
+    "back": "YouTube kanallari",
+    "subscribers": "{formatted} ta obunachi",
+    "subscribersHidden": "Obunachilar yashirin",
+    "open": "YouTube saytida ochish",
+    "more": "Toʻliq koʻrsatish",
+    "less": "Yigʻish",
+    "all": "Hammasi",
+    "videos": "Videolar",
+    "shorts": "Shorts",
+    "video": "Video",
+    "views": "Koʻrishlar",
+    "likes": "Layklar",
+    "comments": "Izohlar",
+    "short": "Short",
+    "unavailable": "Mavjud emas",
+    "watch": "YouTube saytida koʻrish",
+    "none": "Hozircha video yoʻq."
+  },
+  "common": {
+    "loading": "Yuklanmoqda…"
+  },
+  "pages": {
     "page": "Sahifa: {page} / {pages}",
     "first": "Birinchi sahifa",
     "previous": "Oldingi sahifa",
     "next": "Keyingi sahifa",
     "last": "Oxirgi sahifa"
-  },
-  "common": {
-    "loading": "Yuklanmoqda…"
   },
   "errors": {
     "unavailable": "Xizmat vaqtincha ishlamayapti. Keyinroq urinib koʻring.",

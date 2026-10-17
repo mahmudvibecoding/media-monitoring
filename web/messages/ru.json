@@ -43,15 +43,36 @@
     "hidden": "скрыто",
     "open": "Открыть на YouTube",
     "none": "Каналов пока нет.",
-    "noMatch": "По запросу «{search}» каналов нет.",
+    "noMatch": "По запросу «{search}» каналов нет."
+  },
+  "youtubeChannel": {
+    "back": "Каналы YouTube",
+    "subscribers": "{count, plural, one {{formatted} подписчик} few {{formatted} подписчика} many {{formatted} подписчиков} other {{formatted} подписчика}}",
+    "subscribersHidden": "Подписчики скрыты",
+    "open": "Открыть на YouTube",
+    "more": "Показать полностью",
+    "less": "Свернуть",
+    "all": "Все",
+    "videos": "Видео",
+    "shorts": "Shorts",
+    "video": "Видео",
+    "views": "Просмотры",
+    "likes": "Лайки",
+    "comments": "Комментарии",
+    "short": "Short",
+    "unavailable": "Недоступно",
+    "watch": "Смотреть на YouTube",
+    "none": "Видео пока нет."
+  },
+  "common": {
+    "loading": "Загрузка…"
+  },
+  "pages": {
     "page": "Страница {page} из {pages}",
     "first": "Первая страница",
     "previous": "Предыдущая страница",
     "next": "Следующая страница",
     "last": "Последняя страница"
-  },
-  "common": {
-    "loading": "Загрузка…"
   },
   "errors": {
     "unavailable": "Сервис временно недоступен. Попробуйте позже.",

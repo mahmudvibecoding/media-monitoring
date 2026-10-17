@@ -5,9 +5,10 @@ import { getTranslations } from "next-intl/server";
 
 import { youtubeChannelsOptions } from "@/api/@tanstack/react-query.gen";
 import { YouTubeChannels } from "@/components/youtube-channels";
+import { toSearchParams } from "@/lib/address";
 import { serverClient, signedInUser } from "@/lib/api-server";
 import { getQueryClient } from "@/lib/query-client";
-import { channelsQuery, toSearchParams } from "@/lib/youtube-channels";
+import { channelsQuery } from "@/lib/youtube";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("youtubeChannels");

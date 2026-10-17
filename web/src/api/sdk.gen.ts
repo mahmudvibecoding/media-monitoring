@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses } from './types.gen';
+import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -89,6 +89,23 @@ export const status = <ThrowOnError extends boolean = false>(options?: Options<S
  * name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds Zo‘r.
  */
 export const youtubeChannels = <ThrowOnError extends boolean = false>(options?: Options<YoutubeChannelsData, ThrowOnError>): RequestResult<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError> => (options?.client ?? client).get<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError>({ url: '/api/youtube/channels', ...options });
+
+/**
+ * Youtube Channel
+ *
+ * A monitored channel's details, and how many of its videos have been collected, of each kind. Counting takes a
+ * few milliseconds for most channels, and 50 ms for the one with the most videos (20,176).
+ */
+export const youtubeChannel = <ThrowOnError extends boolean = false>(options: Options<YoutubeChannelData, ThrowOnError>): RequestResult<YoutubeChannelResponses, YoutubeChannelErrors, ThrowOnError> => (options.client ?? client).get<YoutubeChannelResponses, YoutubeChannelErrors, ThrowOnError>({ url: '/api/youtube/channels/{channel_id}', ...options });
+
+/**
+ * Youtube Channel Videos
+ *
+ * A channel's collected videos, newest first, a page at a time, with their views, likes and comments (a channel
+ * that isn't monitored has none). How many there are of each kind is in the channel's details: counted again for
+ * every page, they'd take 50 ms of each page of the biggest channel.
+ */
+export const youtubeChannelVideos = <ThrowOnError extends boolean = false>(options: Options<YoutubeChannelVideosData, ThrowOnError>): RequestResult<YoutubeChannelVideosResponses, YoutubeChannelVideosErrors, ThrowOnError> => (options.client ?? client).get<YoutubeChannelVideosResponses, YoutubeChannelVideosErrors, ThrowOnError>({ url: '/api/youtube/channels/{channel_id}/videos', ...options });
 
 /**
  * Health

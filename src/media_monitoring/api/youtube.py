@@ -1,20 +1,24 @@
-"""The collected YouTube data, for admins: GET /api/youtube/channels, the monitored channels a page at a time, searched
-and in the order the site's channels page asks for. The column and the indexes it reads them by are in app.sql."""
+"""The collected YouTube data, for admins: the monitored channels a page at a time, searched and in the order the
+site's channels page asks for (GET /api/youtube/channels), a channel's details (.../{channel_id}), and its videos,
+newest first (.../{channel_id}/videos). The column and the indexes the channel list reads them by are in app.sql; a
+channel's videos come by the collectors' own index, by channel and day."""
 
 import asyncio
+from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Path, Query, Request
 from psycopg import sql
-from psycopg.rows import class_row
+from psycopg.rows import class_row, dict_row
 from pydantic import BaseModel
 
 from media_monitoring.api.accounts import Admin
-from media_monitoring.api.errors import failures
+from media_monitoring.api.errors import Failure, failures
 
-PAGE_SIZE = 50  # channels
+PAGE_SIZE = 50  # channels, or videos
 LAST_PAGE = 10_000  # the furthest a page may be, so that skipping to it stays quick
 SEARCH_MAX = 100  # characters
+CHANNEL_ID = r"^UC[A-Za-z0-9_-]{22}$"  # YouTube's: UC and 22 more characters
 
 router = APIRouter()
 
@@ -30,6 +34,34 @@ class YouTubeChannel(BaseModel):
 class YouTubeChannels(BaseModel):
     channels: list[YouTubeChannel]  # this page's
     total: int  # how many channels match, on all the pages
+    page_size: int
+
+
+class VideoCounts(BaseModel):
+    all: int
+    video: int  # what YouTube calls videos, Shorts aside
+    short: int  # its Shorts
+
+
+class YouTubeChannelDetails(YouTubeChannel):
+    description: str | None
+    videos: VideoCounts  # how many of the channel's videos have been collected, of each kind
+
+
+class YouTubeVideo(BaseModel):
+    id: str
+    title: str | None  # None until the details collector has fetched the video's details
+    published_at: datetime | None  # None for a stream or a premiere that hasn't started yet
+    duration: int | None  # seconds; None while a stream is live or upcoming
+    kind: Literal["video", "short"] | None
+    available: bool  # False once YouTube shows no video
+    views: int | None  # None until the stats collector has been to it, or while a stream is live
+    likes: int | None  # None when the video's likes are off
+    comments: int | None  # how many YouTube shows, replies included
+
+
+class YouTubeVideos(BaseModel):
+    videos: list[YouTubeVideo]  # this page's: fewer than page_size on the last one
     page_size: int
 
 
@@ -94,3 +126,91 @@ async def youtube_channels(
     # Each on a connection of its own, at the same time: counting every match takes the longer, up to 50 ms
     found, count = await asyncio.gather(channels(), total())
     return YouTubeChannels(channels=found, total=count, page_size=PAGE_SIZE)
+
+
+CHANNEL = """
+    SELECT channel_id AS id, title, handle, description, avatar_url, subscriber_count AS subscribers
+    FROM youtube_channels WHERE channel_id = %(channel)s
+"""
+COUNTS = """
+    SELECT count(*), count(*) FILTER (WHERE kind = 'video'), count(*) FILTER (WHERE kind = 'short')
+    FROM youtube_videos WHERE channel_id = %(channel)s
+"""
+
+
+@router.get(
+    "/api/youtube/channels/{channel_id}",
+    responses=failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            404: "not_found: no channel with that ID is monitored",
+            422: "invalid_request: that isn't a channel's ID",
+        }
+    ),
+)
+async def youtube_channel(
+    request: Request, _: Admin, channel_id: Annotated[str, Path(pattern=CHANNEL_ID)]
+) -> YouTubeChannelDetails:
+    """A monitored channel's details, and how many of its videos have been collected, of each kind. Counting takes a
+    few milliseconds for most channels, and 50 ms for the one with the most videos (20,176)."""
+
+    async def details() -> dict | None:
+        async with request.state.pool.connection() as conn:
+            cursor = conn.cursor(row_factory=dict_row)
+            return await (await cursor.execute(CHANNEL, {"channel": channel_id})).fetchone()
+
+    async def counts() -> VideoCounts:
+        async with request.state.pool.connection() as conn:
+            every, video, short = await (await conn.execute(COUNTS, {"channel": channel_id})).fetchone()
+            return VideoCounts(all=every, video=video, short=short)
+
+    channel, videos = await asyncio.gather(details(), counts())  # each on a connection of its own, at the same time
+    if channel is None:
+        raise Failure(404, "not_found", "No channel with that ID is monitored")
+    return YouTubeChannelDetails(**channel, videos=videos)
+
+
+# Newest first: the collectors' index gives a channel's videos by the day they came out, and they're sorted by the time
+# within each day. The page's videos are picked first, and only those 50 are read with their stats.
+VIDEOS = sql.SQL("""
+    SELECT v.video_id AS id, v.title, v.published_at, v.duration_seconds AS duration, v.kind,
+        v.status = 'available' AS available, s.views, s.likes, s.comments
+    FROM (
+        SELECT video_id FROM youtube_videos WHERE channel_id = %(channel)s {kind}
+        ORDER BY upload_date DESC NULLS FIRST, published_at DESC NULLS LAST, video_id
+        LIMIT %(limit)s OFFSET %(offset)s
+    ) AS page
+    JOIN youtube_videos AS v USING (video_id)
+    LEFT JOIN youtube_video_stats AS s USING (video_id)
+    ORDER BY v.upload_date DESC NULLS FIRST, v.published_at DESC NULLS LAST, v.video_id
+""")
+OF_KIND = sql.SQL("AND kind = %(kind)s")
+
+
+@router.get(
+    "/api/youtube/channels/{channel_id}/videos",
+    responses=failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            422: "invalid_request: that isn't a channel's ID, or a parameter is out of its range",
+        }
+    ),
+)
+async def youtube_channel_videos(
+    request: Request,
+    _: Admin,
+    channel_id: Annotated[str, Path(pattern=CHANNEL_ID)],
+    kind: Annotated[Literal["video", "short"] | None, Query(description="Only videos, or only Shorts")] = None,
+    page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} videos to a page")] = 1,
+) -> YouTubeVideos:
+    """A channel's collected videos, newest first, a page at a time, with their views, likes and comments (a channel
+    that isn't monitored has none). How many there are of each kind is in the channel's details: counted again for
+    every page, they'd take 50 ms of each page of the biggest channel."""
+    values = {"channel": channel_id, "kind": kind, "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
+    async with request.state.pool.connection() as conn:
+        cursor = conn.cursor(row_factory=class_row(YouTubeVideo))
+        query = VIDEOS.format(kind=OF_KIND if kind else sql.SQL(""))
+        videos = await (await cursor.execute(query, values)).fetchall()
+    return YouTubeVideos(videos=videos, page_size=PAGE_SIZE)

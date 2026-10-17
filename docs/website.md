@@ -60,6 +60,13 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
 - `app.sql` has the column, the indexes and the order (`app.names`), so a deploy makes them: 3 s the first time, nothing
   after.
 
+A channel's page asks for two things. `/api/youtube/channels/{id}` is the channel's details, with how many of its videos
+there are of each kind: counting them takes a few milliseconds for most channels (40 videos, the median), and 50 ms for
+the one with the most (20,176). `/api/youtube/channels/{id}/videos` is a page of its videos, newest first: the
+collectors' own index, by channel and day, gives them in that order, so a page takes about 15 ms through Caddy even for
+that channel, and one 400 pages down 100 ms. The videos aren't counted again for each page, which would add those 50 ms
+to every page; the site takes their number from the channel's details.
+
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
@@ -75,6 +82,10 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
   through Caddy; the server renders the list only when the page is loaded. A search starts 300 ms after the last key,
   and the last list stays, dimmed, while the next one loads.
 - Channel pictures come from YouTube's image server at 88 px (8 KB each), not at the 900 px saved (114 KB).
+- Video covers come from YouTube's image server at 320 × 180 (15 KB), loaded as they scroll into view: Next's image
+  optimizer would fetch them through the site's server, which can't reach the internet.
+- Dates and times are Tashkent's (UTC+5, the same all year), written by the site's own function (`src/lib/format.ts`),
+  for the same reason as counts.
 - A visitor sees Russian until choosing Uzbek (Latin script) or English in the header; the choice is kept in a cookie
   for a year and, for someone signed in, in their account. Signing in keeps a language this browser chose before (and
   saves it to the account); without one, it switches to the account's. Addresses are the same in every language,

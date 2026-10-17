@@ -189,6 +189,24 @@ export type ValidationError = {
 };
 
 /**
+ * VideoCounts
+ */
+export type VideoCounts = {
+    /**
+     * All
+     */
+    all: number;
+    /**
+     * Video
+     */
+    video: number;
+    /**
+     * Short
+     */
+    short: number;
+};
+
+/**
  * YouTubeChannel
  */
 export type YouTubeChannel = {
@@ -212,6 +230,37 @@ export type YouTubeChannel = {
      * Subscribers
      */
     subscribers: number | null;
+};
+
+/**
+ * YouTubeChannelDetails
+ */
+export type YouTubeChannelDetails = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Handle
+     */
+    handle: string | null;
+    /**
+     * Avatar Url
+     */
+    avatar_url: string | null;
+    /**
+     * Subscribers
+     */
+    subscribers: number | null;
+    /**
+     * Description
+     */
+    description: string | null;
+    videos: VideoCounts;
 };
 
 /**
@@ -248,6 +297,62 @@ export type YouTubeCounts = {
      * Comments
      */
     comments: number;
+};
+
+/**
+ * YouTubeVideo
+ */
+export type YouTubeVideo = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Published At
+     */
+    published_at: string | null;
+    /**
+     * Duration
+     */
+    duration: number | null;
+    /**
+     * Kind
+     */
+    kind: 'video' | 'short' | null;
+    /**
+     * Available
+     */
+    available: boolean;
+    /**
+     * Views
+     */
+    views: number | null;
+    /**
+     * Likes
+     */
+    likes: number | null;
+    /**
+     * Comments
+     */
+    comments: number | null;
+};
+
+/**
+ * YouTubeVideos
+ */
+export type YouTubeVideos = {
+    /**
+     * Videos
+     */
+    videos: Array<YouTubeVideo>;
+    /**
+     * Page Size
+     */
+    page_size: number;
 };
 
 export type SignInData = {
@@ -563,6 +668,123 @@ export type YoutubeChannelsResponses = {
 };
 
 export type YoutubeChannelsResponse = YoutubeChannelsResponses[keyof YoutubeChannelsResponses];
+
+export type YoutubeChannelData = {
+    body?: never;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: string;
+    };
+    query?: never;
+    url: '/api/youtube/channels/{channel_id}';
+};
+
+export type YoutubeChannelErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no channel with that ID is monitored
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a channel's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type YoutubeChannelError = YoutubeChannelErrors[keyof YoutubeChannelErrors];
+
+export type YoutubeChannelResponses = {
+    /**
+     * Successful Response
+     */
+    200: YouTubeChannelDetails;
+};
+
+export type YoutubeChannelResponse = YoutubeChannelResponses[keyof YoutubeChannelResponses];
+
+export type YoutubeChannelVideosData = {
+    body?: never;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: string;
+    };
+    query?: {
+        /**
+         * Kind
+         *
+         * Only videos, or only Shorts
+         */
+        kind?: 'video' | 'short' | null;
+        /**
+         * Page
+         *
+         * 50 videos to a page
+         */
+        page?: number;
+    };
+    url: '/api/youtube/channels/{channel_id}/videos';
+};
+
+export type YoutubeChannelVideosErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: that isn't a channel's ID, or a parameter is out of its range
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type YoutubeChannelVideosError = YoutubeChannelVideosErrors[keyof YoutubeChannelVideosErrors];
+
+export type YoutubeChannelVideosResponses = {
+    /**
+     * Successful Response
+     */
+    200: YouTubeVideos;
+};
+
+export type YoutubeChannelVideosResponse = YoutubeChannelVideosResponses[keyof YoutubeChannelVideosResponses];
 
 export type HealthData = {
     body?: never;

@@ -1,7 +1,8 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon, SearchIcon } from "lucide-react";
+import { ExternalLinkIcon, SearchIcon } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -9,26 +10,26 @@ import { useEffect, useRef, useState } from "react";
 import { youtubeChannelsOptions } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannel } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
+import { Pages } from "@/components/pages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { go } from "@/lib/address";
 import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { channelsAddress, type ChannelsQuery, channelsQuery, SEARCH_MAX } from "@/lib/youtube-channels";
+import {
+  avatarAt,
+  channelOnYouTube,
+  channelsAddress,
+  type ChannelsQuery,
+  channelsQuery,
+  SEARCH_MAX,
+} from "@/lib/youtube";
 
 const SEARCH_WAIT = 300; // milliseconds after the last key before the list is searched
 const AVATAR_SIZE = 88; // pixels: twice what the list shows, for sharp screens
-
-// A new address for the list, without asking the server: Next follows it (useSearchParams), and the list loads what it
-// asks for. A new page or order is a step that Back undoes; each key typed into the search isn't.
-function go(query: ChannelsQuery, step: "push" | "replace") {
-  const address = channelsAddress(query) || window.location.pathname;
-  if (step === "push") window.history.pushState(null, "", address);
-  else window.history.replaceState(null, "", address);
-}
 
 // The monitored channels, as the address asks for them, a page at a time: searched as one types, the biggest first or
 // by name. While the next list loads, the last one stays, dimmed.
@@ -47,11 +48,11 @@ export function YouTubeChannels() {
   // Past the last page (an old link, or fewer channels since): the last page instead
   const pastTheEnd = !!data && !isPlaceholderData && data.total > 0 && data.channels.length === 0 && page > 1;
   useEffect(() => {
-    if (pastTheEnd) go({ search, sort, page: pages > 1 ? pages : undefined }, "replace");
+    if (pastTheEnd) go(channelsAddress({ search, sort, page: pages > 1 ? pages : undefined }), "replace");
   }, [pastTheEnd, search, sort, pages]);
 
   function turn(to: number) {
-    go({ search, sort, page: to > 1 ? to : undefined }, "push");
+    go(channelsAddress({ search, sort, page: to > 1 ? to : undefined }), "push");
     window.scrollTo({ top: 0 });
   }
 
@@ -94,7 +95,9 @@ export function YouTubeChannels() {
             { value: "name", label: t("byName") },
           ]}
           value={sort ?? "subscribers"}
-          onValueChange={(value) => go({ search, sort: value === "name" ? "name" : undefined }, "push")}
+          onValueChange={(value) =>
+            go(channelsAddress({ search, sort: value === "name" ? "name" : undefined }), "push")
+          }
         >
           <SelectTrigger aria-label={t("order")}>
             <SelectValue />
@@ -138,7 +141,7 @@ function SearchBox({ query }: { query: ChannelsQuery }) {
       const next = channelsQuery(new URLSearchParams({ search: value })).search ?? "";
       if (next === written) return; // only spaces changed
       setWritten(next);
-      go({ search: next || undefined, sort: query.sort }, "replace");
+      go(channelsAddress({ search: next || undefined, sort: query.sort }), "replace");
     }, SEARCH_WAIT);
   }
 
@@ -164,33 +167,41 @@ function ChannelRow({ channel }: { channel: YouTubeChannel }) {
   const name = channel.title?.trim() || channel.id; // the ID until the channel's details are fetched
   return (
     <TableRow>
-      {/* The name takes the room the other columns leave, and a name too long for it is cut short (…) */}
+      {/* The name takes the room the other columns leave, and a name too long for it is cut short (…). It opens the
+          channel's page here (not fetched ahead: 50 rows would mean 50 requests), and the icon after it, YouTube's. */}
       <TableCell className="w-full max-w-0 pl-4">
-        <a
-          href={`https://www.youtube.com/channel/${channel.id}`}
-          target="_blank"
-          rel="noreferrer"
-          title={t("open")}
-          className="flex min-w-0 items-center gap-3 hover:underline"
-        >
-          <Avatar>
-            {channel.avatar_url && (
-              // YouTube's pictures are saved at 900 × 900 (114 KB); its image server makes any size the address names
-              <AvatarImage
-                src={channel.avatar_url.replace(/=s\d+(?=-|$)/, `=s${AVATAR_SIZE}`)}
-                alt=""
-                referrerPolicy="no-referrer"
-              />
-            )}
-            <AvatarFallback>{Array.from(name)[0]?.toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <span className="min-w-0">
-            <span className={cn("block truncate font-medium", !channel.title && "font-mono text-muted-foreground")}>
-              {name}
+        <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href={`/youtube/channels/${channel.id}`}
+            prefetch={false}
+            className="flex min-w-0 items-center gap-3 hover:underline"
+          >
+            <Avatar>
+              {channel.avatar_url && (
+                <AvatarImage src={avatarAt(channel.avatar_url, AVATAR_SIZE)} alt="" referrerPolicy="no-referrer" />
+              )}
+              <AvatarFallback>{Array.from(name)[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <span className="min-w-0">
+              <span className={cn("block truncate font-medium", !channel.title && "font-mono text-muted-foreground")}>
+                {name}
+              </span>
+              {channel.handle && (
+                <span className="block truncate text-muted-foreground sm:hidden">{channel.handle}</span>
+              )}
             </span>
-            {channel.handle && <span className="block truncate text-muted-foreground sm:hidden">{channel.handle}</span>}
-          </span>
-        </a>
+          </Link>
+          <a
+            href={channelOnYouTube(channel.id)}
+            target="_blank"
+            rel="noreferrer"
+            title={t("open")}
+            aria-label={t("open")}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            <ExternalLinkIcon className="size-3.5" />
+          </a>
+        </div>
       </TableCell>
       <TableCell className="hidden text-muted-foreground sm:table-cell">{channel.handle}</TableCell>
       <TableCell className="pr-4 text-right tabular-nums">
@@ -201,39 +212,6 @@ function ChannelRow({ channel }: { channel: YouTubeChannel }) {
         )}
       </TableCell>
     </TableRow>
-  );
-}
-
-// Which page of how many, and buttons to the first, the one before, the next and the last
-function Pages({ page, pages, turn }: { page: number; pages: number; turn: (to: number) => void }) {
-  const t = useTranslations("youtubeChannels");
-  const locale = useLocale();
-  const buttons = [
-    { to: 1, label: t("first"), icon: ChevronsLeftIcon, off: page <= 1 },
-    { to: page - 1, label: t("previous"), icon: ChevronLeftIcon, off: page <= 1 },
-    { to: page + 1, label: t("next"), icon: ChevronRightIcon, off: page >= pages },
-    { to: pages, label: t("last"), icon: ChevronsRightIcon, off: page >= pages },
-  ];
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <p className="text-sm text-muted-foreground tabular-nums">
-        {t("page", { page: formatCount(page, locale), pages: formatCount(pages, locale) })}
-      </p>
-      <div className="flex gap-1">
-        {buttons.map(({ to, label, icon: Icon, off }) => (
-          <Button
-            key={label}
-            variant="outline"
-            size="icon-sm"
-            aria-label={label}
-            disabled={off}
-            onClick={() => turn(to)}
-          >
-            <Icon />
-          </Button>
-        ))}
-      </div>
-    </div>
   );
 }
 
