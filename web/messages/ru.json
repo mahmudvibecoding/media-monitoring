@@ -26,6 +26,7 @@
   },
   "nav": {
     "overview": "Обзор",
+    "activity": "Активность",
     "channels": "Каналы",
     "toggle": "Показать или скрыть меню"
   },
@@ -104,6 +105,173 @@
     "saved": "{count, plural, one {Сохранено {formatted} сообщение} few {Сохранено {formatted} сообщения} many {Сохранено {formatted} сообщений} other {Сохранено {formatted} сообщения}}",
     "openMessage": "Открыть в Telegram",
     "none": "Сообщений не сохранено."
+  },
+  "activity": {
+    "title": "Активность",
+    "allSteps": "Все шаги",
+    "step": "Шаг",
+    "count": "{count, plural, one {{formatted} запуск} few {{formatted} запуска} many {{formatted} запусков} other {{formatted} запуска}}",
+    "byHand": "запущен вручную",
+    "none": "Запусков пока нет.",
+    "noSteps": "Шагов пока нет.",
+    "days": "{count, plural, one {{formatted} день} few {{formatted} дня} many {{formatted} дней} other {{formatted} дня}}",
+    "arguments": {
+      "all": "все",
+      "unread": "непрочитанные"
+    },
+    "outcomes": {
+      "running": "Идёт",
+      "finished": "Завершён",
+      "stopped": "Остановлен",
+      "failed": "Сбой",
+      "lost": "Потерян",
+      "lostHint": "Замолчал, не завершившись: его прервали или сервер выключился"
+    },
+    "line": {
+      "vpnLists": "Списки VPN",
+      "configs": "Конфиги",
+      "plainProxies": "Обычные прокси",
+      "inSingbox": "В sing-box",
+      "failed": "Сбои",
+      "workingProxies": "Рабочие прокси"
+    },
+    "steps": {
+      "round": {
+        "name": "Раунд"
+      },
+      "proxies": {
+        "name": "Свежие прокси"
+      },
+      "youtube channels": {
+        "name": "Каналы YouTube",
+        "items": "Каналы",
+        "saved": "Изменились",
+        "results": {
+          "ok": "Обновлены",
+          "gone": "Удалены с YouTube",
+          "failed": "Сбой"
+        }
+      },
+      "youtube videos": {
+        "name": "Новые видео",
+        "items": "Каналы",
+        "saved": "Новые видео",
+        "results": {
+          "ok": "Проверены",
+          "first runs": "Прочитаны впервые",
+          "gone": "Без видео",
+          "failed": "Сбой"
+        }
+      },
+      "youtube details": {
+        "name": "Данные видео",
+        "items": "Видео",
+        "saved": "С данными",
+        "results": {
+          "ok": "С данными",
+          "gone": "Недоступны",
+          "failed": "Сбой"
+        }
+      },
+      "youtube stats": {
+        "name": "Просмотры и лайки",
+        "items": "Видео",
+        "saved": "Обновлены",
+        "results": {
+          "ok": "Обновлены",
+          "gone": "Без счётчиков",
+          "failed": "Сбой"
+        }
+      },
+      "youtube comments": {
+        "name": "Комментарии",
+        "items": "Видео",
+        "saved": "Новые комментарии",
+        "results": {
+          "ok": "Прочитаны",
+          "failed": "Сбой"
+        }
+      },
+      "telegram channels": {
+        "name": "Каналы Telegram",
+        "items": "Каналы",
+        "saved": "Изменились",
+        "results": {
+          "ok": "Прочитаны",
+          "other channel": "Юзернейм теперь у другого канала",
+          "failed": "Сбой"
+        }
+      },
+      "telegram messages": {
+        "name": "Сообщения Telegram",
+        "items": "Каналы",
+        "saved": "Новые сообщения",
+        "results": {
+          "new messages": "С новыми сообщениями",
+          "messages with text": "Сообщения с текстом",
+          "pages": "Прочитано страниц",
+          "nothing new": "Без нового",
+          "other channel": "Юзернейм теперь у другого канала",
+          "failed": "Сбой",
+          "read when asked again": "Прочитаны при повторе"
+        }
+      }
+    },
+    "requests": {
+      "ok": "Ответили",
+      "broken": "Прокси не сработал",
+      "gone": "Удалено",
+      "blocked": "Заблокировано",
+      "hidden": "Скрыто",
+      "youtube error": "Ошибка YouTube",
+      "telegram error": "Ошибка Telegram",
+      "bad request": "Неверный запрос",
+      "failed": "Сбой"
+    },
+    "back": "Активность",
+    "started": "Начат",
+    "finished": "Завершён",
+    "took": "Длился",
+    "goingFor": "Идёт уже",
+    "inRound": "Часть раунда",
+    "stepsTitle": "Его шаги",
+    "work": "Работа",
+    "toDo": "{items}, всего",
+    "done": "Сделано",
+    "saved": "Сохранено",
+    "processes": "Процессы",
+    "speed": "Запросов в секунду",
+    "workingProxies": "Рабочие прокси в конце",
+    "outcomesTitle": "Итоги",
+    "requestsTitle": "Запросы",
+    "proxyTestsTitle": "Проверки прокси",
+    "proxiesTitle": "Прокси",
+    "vpnInReserve": "Прокси VPN",
+    "plainInReserve": "Обычные прокси",
+    "plainBroughtIn": "Процессы, взявшие обычные прокси",
+    "vpnListsTitle": "Списки VPN",
+    "uniqueConfigs": "Уникальные конфиги",
+    "plainListsTitle": "Списки обычных прокси",
+    "uniqueProxies": "Уникальные обычные прокси",
+    "singboxProcesses": "Работающие процессы sing-box",
+    "ofProcesses": "из {count}",
+    "localProxies": "Локальные прокси в sing-box",
+    "byProtocol": "Конфиги по протоколам",
+    "byKind": "Обычные прокси по типам",
+    "list": "Список",
+    "updated": "Изменён",
+    "found": "Найдено",
+    "new": "Новых",
+    "skipped": "Пропущено",
+    "downloadFailed": "Не скачался: {error}",
+    "overview": {
+      "title": "Активность",
+      "all": "Вся активность",
+      "lastRound": "Последний раунд",
+      "noRounds": "Раундов пока не было.",
+      "runningNow": "Сейчас идёт",
+      "nothingRunning": "Сейчас ничего не идёт."
+    }
   },
   "common": {
     "loading": "Загрузка…",

@@ -47,6 +47,17 @@ export type Health = {
 };
 
 /**
+ * LatestRuns
+ */
+export type LatestRuns = {
+    round: RunWithSteps | null;
+    /**
+     * Running
+     */
+    running: Array<Run>;
+};
+
+/**
  * LocaleChange
  */
 export type LocaleChange = {
@@ -122,6 +133,124 @@ export type Readiness = {
      * Status
      */
     status: 'ok' | 'unavailable';
+};
+
+/**
+ * Run
+ */
+export type Run = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Round Id
+     */
+    round_id: number | null;
+    /**
+     * Step
+     */
+    step: string;
+    /**
+     * Argument
+     */
+    argument: string | null;
+    /**
+     * Started At
+     */
+    started_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Outcome
+     */
+    outcome: 'running' | 'finished' | 'stopped' | 'failed' | 'lost';
+    /**
+     * Summary
+     */
+    summary: string | null;
+    /**
+     * Numbers
+     */
+    numbers: {
+        [key: string]: unknown;
+    };
+};
+
+/**
+ * RunWithSteps
+ */
+export type RunWithSteps = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Round Id
+     */
+    round_id: number | null;
+    /**
+     * Step
+     */
+    step: string;
+    /**
+     * Argument
+     */
+    argument: string | null;
+    /**
+     * Started At
+     */
+    started_at: string;
+    /**
+     * Updated At
+     */
+    updated_at: string;
+    /**
+     * Finished At
+     */
+    finished_at: string | null;
+    /**
+     * Outcome
+     */
+    outcome: 'running' | 'finished' | 'stopped' | 'failed' | 'lost';
+    /**
+     * Summary
+     */
+    summary: string | null;
+    /**
+     * Numbers
+     */
+    numbers: {
+        [key: string]: unknown;
+    };
+    /**
+     * Steps
+     */
+    steps?: Array<Run>;
+};
+
+/**
+ * Runs
+ */
+export type Runs = {
+    /**
+     * Runs
+     */
+    runs: Array<RunWithSteps>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
 };
 
 /**
@@ -1295,6 +1424,159 @@ export type TelegramChannelMessagesResponses = {
 };
 
 export type TelegramChannelMessagesResponse = TelegramChannelMessagesResponses[keyof TelegramChannelMessagesResponses];
+
+export type RunsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Step
+         *
+         * Only this step's runs, in rounds or by hand
+         */
+        step?: 'round' | 'proxies' | 'youtube channels' | 'youtube videos' | 'youtube details' | 'youtube stats' | 'youtube comments' | 'telegram channels' | 'telegram messages' | null;
+        /**
+         * Page
+         *
+         * 20 to a page
+         */
+        page?: number;
+    };
+    url: '/api/runs';
+};
+
+export type RunsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: a parameter is out of its range
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type RunsError = RunsErrors[keyof RunsErrors];
+
+export type RunsResponses = {
+    /**
+     * Successful Response
+     */
+    200: Runs;
+};
+
+export type RunsResponse = RunsResponses[keyof RunsResponses];
+
+export type LatestRunsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/runs/latest';
+};
+
+export type LatestRunsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type LatestRunsError = LatestRunsErrors[keyof LatestRunsErrors];
+
+export type LatestRunsResponses = {
+    /**
+     * Successful Response
+     */
+    200: LatestRuns;
+};
+
+export type LatestRunsResponse = LatestRunsResponses[keyof LatestRunsResponses];
+
+export type RunDetailsData = {
+    body?: never;
+    path: {
+        /**
+         * Run Id
+         */
+        run_id: number;
+    };
+    query?: never;
+    url: '/api/runs/{run_id}';
+};
+
+export type RunDetailsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: there's no run with that ID
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a run's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type RunDetailsError = RunDetailsErrors[keyof RunDetailsErrors];
+
+export type RunDetailsResponses = {
+    /**
+     * Successful Response
+     */
+    200: RunWithSteps;
+};
+
+export type RunDetailsResponse = RunDetailsResponses[keyof RunDetailsResponses];
 
 export type HealthData = {
     body?: never;

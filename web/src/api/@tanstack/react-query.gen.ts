@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { changeLocale, changePassword, health, me, type Options, ready, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { changeLocale, changePassword, health, latestRuns, me, type Options, ready, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, LatestRunsData, LatestRunsError, LatestRunsResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -520,6 +520,100 @@ export const telegramChannelMessagesInfiniteOptions = (options: Options<Telegram
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
+
+export const runsQueryKey = (options?: Options<RunsData>) => createQueryKey('runs', options);
+
+/**
+ * Runs
+ *
+ * The rounds and the runs started by hand, newest first, each round with its steps; or, given a step, its runs
+ * alone (rounds with their steps)
+ */
+export const runsOptions = (options?: Options<RunsData>) => queryOptions<RunsResponse, RunsError, RunsResponse, ReturnType<typeof runsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await runs({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: runsQueryKey(options)
+});
+
+export const runsInfiniteQueryKey = (options?: Options<RunsData>): QueryKey<Options<RunsData>> => createQueryKey('runs', options, true);
+
+/**
+ * Runs
+ *
+ * The rounds and the runs started by hand, newest first, each round with its steps; or, given a step, its runs
+ * alone (rounds with their steps)
+ */
+export const runsInfiniteOptions = (options?: Options<RunsData>) => {
+    const opts = infiniteQueryOptions<RunsResponse, RunsError, InfiniteData<RunsResponse>, QueryKey<Options<RunsData>>, number | Pick<QueryKey<Options<RunsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<RunsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await runs({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: runsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const latestRunsQueryKey = (options?: Options<LatestRunsData>) => createQueryKey('latestRuns', options);
+
+/**
+ * Latest Runs
+ *
+ * The newest round with its steps, and every step going now, in a round or started by hand
+ */
+export const latestRunsOptions = (options?: Options<LatestRunsData>) => queryOptions<LatestRunsResponse, LatestRunsError, LatestRunsResponse, ReturnType<typeof latestRunsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await latestRuns({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: latestRunsQueryKey(options)
+});
+
+export const runDetailsQueryKey = (options: Options<RunDetailsData>) => createQueryKey('runDetails', options);
+
+/**
+ * Run Details
+ *
+ * One run with all its numbers (for "uv run proxies", each list's too); a round with its steps
+ */
+export const runDetailsOptions = (options: Options<RunDetailsData>) => queryOptions<RunDetailsResponse, RunDetailsError, RunDetailsResponse, ReturnType<typeof runDetailsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await runDetails({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: runDetailsQueryKey(options)
+});
 
 export const healthQueryKey = (options?: Options<HealthData>) => createQueryKey('health', options);
 

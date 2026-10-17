@@ -98,6 +98,11 @@ latest to post first (`sort=latest`), searched by name or @username; `/api/teleg
 details, with how many of its messages have been saved, and `/api/telegram/channels/{id}/messages` its messages, newest
 first, 50 to a page.
 
+`/api/runs`, for admins, lists the runs the `runs` table keeps, newest first, 20 to a page: each round with its steps,
+and the runs started by hand; with `step`, only that step's runs. `/api/runs/latest` gives the newest round and every
+step going now, and `/api/runs/{id}` one run with all its numbers. A run that still says it's running but hasn't said
+anything for 5 minutes is given as lost: it was killed outright.
+
 ## The website
 
 `web/` is the website: a Next.js app in TypeScript, in Russian, Uzbek and English. In `web/`:
@@ -113,14 +118,16 @@ versions are pinned exactly, and pnpm only installs releases at least a day old.
 
 Every page but `/sign-in` needs someone signed in: a visitor who isn't goes to `/sign-in`, and back afterwards, and an
 account with a temporary password to `/change-password` until it has its own. Admins have a menu at the side, which
-folds down to its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds, and YouTube's
-channels, a list searched as one types, the biggest first or by name, 50 to a page, whose address keeps the search, the
-order and the page. Each channel has a page of its own: its details and description, and its videos, newest first, all
-of them or only videos or only Shorts, with when each came out (in Tashkent's time), its length, views, likes and
-comments. Each video has one too: its details, numbers and description, and its comments, newest first, with their
-authors and when they were written. Telegram's channels have a list and pages of their own in the same way, the list
-also in the order of their latest posts, and a channel's page with its saved messages. Customers, for now, see a
-greeting. The header has the user's name and signing out.
+folds down to its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds, the last
+round and what runs now; the activity, every round with its steps and every run started by hand, newest first, with
+their numbers, one step's alone if asked, and a page for each run with all its numbers; and YouTube's channels, a list
+searched as one types, the biggest first or by name, 50 to a page, whose address keeps the search, the order and the
+page. Each channel has a page of its own: its details and description, and its videos, newest first, all of them or only
+videos or only Shorts, with when each came out (in Tashkent's time), its length, views, likes and comments. Each video
+has one too: its details, numbers and description, and its comments, newest first, with their authors and when they were
+written. Telegram's channels have a list and pages of their own in the same way, the list also in the order of their
+latest posts, and a channel's page with its saved messages. Customers, for now, see a greeting. The header has the
+user's name and signing out.
 
 A visitor sees Russian until they choose another language in the header; the choice is kept in a cookie for a year,
 and, once they're signed in, in their account, which the site switches to when they sign in in another browser.

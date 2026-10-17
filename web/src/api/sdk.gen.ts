@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
+import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, LatestRunsData, LatestRunsErrors, LatestRunsResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -146,6 +146,28 @@ export const telegramChannel = <ThrowOnError extends boolean = false>(options: O
  * there are is in the channel's details, so that a page isn't counted again.
  */
 export const telegramChannelMessages = <ThrowOnError extends boolean = false>(options: Options<TelegramChannelMessagesData, ThrowOnError>): RequestResult<TelegramChannelMessagesResponses, TelegramChannelMessagesErrors, ThrowOnError> => (options.client ?? client).get<TelegramChannelMessagesResponses, TelegramChannelMessagesErrors, ThrowOnError>({ url: '/api/telegram/channels/{channel_id}/messages', ...options });
+
+/**
+ * Runs
+ *
+ * The rounds and the runs started by hand, newest first, each round with its steps; or, given a step, its runs
+ * alone (rounds with their steps)
+ */
+export const runs = <ThrowOnError extends boolean = false>(options?: Options<RunsData, ThrowOnError>): RequestResult<RunsResponses, RunsErrors, ThrowOnError> => (options?.client ?? client).get<RunsResponses, RunsErrors, ThrowOnError>({ url: '/api/runs', ...options });
+
+/**
+ * Latest Runs
+ *
+ * The newest round with its steps, and every step going now, in a round or started by hand
+ */
+export const latestRuns = <ThrowOnError extends boolean = false>(options?: Options<LatestRunsData, ThrowOnError>): RequestResult<LatestRunsResponses, LatestRunsErrors, ThrowOnError> => (options?.client ?? client).get<LatestRunsResponses, LatestRunsErrors, ThrowOnError>({ url: '/api/runs/latest', ...options });
+
+/**
+ * Run Details
+ *
+ * One run with all its numbers (for "uv run proxies", each list's too); a round with its steps
+ */
+export const runDetails = <ThrowOnError extends boolean = false>(options: Options<RunDetailsData, ThrowOnError>): RequestResult<RunDetailsResponses, RunDetailsErrors, ThrowOnError> => (options.client ?? client).get<RunDetailsResponses, RunDetailsErrors, ThrowOnError>({ url: '/api/runs/{run_id}', ...options });
 
 /**
  * Health

@@ -59,3 +59,14 @@ export function formatWhen(iso: string, precision: YouTubeComment["precision"], 
 export function initialOf(name: string): string {
   return (name.match(/[\p{L}\p{N}]/u)?.[0] ?? Array.from(name)[0] ?? "").toUpperCase();
 }
+
+const UNITS = { en: ["s", "min", "h"], ru: ["с", "мин", "ч"], uz: ["s", "daq", "soat"] } as const;
+
+// A length of time, as it's said: 12 s, 4 min 5 s, 1 h 2 min
+export function formatSeconds(seconds: number, locale: string): string {
+  const [s, min, h] = locale in UNITS ? UNITS[locale as keyof typeof UNITS] : UNITS.en;
+  const whole = Math.round(seconds);
+  if (whole < 60) return `${whole} ${s}`;
+  if (whole < 3600) return `${Math.floor(whole / 60)} ${min} ${whole % 60} ${s}`;
+  return `${Math.floor(whole / 3600)} ${h} ${Math.floor((whole % 3600) / 60)} ${min}`;
+}

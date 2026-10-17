@@ -26,6 +26,7 @@
   },
   "nav": {
     "overview": "Overview",
+    "activity": "Activity",
     "channels": "Channels",
     "toggle": "Show or hide the menu"
   },
@@ -104,6 +105,173 @@
     "saved": "{count, plural, one {{formatted} message saved} other {{formatted} messages saved}}",
     "openMessage": "Open in Telegram",
     "none": "No messages saved."
+  },
+  "activity": {
+    "title": "Activity",
+    "allSteps": "All steps",
+    "step": "Step",
+    "count": "{count, plural, one {{formatted} run} other {{formatted} runs}}",
+    "byHand": "started by hand",
+    "none": "No runs yet.",
+    "noSteps": "No steps yet.",
+    "days": "{count, plural, one {{formatted} day} other {{formatted} days}}",
+    "arguments": {
+      "all": "all",
+      "unread": "unread"
+    },
+    "outcomes": {
+      "running": "Running",
+      "finished": "Finished",
+      "stopped": "Stopped",
+      "failed": "Failed",
+      "lost": "Lost",
+      "lostHint": "It went silent without ending: it was killed, or the server went down"
+    },
+    "line": {
+      "vpnLists": "VPN lists",
+      "configs": "Configs",
+      "plainProxies": "Plain proxies",
+      "inSingbox": "In sing-box",
+      "failed": "Failed",
+      "workingProxies": "Proxies working"
+    },
+    "steps": {
+      "round": {
+        "name": "Round"
+      },
+      "proxies": {
+        "name": "Fresh proxies"
+      },
+      "youtube channels": {
+        "name": "YouTube channels",
+        "items": "Channels",
+        "saved": "Changed",
+        "results": {
+          "ok": "Refreshed",
+          "gone": "Gone from YouTube",
+          "failed": "Failed"
+        }
+      },
+      "youtube videos": {
+        "name": "New videos",
+        "items": "Channels",
+        "saved": "New videos",
+        "results": {
+          "ok": "Checked",
+          "first runs": "Read for the first time",
+          "gone": "Without videos",
+          "failed": "Failed"
+        }
+      },
+      "youtube details": {
+        "name": "Video details",
+        "items": "Videos",
+        "saved": "With details",
+        "results": {
+          "ok": "With details",
+          "gone": "Unavailable",
+          "failed": "Failed"
+        }
+      },
+      "youtube stats": {
+        "name": "Views and likes",
+        "items": "Videos",
+        "saved": "Refreshed",
+        "results": {
+          "ok": "Refreshed",
+          "gone": "Without counts",
+          "failed": "Failed"
+        }
+      },
+      "youtube comments": {
+        "name": "Comments",
+        "items": "Videos",
+        "saved": "New comments",
+        "results": {
+          "ok": "Read",
+          "failed": "Failed"
+        }
+      },
+      "telegram channels": {
+        "name": "Telegram channels",
+        "items": "Channels",
+        "saved": "Changed",
+        "results": {
+          "ok": "Read",
+          "other channel": "Username now another channel's",
+          "failed": "Failed"
+        }
+      },
+      "telegram messages": {
+        "name": "Telegram messages",
+        "items": "Channels",
+        "saved": "New messages",
+        "results": {
+          "new messages": "With new messages",
+          "messages with text": "Messages with text",
+          "pages": "Pages read",
+          "nothing new": "Nothing new",
+          "other channel": "Username now another channel's",
+          "failed": "Failed",
+          "read when asked again": "Read when asked again"
+        }
+      }
+    },
+    "requests": {
+      "ok": "Answered",
+      "broken": "Proxy failed",
+      "gone": "Gone",
+      "blocked": "Blocked",
+      "hidden": "Hidden",
+      "youtube error": "YouTube error",
+      "telegram error": "Telegram error",
+      "bad request": "Bad request",
+      "failed": "Failed"
+    },
+    "back": "Activity",
+    "started": "Started",
+    "finished": "Finished",
+    "took": "Took",
+    "goingFor": "Going for",
+    "inRound": "Part of a round",
+    "stepsTitle": "Its steps",
+    "work": "Work",
+    "toDo": "{items} in all",
+    "done": "Done",
+    "saved": "Saved",
+    "processes": "Processes",
+    "speed": "Requests a second",
+    "workingProxies": "Proxies working at the end",
+    "outcomesTitle": "Outcomes",
+    "requestsTitle": "Requests",
+    "proxyTestsTitle": "Proxy tests",
+    "proxiesTitle": "Proxies",
+    "vpnInReserve": "VPN proxies",
+    "plainInReserve": "Plain proxies",
+    "plainBroughtIn": "Processes that brought in plain proxies",
+    "vpnListsTitle": "VPN lists",
+    "uniqueConfigs": "Unique configs",
+    "plainListsTitle": "Plain proxy lists",
+    "uniqueProxies": "Unique plain proxies",
+    "singboxProcesses": "sing-box processes running",
+    "ofProcesses": "of {count}",
+    "localProxies": "Local proxies in sing-box",
+    "byProtocol": "Configs by protocol",
+    "byKind": "Plain proxies by kind",
+    "list": "List",
+    "updated": "Changed",
+    "found": "Found",
+    "new": "New",
+    "skipped": "Skipped",
+    "downloadFailed": "Failed to download: {error}",
+    "overview": {
+      "title": "Activity",
+      "all": "All activity",
+      "lastRound": "Last round",
+      "noRounds": "No rounds yet.",
+      "runningNow": "Running now",
+      "nothingRunning": "Nothing runs now."
+    }
   },
   "common": {
     "loading": "Loading…",

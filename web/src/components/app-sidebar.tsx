@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboardIcon, type LucideIcon, RadarIcon, SendIcon, TvIcon } from "lucide-react";
+import { ActivityIcon, LayoutDashboardIcon, type LucideIcon, RadarIcon, SendIcon, TvIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -46,6 +46,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarMenu>
             <Item href="/" icon={LayoutDashboardIcon} label={t("nav.overview")} />
+            <Item href="/activity" icon={ActivityIcon} label={t("nav.activity")} />
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup>

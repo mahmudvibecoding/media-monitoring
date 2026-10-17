@@ -12,6 +12,7 @@ import type { YouTubeComment } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { FoldedText } from "@/components/folded-text";
 import { Pages } from "@/components/pages";
+import { Stat } from "@/components/stat";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -89,16 +90,6 @@ export function VideoDetails({ id }: { id: string }) {
         </div>
       )}
     </section>
-  );
-}
-
-function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
-  return (
-    <div className="rounded-xl border p-3">
-      <dt className="text-sm text-muted-foreground">{label}</dt>
-      <dd className="text-xl font-semibold tabular-nums">{value}</dd>
-      {note && <dd className="text-xs text-muted-foreground">{note}</dd>}
-    </div>
   );
 }
 

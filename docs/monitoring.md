@@ -57,7 +57,8 @@ Every round, every `uv run proxies` and every run of a step, whether in a round 
   working. `uv run proxies` keeps each list's numbers instead (found, new, skipped, when it last changed), the unique
   configs and proxies by protocol, and how many proxies sing-box started.
 
-A step never fails for its row: without the table, it says so once and works as before.
+A step never fails for its row: without the table, it says so once and works as before. The website's activity pages
+show the rows (see [How the website works](website.md#runs)).
 
 ## A round in numbers
 

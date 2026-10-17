@@ -84,6 +84,20 @@ running count, as on the overview: counting the 310,431 channels takes 80 ms eac
 a channel's details, with how many of its messages have been saved, and `/api/telegram/channels/{id}/messages` a page of
 its messages, newest first, by the messages table's key: a few milliseconds, even for the channel with the most.
 
+### Runs
+
+`/api/runs` gives admins the rows of the `runs` table (see [How monitoring works](monitoring.md#rounds)), 20 at a time,
+newest first: the rounds, each with its steps in the order they ran, and the runs started by hand; with `step`, only
+that step's runs, in rounds or by hand. `/api/runs/latest` is the newest round, with its steps, and every step going
+now, for the overview; `/api/runs/{id}` is one run with all its numbers, or a round with its steps. Lists leave out the
+numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own page has them.
+- A run writes its numbers every few seconds while it works, so a row that still says running but hasn't changed for 5
+  minutes belongs to a run killed outright (out of memory, the machine going down), which never wrote how it ended: the
+  API gives it as lost. A round is lost once neither it nor any of its steps has changed for 5 minutes.
+- Each lookup has an index of its own in `schema.sql`: the rounds and the runs by hand, a step's runs, a round's steps,
+  and the rows still running. Pages are picked and counted from them, so they stay quick as rows pile up: about 900 a
+  day, with a round every 15 minutes.
+
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
@@ -92,12 +106,18 @@ its messages, newest first, by the messages table's key: a few milliseconds, eve
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
   inside a page comes after Next has begun sending it: a 200, followed only by the browser's scripts. The site's server
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
-- Admins have a menu at the side (shadcn's sidebar): the overview, then each kind of collected data. It folds down to
-  its icons, which it remembers in a cookie, and slides in over the page on a phone.
+- Admins have a menu at the side (shadcn's sidebar): the overview and the activity, then each kind of collected data.
+  It folds down to its icons, which it remembers in a cookie, and slides in over the page on a phone.
 - The lists keep their search, order and page in the address, so Back, Forward and a copied link bring them back. They
   change the address through the browser's history rather than by loading the page again, and ask the API themselves,
   through Caddy; the server renders a list only when the page is loaded. A search starts 300 ms after the last key, and
   the last list stays, dimmed, while the next one loads.
+- The activity (`/activity`) shows the runs as the API gives them, and a page for each with every number it kept: its
+  items' outcomes, its requests and proxy tests by outcome, its proxies; for `uv run proxies`, a row per list. A step's
+  texts are looked up by its name as the table has it (`activity.steps` in the messages), and so are its outcomes'
+  names; one without a text shows as it is. The activity's first page, the overview's runs, and any page with a run
+  going are asked for again every 5 s. How long a run has been going is counted to its last update, not to the
+  browser's clock, so the server's page and the browser's agree.
 - Channel pictures come from YouTube's image server at 88 px (8 KB each), not at the 900 px saved (114 KB).
 - Video covers come from YouTube's image server at 320 × 180 (15 KB), loaded as they scroll into view: Next's image
   optimizer would fetch them through the site's server, which can't reach the internet.
