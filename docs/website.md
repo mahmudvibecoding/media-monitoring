@@ -94,10 +94,13 @@ request, counting them took 0.9 s and 0.3 s. A channel's page can still be opene
 
 `/api/telegram/channels` lists the Telegram channels the way YouTube's are listed: a search column and its trigram
 index, an index for each order holding the search column, the page picked from the index alone, all in `app.sql`. Its
-orders are the biggest first and the latest to post first, 50 to a page. Counting the 30,272 channels with a saved
-message takes 20 ms. `/api/telegram/channels/{id}` is a channel's details, with how many of its messages have been
-saved, and `/api/telegram/channels/{id}/messages` a page of its messages, newest first, by the messages table's key: a
-few milliseconds, even for the channel with the most.
+orders are the biggest first and the latest to post first, 50 to a page, each channel with the first 200 characters of
+its latest saved message, which the messages table's key gives at once (10 ms for a page). Counting the 30,272 channels
+with a saved message takes 20 ms. `/api/telegram/channels/{id}` is a channel's details, with how many of its messages
+have been saved, and `/api/telegram/channels/{id}/messages` a page of its messages, newest first, by the messages
+table's key: a few milliseconds, even for the channel with the most; with a search, those whose text has it in them
+(lowercase, apostrophes aside, as the lists' searches), which reads all the channel's messages: 50 ms for the one with
+the most (7,000).
 
 ### Runs
 
@@ -124,8 +127,16 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   short way (▷ 48K • 3d ago, as YouTube's lists write them now), the blue that comes round a card under the mouse, and
   the white "New" on a video out less than a week beside another; its watch page, its Shorts' player, its channel's
   About box and its Share box; its red line along the top while a page loads, and its pages' shapes in grey while they
-  do. Telegram's look like Telegram's (its list of chats, its blue, its chat with bubbles on its background, its info
-  panel).
+  do. Telegram's look like Telegram Web's (web.telegram.org/a, measured there) as it looks on the visitor's device,
+  which the browser's name tells: in Roboto, or in the system's font and Apple's sizes on a Mac or an iPhone. Its
+  default wallpaper (its four colors blended as Telegram draws them, without its pattern) lies under its floating
+  panels, with its corners rounder at the ends where the browser can draw them (squircles): the chat list at the left,
+  with its ☰ (the site's menu) and its search field, its folders on a floating bar (the biggest channels, and the latest
+  to post), and its rows, each with its latest message and when, the open chat's blue; a chat's top bar floating over
+  it, its bubbles in groups with their tails, its links as Telegram shows them (one hidden behind words as the words),
+  its dates, which stay at the top while it scrolls and fade once it stops, and its round button back down to the newest
+  messages; and its info panel, beside the chat or over it. A click ripples as in Telegram, and dates are Telegram's
+  words (14:05, Mon, Oct 9 in the list; Today, Yesterday, Thursday, October 9 over the messages).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
@@ -136,20 +147,28 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   YouTube's): the overview, YouTube and Telegram, then apart at the bottom the activity, and at its foot who's signed
   in, with the language and signing out. It folds down to its icons (its button, a click on its edge, or Ctrl+B), which
   it remembers in a cookie, and slides in over the page on a phone, where a thin bar opens it (on YouTube's pages, the ☰
-  in YouTube's top bar).
+  in YouTube's top bar; on Telegram's, the ☰ over the chat list).
 - Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
   middle-click opens it in a new tab, as a link does.
-- The channel lists keep their search, order and page in the address, so Back, Forward and a copied link bring them
-  back. YouTube's grid fills the screen and no more, so its page's buttons are always in view: a page holds as many
-  channels as fit (36 on a 2000 × 1200 window, 4 on a phone), so the browser asks for them itself, once it has measured
-  the grid. A list's pages have a button to the one before and the next, and ← and → turn them. They change the address
-  through the browser's history rather than by loading the page again, and ask the API themselves, through Caddy; the
-  server renders Telegram's list only when the page is loaded. A search starts 300 ms after the last key, "/" goes to
-  the search box and Escape empties it, and the last list stays, dimmed, while the next one loads. YouTube's search box
-  is in its top bar: on the channels' list it searches them as one types; on its other pages it suggests channels as one
-  types, as YouTube suggests searches (↑ and ↓ go through them, Enter or a click opens one), and Enter searches the
-  list. A channel's tabs end in YouTube's magnifier, which opens a field that searches the channel's videos by their
-  titles (the address keeps it), listed as YouTube lists results.
+- YouTube's channel list keeps its search, order and page in the address, so Back, Forward and a copied link bring it
+  back. Its grid fills the screen and no more, so its page's buttons are always in view: a page holds as many channels
+  as fit (36 on a 2000 × 1200 window, 4 on a phone), so the browser asks for them itself, once it has measured the grid.
+  Its pages have a button to the one before and the next, and ← and → turn them. They change the address through the
+  browser's history rather than by loading the page again, and ask the API themselves, through Caddy. A search starts
+  300 ms after the last key, "/" goes to the search box and Escape empties it, and the last list stays, dimmed, while
+  the next one loads. YouTube's search box is in its top bar: on the channels' list it searches them as one types; on
+  its other pages it suggests channels as one types, as YouTube suggests searches (↑ and ↓ go through them, Enter or a
+  click opens one), and Enter searches the list. A channel's tabs end in YouTube's magnifier, which opens a field that
+  searches the channel's videos by their titles (the address keeps it), listed as YouTube lists results.
+- Telegram's chat list keeps its folder and its search to itself, as Telegram's does: it belongs to the layout of
+  Telegram's pages, so it stays, scrolled where it was, as chats open and close. It arrives with the page (the first
+  folder's first 50 channels) and loads more as it's scrolled; a search starts 300 ms after the last key, and Escape or
+  ← ends it. A row's chat is fetched ahead once the pointer comes over it (not for every row in view: dozens of
+  requests), and opens at once, its top bar filled from the list while its messages load. With less than 926 px of room,
+  a chat takes it all and ← goes back to the list; with less than 601, the list takes the whole screen too. A chat's
+  search (its magnifier, or Ctrl+F) shows only the messages with what's searched in them, marked, and a hashtag searches
+  for itself, as in Telegram; Esc closes the search, then the info, then the chat. A click on the channel's link in its
+  info copies it, and a message's round button (under the mouse, or always on a touch screen) opens it on Telegram.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. The player is as wide
   as its column but no taller than leaves room for the title under it (16:9 of the screen's height less 116 px), as on
@@ -175,9 +194,9 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   playing in place, without a step in the history, as YouTube's: Back goes back to where the Shorts were opened from.
   The player is 160 px taller than its frame at each end, so what YouTube puts along them (its title, its logo, a
   Short's like count) falls outside it.
-- A channel's videos, a video's comments and a channel's messages load more as they're scrolled, as on YouTube and in
-  Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest message, at the
-  bottom, and loads older ones above as it's scrolled up.
+- A channel's videos, a video's comments, Telegram's chat list and a channel's messages load more as they're scrolled,
+  as on YouTube and in Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest
+  message, at the bottom, and loads older ones above as it's scrolled up.
 - Counts in lists are cut short, as YouTube and Telegram write them (2.19M subscribers, 48K views), with the exact
   number on hover; times are how long ago (3 h ago, 2 days ago; in YouTube's lists 3d ago, 3 дн. назад, as YouTube's
   lists write them), with the exact time on hover. How long ago is counted in the browser: Next won't let the server
@@ -194,7 +213,7 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   for a video that hasn't got the bigger one (YouTube answers with a 120 × 90 grey picture instead), and 480 × 360
   beside a video; a Short's is its upright picture, cut out of those. Next's image optimizer would fetch them through
   the site's server, which can't reach the internet. A picture that doesn't load leaves a figure (YouTube) or the
-  channel's initials on Telegram's colors (Telegram).
+  channel's first letter on Telegram's colors (Telegram).
 - Dates and times are Tashkent's (UTC+5, the same all year), written by the site's own function (`src/lib/format.ts`),
   for the same reason as counts. A comment's time is only as precise as YouTube's wording: 16.10.2026, 14:05 for
   minutes, 16.10.2026, ≈14:00 for hours, ≈16.10.2026 for days and weeks, ≈10.2026 for months, ≈2025 for years.
@@ -208,8 +227,8 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   not there, fails the typecheck. The activity is only in English, whatever the language chosen, its numbers, dates and
   times too: its texts are only in `en.json`, and its pages and the overview's activity have an English frame of their
   own (`EnglishOnly`).
-- The font is Inter, and Roboto on YouTube's and Telegram's pages: Geist, Next's and shadcn's own, has no `ʻ`, which
-  Uzbek writes oʻ and gʻ with; both of these have it.
+- The font is Inter, Roboto on YouTube's pages, and Telegram Web's on Telegram's (Roboto, or the system's on Apple's
+  devices): Geist, Next's and shadcn's own, has no `ʻ`, which Uzbek writes oʻ and gʻ with; these have it.
 - `web/src/api/` is the API's client, generated from `openapi.json` (`pnpm api`), so an endpoint or a field the API
   doesn't have fails the typecheck. Requests are built on one placeholder address, `http://api`, on the server and in
   the browser alike, and sent on from it: TanStack Query's keys include that address, and they must match for the

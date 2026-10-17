@@ -1250,7 +1250,7 @@
     "/api/telegram/channels/{channel_id}/messages": {
       "get": {
         "summary": "Telegram Channel Messages",
-        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none). How many\nthere are is in the channel's details, so that a page isn't counted again.",
+        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none); with a\nsearch, only those whose text has it in them, whatever the case of its letters, and apostrophes aside. How many\nthere are is in the channel's details, so that a page isn't counted again.",
         "operationId": "telegram_channel_messages",
         "parameters": [
           {
@@ -1262,6 +1262,19 @@
               "minimum": 1,
               "title": "Channel Id"
             }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Part of a message's text",
+              "default": "",
+              "title": "Search"
+            },
+            "description": "Part of a message's text"
           },
           {
             "name": "page",
@@ -2236,6 +2249,17 @@
             ],
             "title": "Last Message At"
           },
+          "last_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message"
+          },
           "photo_url": {
             "anyOf": [
               {
@@ -2255,6 +2279,7 @@
           "title",
           "subscribers",
           "last_message_at",
+          "last_message",
           "photo_url"
         ],
         "title": "TelegramChannel"
@@ -2303,6 +2328,17 @@
             ],
             "title": "Last Message At"
           },
+          "last_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Message"
+          },
           "photo_url": {
             "anyOf": [
               {
@@ -2337,6 +2373,7 @@
           "title",
           "subscribers",
           "last_message_at",
+          "last_message",
           "photo_url",
           "description",
           "messages"

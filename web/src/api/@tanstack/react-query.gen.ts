@@ -477,7 +477,8 @@ export const telegramChannelMessagesQueryKey = (options: Options<TelegramChannel
 /**
  * Telegram Channel Messages
  *
- * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none). How many
+ * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none); with a
+ * search, only those whose text has it in them, whatever the case of its letters, and apostrophes aside. How many
  * there are is in the channel's details, so that a page isn't counted again.
  */
 export const telegramChannelMessagesOptions = (options: Options<TelegramChannelMessagesData>) => queryOptions<TelegramChannelMessagesResponse, TelegramChannelMessagesError, TelegramChannelMessagesResponse, ReturnType<typeof telegramChannelMessagesQueryKey>>({
@@ -498,7 +499,8 @@ export const telegramChannelMessagesInfiniteQueryKey = (options: Options<Telegra
 /**
  * Telegram Channel Messages
  *
- * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none). How many
+ * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none); with a
+ * search, only those whose text has it in them, whatever the case of its letters, and apostrophes aside. How many
  * there are is in the channel's details, so that a page isn't counted again.
  */
 export const telegramChannelMessagesInfiniteOptions = (options: Options<TelegramChannelMessagesData>) => {

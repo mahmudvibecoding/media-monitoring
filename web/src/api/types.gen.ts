@@ -300,6 +300,10 @@ export type TelegramChannel = {
      */
     last_message_at: string | null;
     /**
+     * Last Message
+     */
+    last_message: string | null;
+    /**
      * Photo Url
      */
     photo_url: string | null;
@@ -329,6 +333,10 @@ export type TelegramChannelDetails = {
      * Last Message At
      */
     last_message_at: string | null;
+    /**
+     * Last Message
+     */
+    last_message: string | null;
     /**
      * Photo Url
      */
@@ -1403,6 +1411,12 @@ export type TelegramChannelMessagesData = {
         channel_id: number;
     };
     query?: {
+        /**
+         * Search
+         *
+         * Part of a message's text
+         */
+        search?: string;
         /**
          * Page
          *

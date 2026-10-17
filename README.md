@@ -96,9 +96,10 @@ comments have been collected, and `/api/youtube/videos/{id}/comments` its commen
 with when it was written, as precisely as YouTube said it.
 
 `/api/telegram/channels` lists the monitored Telegram channels that have a message saved in the same way, 50 to a page,
-the biggest first or the latest to post first (`sort=latest`), searched by name or @username;
-`/api/telegram/channels/{id}` gives a channel's details, with how many of its messages have been saved, and
-`/api/telegram/channels/{id}/messages` its messages, newest first, 50 to a page.
+the biggest first or the latest to post first (`sort=latest`), searched by name or @username, each with its latest
+message; `/api/telegram/channels/{id}` gives a channel's details, with how many of its messages have been saved, and
+`/api/telegram/channels/{id}/messages` its messages, newest first, 50 to a page, all of them or those with a `search` in
+them.
 
 `/api/runs`, for admins, lists the runs the `runs` table keeps, newest first, 20 to a page: each round with its steps,
 and the runs started by hand; with `step`, only that step's runs. `/api/runs/latest` gives the newest round and every
@@ -124,26 +125,29 @@ YouTube and Telegram pages look like YouTube's and Telegram's own. Admins have a
 its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds (the channels with something
 collected, and every video, comment and message), the last round and what runs now; YouTube's channels with a video
 collected, a grid of their pictures, the biggest first, searched as one types, which fills the screen with as many as
-fit, whose address keeps the search and the page (← and → turn the pages); Telegram's channels with a message saved, a
-list like Telegram's chats, also in the order of their latest posts; and at the bottom the activity, every round with
-its steps and every run started by hand, newest first, with their numbers, and a page for each run with all its numbers.
-YouTube's pages are under YouTube's top bar, whose search box suggests channels as one types. A YouTube channel's page
-is laid out like the channel on YouTube, with its About box, its videos and Shorts in grids, newest, most viewed or
-oldest first, that load more as they're scrolled, each playing silently while the mouse stays on it, and its search by
-title; a video's, like YouTube's watch page, with YouTube's player, which starts as the page opens and takes YouTube's
-keys, its description, its comments, a Share box and more from its channel; a Short's, like YouTube's Shorts, a feed
-that slides from one upright Short to the next with the wheel, a two-finger swipe or ↑ and ↓, with the comments and the
-description in panels beside it; a Telegram channel's, like the channel in Telegram, its messages as bubbles, the newest
-at the bottom, with its info beside them. Anything in a list opens wherever it's clicked. Customers, for now, see a
-greeting. The menu's foot has the user's name, the language and signing out.
+fit, whose address keeps the search and the page (← and → turn the pages); Telegram's channels with a message saved, as
+Telegram Web's chat list, with their latest messages, in two folders (the biggest, and the latest to post), searched as
+one types; and at the bottom the activity, every round with its steps and every run started by hand, newest first, with
+their numbers, and a page for each run with all its numbers. YouTube's pages are under YouTube's top bar, whose search
+box suggests channels as one types. A YouTube channel's page is laid out like the channel on YouTube, with its About
+box, its videos and Shorts in grids, newest, most viewed or oldest first, that load more as they're scrolled, each
+playing silently while the mouse stays on it, and its search by title; a video's, like YouTube's watch page, with
+YouTube's player, which starts as the page opens and takes YouTube's keys, its description, its comments, a Share box
+and more from its channel; a Short's, like YouTube's Shorts, a feed that slides from one upright Short to the next with
+the wheel, a two-finger swipe or ↑ and ↓, with the comments and the description in panels beside it; Telegram's pages
+look like Telegram Web, its wallpaper under floating panels: the chat list at the left, and beside it a channel's chat,
+its messages as bubbles, the newest at the bottom, under their dates, with its search (which a hashtag starts too) and
+its info panel. Anything in a list opens wherever it's clicked. Customers, for now, see a greeting. The menu's foot has
+the user's name, the language and signing out.
 
 A visitor sees Russian until they choose another language, in the menu's foot (or the sign-in page's header); the choice
 is kept in a cookie for a year, and, once they're signed in, in their account, which the site switches to when they sign
 in in another browser. The texts are in `messages/` (`ru.json`, `uz.json`, `en.json`), looked up by key: a key missing
 from a language, or one a page asks for that isn't there, fails the typecheck. The activity is only in English, its
 texts only in `en.json`. The components are shadcn/ui's, on Base UI, kept in `src/components/ui/` as shadcn writes them
-(`pnpm exec shadcn add <name>` adds one). The font is Inter, and Roboto on YouTube's and Telegram's pages, both with
-every letter of the three languages, Uzbek's ʻ included; the site is light only.
+(`pnpm exec shadcn add <name>` adds one). The font is Inter, Roboto on YouTube's pages, and Telegram Web's on Telegram's
+(Roboto, or the system's on Apple's devices), each with every letter of the three languages, Uzbek's ʻ included; the
+site is light only.
 
 The site reads the API through a typed client in `src/api/`, which `pnpm api` writes from `../openapi.json` (run it
 after `uv run api openapi`); it isn't edited by hand, and asking for an endpoint or a field the API doesn't have fails

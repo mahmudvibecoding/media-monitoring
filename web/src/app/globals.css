@@ -76,12 +76,129 @@
       transform: scaleX(0.95);
     }
   }
+  /* Telegram Web's */
   --color-tg-blue: #3390ec;
   --color-tg-text: #000000;
   --color-tg-muted: #707579;
-  --color-tg-hover: #f4f4f5;
-  --color-tg-chat: #e6ebf0;
-  --color-tg-bubble: #ffffff;
+  --color-tg-hover: #f4f4f5; /* a row under the mouse, the search field, the info panel's background */
+  --color-tg-meta: rgb(104 108 114 / 0.75); /* a message's time */
+  --color-tg-placeholder: #a2acb4;
+  --color-tg-highlight: #cae3f7; /* what a search found, in a message */
+  --color-tg-tab: rgb(80 162 233 / 0.118); /* under the chosen folder */
+  /* The date over a day's messages and the round buttons beside them: a darker green of the wallpaper's */
+  --color-tg-on-wallpaper: rgb(106 161 90 / 0.85);
+  --shadow-tg-island: 0 1px 4px 0 rgb(0 0 0 / 0.05); /* the list's and the info's floating panels */
+  --shadow-tg-pane: 0 1px 5px -1px rgb(0 0 0 / 0.21); /* the chat's top bar */
+  --shadow-tg-bubble: 0 1px 2px 0 rgb(114 114 114 / 0.25);
+  --ease-tg-layer: cubic-bezier(0.33, 1, 0.68, 1); /* a panel sliding in or out, in 300 ms */
+  --ease-tg-slide: cubic-bezier(0.25, 1, 0.5, 1); /* the chosen folder's mark moving to another */
+  --ease-tg-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* the button to the newest messages, popping up */
+  /* Telegram's ripple: a grey circle that grows from where one clicked, and fades */
+  --animate-tg-ripple: tg-ripple 700ms;
+  @keyframes tg-ripple {
+    from {
+      transform: scale(0);
+      opacity: 1;
+    }
+    50% {
+      opacity: 1;
+    }
+    to {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+}
+
+/* Telegram's pages, as Telegram Web looks on the device that shows them (data-platform, from the browser's name): in
+   Roboto, semibold at 500 and messages at 16 px; on Apple's, in the system's font, semibold at 600, messages at 15 px on
+   a Mac and 17 on an iPhone, and the chat list's lines a little smaller and greyer */
+.telegram {
+  --tg-font:
+    var(--font-roboto), -apple-system, BlinkMacSystemFont, "Apple Color Emoji", "Segoe UI", Oxygen, Ubuntu, Cantarell,
+    "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  --tg-rounded: "Nunito", var(--font-roboto), "Helvetica Neue", sans-serif; /* a picture's initials */
+  --tg-semibold: 500;
+  --tg-message: 16px;
+  --tg-date-leading: 1.25;
+  --tg-list-line: 16px;
+  --tg-list-muted: #707579;
+  --tg-list-meta: #686c72;
+  font-family: var(--tg-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.telegram:is([data-platform="mac"], [data-platform="ios"]) {
+  --tg-font:
+    system-ui, -apple-system, BlinkMacSystemFont, var(--font-roboto), "Apple Color Emoji", "Helvetica Neue", sans-serif;
+  --tg-rounded: ui-rounded, "Nunito", var(--font-roboto), "Helvetica Neue", sans-serif;
+  --tg-semibold: 600;
+  --tg-message: 15px;
+  --tg-date-leading: calc(var(--tg-message) + 1.5px);
+  --tg-list-line: 15px;
+  --tg-list-muted: #8e8e92;
+  --tg-list-meta: #8c8c91;
+}
+.telegram[data-platform="ios"] {
+  --tg-message: 17px;
+}
+
+/* Telegram's default chat background: its four colors blended (src/assets/telegram-wallpaper.png, drawn as Telegram Web
+   draws it), stretched over the whole window */
+@utility tg-wallpaper {
+  background: #bdcd8c url("../assets/telegram-wallpaper.png") center / 100% 100% no-repeat;
+}
+
+/* Telegram's corners, rounder at the ends (a squircle) where the browser can draw them, and simply round elsewhere: a
+   floating panel's (24 px), and a row's in a list (16 px) */
+@utility tg-island {
+  border-radius: 1.5rem;
+  @supports (corner-shape: squircle) {
+    border-radius: calc(1.5rem * 1.7153);
+    corner-shape: squircle;
+  }
+}
+@utility tg-item {
+  border-radius: 1rem;
+  @supports (corner-shape: squircle) {
+    border-radius: calc(1rem * 1.7153);
+    corner-shape: squircle;
+  }
+}
+
+/* Telegram's ☰, three bars that turn into ← (data-back) while a search is open */
+.tg-menu-icon,
+.tg-menu-icon::before,
+.tg-menu-icon::after {
+  width: 1.125rem;
+  height: 0.125rem;
+  border-radius: 0.125rem;
+  background-color: currentColor;
+  transition: transform 0.25s;
+}
+.tg-menu-icon {
+  position: relative;
+}
+.tg-menu-icon::before,
+.tg-menu-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+.tg-menu-icon::before {
+  top: -0.3125rem;
+}
+.tg-menu-icon::after {
+  top: 0.3125rem;
+}
+.tg-menu-icon[data-back] {
+  transform: rotate(180deg);
+}
+.tg-menu-icon[data-back]::before {
+  transform: rotate(45deg) scaleX(0.75) translate(0.375rem, -0.1875rem);
+}
+.tg-menu-icon[data-back]::after {
+  transform: rotate(-45deg) scaleX(0.75) translate(0.375rem, 0.1875rem);
 }
 
 /* Sober colors: white and near-black, grays for everything else, color only for status (success, warning,

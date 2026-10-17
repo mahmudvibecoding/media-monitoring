@@ -1,28 +1,31 @@
 import type { TelegramChannelsData } from "@/api/types.gen";
-import { addressOf, pageOf, searchOf } from "@/lib/address";
 
 export type TelegramChannelsQuery = NonNullable<TelegramChannelsData["query"]>;
+export type TelegramSort = NonNullable<TelegramChannelsQuery["sort"]>;
 
-// The queries below come from a page's address: only values the API takes, and none that's its default, so the server
-// and the browser build the same query, and so the same key for TanStack Query's cache
-
-// The Telegram channel list's search, order and page (?search=…&sort=latest&page=2): the biggest first, or the latest
-// to post first
-export function telegramChannelsQuery(params: URLSearchParams): TelegramChannelsQuery {
+// The chat list's query: only what isn't the API's default, so that the server and the browser build the same one,
+// and so the same key for TanStack Query's cache
+export function channelsQuery(sort: TelegramSort, search: string): TelegramChannelsQuery {
   const query: TelegramChannelsQuery = {};
-  const search = searchOf(params);
   if (search) query.search = search;
-  const sort = params.get("sort");
-  if (sort === "latest") query.sort = sort;
-  const page = pageOf(params);
-  if (page) query.page = page;
+  if (sort !== "subscribers") query.sort = sort;
   return query;
 }
 
-export function telegramChannelsAddress(query: TelegramChannelsQuery): string {
-  return addressOf({ search: query.search, sort: query.sort, page: query.page });
+// The device a page shows on, from the browser's name, for Telegram's looks on it (globals.css's .telegram); an iPad
+// calls itself a Mac
+export type Platform = "mac" | "ios" | "other";
+export function platformOf(userAgent: string): Platform {
+  if (/iPhone|iPad|iPod/.test(userAgent)) return "ios";
+  return /Macintosh/.test(userAgent) ? "mac" : "other";
 }
 
-// Addresses on Telegram itself: a channel's, and one of its messages'
-export const channelOnTelegram = (username: string) => `https://t.me/${username}`;
+// A chat's path here, and the ID in it (null on the list's own page)
+export const chatPath = (id: number) => `/telegram/channels/${id}`;
+export function chatIdOf(path: string): number | null {
+  const id = /^\/telegram\/channels\/(\d{1,15})(?:\/|$)/.exec(path)?.[1];
+  return id ? Number(id) : null;
+}
+
+// A channel's post on Telegram itself
 export const messageOnTelegram = (username: string, id: number) => `https://t.me/${username}/${id}`;

@@ -94,25 +94,32 @@
   },
   "telegramChannels": {
     "title": "Telegram kanallari",
-    "count": "{formatted} ta kanal",
+    "search": "Qidiruv",
+    "back": "Orqaga",
+    "clear": "Tozalash",
+    "folders": "Jildlar",
+    "biggest": "Yiriklar",
+    "latest": "Soʻnggi",
     "found": "Topildi: {formatted} ta",
-    "search": "Nomi yoki @username",
-    "order": "Tartib",
-    "biggest": "Avval yiriklari",
-    "latest": "Avval yangi postlar",
     "none": "Hozircha kanallar yoʻq.",
-    "noMatch": "«{search}» boʻyicha kanal topilmadi."
+    "noResults": "Natija yoʻq",
+    "noResultsFor": "«{search}» boʻyicha hech narsa topilmadi. Boshqacha qidirib koʻring."
   },
   "telegramChannel": {
-    "back": "Telegram kanallari",
+    "back": "Orqaga",
     "subscribers": "{formatted} ta obunachi",
+    "search": "Qidiruv",
+    "close": "Yopish",
     "openMessage": "Telegramda ochish",
+    "toNewest": "Yangi xabarlarga",
     "none": "Xabarlar saqlanmagan.",
+    "noneFound": "Xabarlar topilmadi",
+    "channelInfo": "Kanal haqida",
     "info": "Maʼlumot",
     "link": "Havola",
+    "linkCopied": "Havoladan nusxa olindi.",
     "lastPost": "Oxirgi post",
-    "savedMessages": "Saqlangan xabarlar",
-    "close": "Yopish"
+    "savedMessages": "Saqlangan xabarlar"
   },
   "common": {
     "loading": "Yuklanmoqda…",

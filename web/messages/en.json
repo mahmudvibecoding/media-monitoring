@@ -94,25 +94,32 @@
   },
   "telegramChannels": {
     "title": "Telegram channels",
-    "count": "{count, plural, one {{formatted} channel} other {{formatted} channels}}",
+    "search": "Search",
+    "back": "Back",
+    "clear": "Clear",
+    "folders": "Folders",
+    "biggest": "Biggest",
+    "latest": "Latest",
     "found": "Found: {formatted}",
-    "search": "Search by name or @username",
-    "order": "Order",
-    "biggest": "Biggest first",
-    "latest": "Latest post first",
     "none": "No channels yet.",
-    "noMatch": "No channels match “{search}”."
+    "noResults": "No results",
+    "noResultsFor": "There were no results for “{search}”. Try a new search."
   },
   "telegramChannel": {
-    "back": "Telegram channels",
+    "back": "Back",
     "subscribers": "{count, plural, one {{formatted} subscriber} other {{formatted} subscribers}}",
+    "search": "Search",
+    "close": "Close",
     "openMessage": "Open in Telegram",
+    "toNewest": "To the newest messages",
     "none": "No messages saved.",
+    "noneFound": "No messages found",
+    "channelInfo": "Channel Info",
     "info": "Info",
     "link": "Link",
+    "linkCopied": "Link copied to clipboard.",
     "lastPost": "Latest post",
-    "savedMessages": "Messages saved",
-    "close": "Close"
+    "savedMessages": "Messages saved"
   },
   "activity": {
     "title": "Activity",

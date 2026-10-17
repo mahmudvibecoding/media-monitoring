@@ -5,7 +5,7 @@ import { cache } from "react";
 
 import { telegramChannelMessagesInfiniteOptions, telegramChannelQueryKey } from "@/api/@tanstack/react-query.gen";
 import { telegramChannel } from "@/api/sdk.gen";
-import { TelegramChat } from "@/components/telegram-channel";
+import { TelegramChat } from "@/components/telegram-chat";
 import { serverClient, signedInUser } from "@/lib/api-server";
 import { FIRST_PAGE } from "@/lib/pages";
 import { getQueryClient } from "@/lib/query-client";
@@ -30,8 +30,8 @@ export async function generateMetadata({ params }: PageProps<"/telegram/channels
   return channel ? { title: channel.title?.trim() || `@${channel.username}` } : {};
 }
 
-// A monitored Telegram channel, for admins, laid out like the channel in Telegram: its details and its newest messages
-// arrive with the page, and the browser takes over from there
+// A monitored Telegram channel's chat, for admins, beside the chat list, as in Telegram Web: its details and its newest
+// messages arrive with the page, and the browser takes over from there
 export default async function TelegramChannelPage({ params }: PageProps<"/telegram/channels/[id]">) {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();

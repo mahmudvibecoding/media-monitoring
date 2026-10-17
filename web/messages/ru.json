@@ -94,25 +94,32 @@
   },
   "telegramChannels": {
     "title": "Каналы Telegram",
-    "count": "{count, plural, one {{formatted} канал} few {{formatted} канала} many {{formatted} каналов} other {{formatted} канала}}",
+    "search": "Поиск",
+    "back": "Назад",
+    "clear": "Очистить",
+    "folders": "Папки",
+    "biggest": "Крупные",
+    "latest": "Свежие",
     "found": "Найдено: {formatted}",
-    "search": "Название или @юзернейм",
-    "order": "Порядок",
-    "biggest": "Сначала крупные",
-    "latest": "Сначала недавние посты",
     "none": "Каналов пока нет.",
-    "noMatch": "По запросу «{search}» каналов нет."
+    "noResults": "Нет результатов",
+    "noResultsFor": "По запросу «{search}» ничего не найдено. Попробуйте другой запрос."
   },
   "telegramChannel": {
-    "back": "Каналы Telegram",
+    "back": "Назад",
     "subscribers": "{count, plural, one {{formatted} подписчик} few {{formatted} подписчика} many {{formatted} подписчиков} other {{formatted} подписчика}}",
+    "search": "Поиск",
+    "close": "Закрыть",
     "openMessage": "Открыть в Telegram",
+    "toNewest": "К новым сообщениям",
     "none": "Сообщений не сохранено.",
+    "noneFound": "Сообщения не найдены",
+    "channelInfo": "Информация о канале",
     "info": "Информация",
     "link": "Ссылка",
+    "linkCopied": "Ссылка скопирована в буфер обмена.",
     "lastPost": "Последний пост",
-    "savedMessages": "Сохранено сообщений",
-    "close": "Закрыть"
+    "savedMessages": "Сохранено сообщений"
   },
   "common": {
     "loading": "Загрузка…",

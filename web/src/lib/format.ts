@@ -54,11 +54,18 @@ export function formatDateTime(iso: string, locale: string): string {
     : `${twoDigits(day)}.${twoDigits(month + 1)}.${year}, ${time}`;
 }
 
+// The words for days and months below are the browser's own (Intl), as Telegram Web takes them
 const WEEKDAYS = {
   en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   ru: ["вс", "пн", "вт", "ср", "чт", "пт", "сб"],
-  uz: ["Ya", "Du", "Se", "Cho", "Pa", "Ju", "Sha"],
+  uz: ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"],
 } as const;
+const WEEKDAY_NAMES = {
+  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+  ru: ["воскресенье", "понедельник", "вторник", "среда", "четверг", "пятница", "суббота"],
+  uz: ["yakshanba", "dushanba", "seshanba", "chorshanba", "payshanba", "juma", "shanba"],
+} as const;
+const NEAR_DAYS = { en: ["Today", "Yesterday"], ru: ["Сегодня", "Вчера"], uz: ["Bugun", "Kecha"] } as const;
 const MONTH_NAMES = {
   en: [
     "January",
@@ -102,48 +109,67 @@ export function formatClock(iso: string): string {
   return `${twoDigits(moment.getUTCHours())}:${twoDigits(moment.getUTCMinutes())}`;
 }
 
-// When a channel last posted, as Telegram's chat list says it: the time today, the weekday within a week, the day and
-// month this year (16 Oct, 16.10), and the full date before (16.10.25); the full date too without now (see useNow)
-export function formatChatDate(iso: string, now: number | null, locale: string): string {
-  const moment = inTashkent(iso);
-  if (now === null)
-    return `${twoDigits(moment.getUTCDate())}.${twoDigits(moment.getUTCMonth() + 1)}.${String(moment.getUTCFullYear()).slice(2)}`;
-  const today = inTashkent(new Date(now));
-  const days = dayOf(today) - dayOf(moment);
-  if (days <= 0) return formatClock(iso);
-  if (days < 7) return WEEKDAYS[wordsOf(locale)][moment.getUTCDay()] ?? "";
-  const [day, month, year] = [moment.getUTCDate(), moment.getUTCMonth(), moment.getUTCFullYear()];
-  if (year === today.getUTCFullYear()) {
-    return locale === "en" ? `${day} ${MONTHS[month]}` : `${twoDigits(day)}.${twoDigits(month + 1)}`;
-  }
-  return `${twoDigits(day)}.${twoDigits(month + 1)}.${String(year).slice(2)}`;
-}
-
-// A day as Telegram heads a day's messages: 16 October, 16 октября, 16-oktabr, with the year when it isn't this one
-// (or without now: see useNow)
-export function formatDay(iso: string, now: number | null, locale: string): string {
-  const moment = inTashkent(iso);
-  const [day, month, year] = [moment.getUTCDate(), moment.getUTCMonth(), moment.getUTCFullYear()];
-  const name = MONTH_NAMES[wordsOf(locale)][month];
-  const said = locale === "uz" ? `${day}-${name}` : `${day} ${name}`;
-  return now !== null && year === inTashkent(new Date(now)).getUTCFullYear() ? said : `${said} ${year}`;
-}
-
 const SHORT_MONTHS = {
   en: MONTHS,
   ru: ["янв.", "февр.", "мар.", "апр.", "мая", "июн.", "июл.", "авг.", "сент.", "окт.", "нояб.", "дек."],
   uz: ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avg", "sen", "okt", "noy", "dek"],
 } as const;
 
+// A day with its month cut short, and its year if asked: Oct 15(, 2026), 15 окт.( 2026 г.), 15-okt(, 2026)
+function shortDate(moment: Date, words: Words, withYear: boolean): string {
+  const [day, month, year] = [moment.getUTCDate(), moment.getUTCMonth(), moment.getUTCFullYear()];
+  const name = SHORT_MONTHS[words][month];
+  if (words === "ru") return withYear ? `${day} ${name} ${year} г.` : `${day} ${name}`;
+  if (words === "uz") return withYear ? `${day}-${name}, ${year}` : `${day}-${name}`;
+  return withYear ? `${name} ${day}, ${year}` : `${name} ${day}`;
+}
+
+// The same with the month's whole name: October 15(, 2026), 15 октября( 2026 г.), 15-oktabr(, 2026)
+function longDate(moment: Date, words: Words, withYear: boolean): string {
+  const [day, month, year] = [moment.getUTCDate(), moment.getUTCMonth(), moment.getUTCFullYear()];
+  const name = MONTH_NAMES[words][month];
+  if (words === "ru") return withYear ? `${day} ${name} ${year} г.` : `${day} ${name}`;
+  if (words === "uz") return withYear ? `${day}-${name}, ${year}` : `${day}-${name}`;
+  return withYear ? `${name} ${day}, ${year}` : `${name} ${day}`;
+}
+
+// When a channel last posted, as Telegram's chat list says it: the time today, the weekday within the week before
+// (Mon, пн, Dush), then the day (Oct 9, 9 окт., 9-okt), with the year when it isn't this one; without now (see
+// useNow), the day with its year
+export function formatChatDate(iso: string, now: number | null, locale: string): string {
+  const moment = inTashkent(iso);
+  const words = wordsOf(locale);
+  if (now !== null) {
+    const today = inTashkent(new Date(now));
+    const days = dayOf(today) - dayOf(moment);
+    if (days <= 0) return formatClock(iso);
+    if (days <= 7) return WEEKDAYS[words][moment.getUTCDay()] ?? "";
+    if (moment.getUTCFullYear() === today.getUTCFullYear()) return shortDate(moment, words, false);
+  }
+  return shortDate(moment, words, true);
+}
+
+// A day as Telegram heads its messages: Today, Yesterday, the weekday within the six days before (Thursday,
+// четверг, payshanba), then the day (October 9, 9 октября, 9-oktabr), with the year when it isn't this one; without
+// now (see useNow), the day with its year
+export function formatDay(iso: string, now: number | null, locale: string): string {
+  const moment = inTashkent(iso);
+  const words = wordsOf(locale);
+  if (now !== null) {
+    const today = inTashkent(new Date(now));
+    const days = dayOf(today) - dayOf(moment);
+    if (days <= 0) return NEAR_DAYS[words][0];
+    if (days === 1) return NEAR_DAYS[words][1];
+    if (moment.getUTCFullYear() === today.getUTCFullYear()) {
+      return days <= 6 ? (WEEKDAY_NAMES[words][moment.getUTCDay()] ?? "") : longDate(moment, words, false);
+    }
+  }
+  return longDate(moment, words, true);
+}
+
 // The day a video came out, as YouTube writes it in its open description: Oct 15, 2026, 15 окт. 2026 г., 15-okt, 2026
 export function formatYouTubeDate(iso: string, locale: string): string {
-  const moment = inTashkent(iso);
-  const [day, month, year] = [moment.getUTCDate(), moment.getUTCMonth(), moment.getUTCFullYear()];
-  const words = wordsOf(locale);
-  const name = SHORT_MONTHS[words][month];
-  if (words === "ru") return `${day} ${name} ${year} г.`;
-  if (words === "uz") return `${day}-${name}, ${year}`;
-  return `${name} ${day}, ${year}`;
+  return shortDate(inTashkent(iso), wordsOf(locale), true);
 }
 
 // The same day in two parts, as YouTube writes it big over the year in a Short's description: 15 окт. over 2026 г.
