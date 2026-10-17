@@ -28,7 +28,7 @@ from multiprocessing import get_context
 import psycopg
 from curl_cffi import AsyncSession
 
-from media_monitoring import db
+from media_monitoring import db, runs
 from media_monitoring.pool import (ATTEMPTS, PLAIN_PROXY_FILE, PROXY_FILE, TESTS_MAX, TESTS_MIN, TESTS_START,
                                    NoProxiesLeft, Pool, load_proxies, load_share, raise_open_files_limit)
 
@@ -344,8 +344,9 @@ def run_share(collector_class, items, share, shares):
 
 
 def run(collector_class):
-    """A collector's main(): load its items, work through them in worker processes, and report. Ctrl+C or kill
-    stops it early: the workers stop and save what they have collected first. Another Ctrl+C ends it at once."""
+    """A collector's main(): load its items, work through them in worker processes, and report, recording the run as
+    it goes (see runs.py). Ctrl+C or kill stops it early: the workers stop and save what they have collected first.
+    Another Ctrl+C ends it at once."""
     sys.stdout.reconfigure(line_buffering=True)  # print each line right away, also into a log file
     collector = collector_class()
     parser = argparse.ArgumentParser(description=sys.modules[collector_class.__module__].__doc__.split("\n\n")[0])
@@ -354,6 +355,14 @@ def run(collector_class):
     argument = getattr(parser.parse_args(), "argument", None)
     if argument is not None and argument not in collector.words and not (collector.days and argument.isdigit()):
         parser.error(f"the argument should be {collector.argument}, not {argument!r}")
+    step = collector_class.__module__.removeprefix("media_monitoring.").replace(".", " ")  # e.g. "youtube comments"
+    with runs.Run(step, argument) as record:
+        collect(collector_class, collector, argument, record)
+
+
+def collect(collector_class, collector, argument, record):
+    """run()'s work, with its numbers written into the run's row as it goes: what there is to do, its progress
+    every report_every seconds, and at the end every outcome, request and proxy test counted"""
     # The signal that asked the run to stop early and when, if one did; what the processes share
     asked, counter = [], None
 
@@ -375,15 +384,24 @@ def run(collector_class):
     with psycopg.connect(db.DATABASE_URL, autocommit=True) as conn:
         items = collector.load(conn, argument)
     vpn, plain = load_proxies(PROXY_FILE), load_proxies(PLAIN_PROXY_FILE)
-    print(f"{len(items)} {collector.describe(argument)}, {len(vpn)} VPN proxies and {len(plain)} plain ones in reserve")
+    described = collector.describe(argument)
+    print(f"{len(items)} {described}, {len(vpn)} VPN proxies and {len(plain)} plain ones in reserve")
+    record.update(items=len(items), item_name=collector.item_name, saved_name=collector.saved_name,
+                  description=described, vpn_proxies=len(vpn), plain_proxies=len(plain))
     if asked:
         print("stopped before it started")
+        record.end("stopped", "stopped before it started")
         sys.exit(128 + asked[0])
-    if not items or not vpn + plain:
+    if not items:
+        record.end("finished", f"no {collector.item_name} to work through")
+        return
+    if not vpn + plain:
+        record.end("failed", 'no proxies: "uv run proxies" gets them')
         return
 
     processes = max(1, min(PROCESSES, (len(vpn) or len(plain)) // 50, math.ceil(len(items) / 1000)))
     print(f"working with {processes} processes...")
+    record.update(processes=processes)
     context = get_context("spawn")
     counter = context.Array("q", SHARES + PER_SHARE * processes, lock=False)  # see progress
     news_out, news_in = [context.Queue() for _ in range(processes)], [context.Queue() for _ in range(processes)]
@@ -421,9 +439,12 @@ def run(collector_class):
             notes += [f"up to {counter[TESTS]} proxy tests at a time per process"] if ready == processes else []
             notes += [f"plain proxies brought in by {reserve} of {processes} processes"] if reserve else []
             notes += ["stopping early: each process saves what it has"] if asked else []
+            per_second = (succeeded - before) / max(now - then, 0.001)
             print(f"{now - started:5.0f} s  {finished} of {len(items)} {collector.item_name} done, {saved} "
-                  f"{collector.saved_name}, {(succeeded - before) / max(now - then, 0.001):,.0f} successful requests/s"
+                  f"{collector.saved_name}, {per_second:,.0f} successful requests/s"
                   + "".join(f"  ({note})" for note in notes))
+            record.update(seconds=round(now - started), done=finished, saved=saved,
+                          requests_per_second=round(per_second), loading=processes - ready, plain_brought_in_by=reserve)
             before, then = succeeded, now
         broken = False  # a worker process ended unexpectedly (killed, or out of memory): the pool ends the others
         for future in futures:
@@ -442,12 +463,12 @@ def run(collector_class):
     if not broken:  # the shares' own counts, which include the requests after their last progress update
         succeeded = sum(outcomes[outcome] for outcome in SUCCESSFUL)
     rate = f"{succeeded / took:,.0f} successful requests/s"
+    summary = None if broken else collector.summary(results, saved)
     if broken:  # the shares' own counts didn't come back, only the ones they keep in progress
         print(f"\nstopped after {took:.0f} s ({rate}): {finished} {collector.item_name} done, {saved} "
               f"{collector.saved_name}")
     else:
-        print(f"\n{'stopped after' if asked else 'finished in'} {took:.0f} s ({rate}): "
-              f"{collector.summary(results, saved)}")
+        print(f"\n{'stopped after' if asked else 'finished in'} {took:.0f} s ({rate}): {summary}")
         print(f"requests: {dict(outcomes)}")
         print(f"proxy tests: {dict(tests)}")
     if reserve:
@@ -455,10 +476,18 @@ def run(collector_class):
               "tested or stopped working")
     if not broken:
         print(f"{working} proxies working at the end")
+    numbers = dict(seconds=round(took, 1), done=finished, saved=saved, requests_per_second=round(succeeded / took),
+                   plain_brought_in_by=reserve)
+    if not broken:
+        numbers.update(results=dict(results), requests=dict(outcomes), proxy_tests=dict(tests),
+                       working_proxies=working)
     if asked:
         print("stopped early (Ctrl+C or kill): what wasn't done continues next run")
+        record.end("stopped", summary, **numbers)
         sys.exit(128 + asked[0])
     if broken:
         print("stopped early: a worker process ended unexpectedly (killed, or out of memory), and the others stopped "
               "too; what wasn't done continues next run")
+        record.end("failed", "a worker process ended unexpectedly (killed, or out of memory)", **numbers)
         sys.exit(1)
+    record.end("finished", summary, **numbers)

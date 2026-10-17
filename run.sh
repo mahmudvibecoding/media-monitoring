@@ -190,7 +190,30 @@ if [ -n "$only_setup" ]; then
     exit 0
 fi
 
-trap 'uv run proxies stop > /dev/null' EXIT  # also after Ctrl+C or kill
+# The round's row in the runs table (see schema.sql), which the rows of its steps point to: they get its ID in
+# RUN_ROUND. Without the table (an older database), the round runs all the same, unrecorded.
+round=$(psql -d "$DATABASE" -Atq -v days="$DAYS" 2> /dev/null <<'SQL'
+INSERT INTO runs (step, argument) VALUES ('round', :'days') RETURNING id;
+SQL
+)
+export RUN_ROUND=$round
+round_summary=""
+
+end_round() {
+    # However the round ends: sing-box stops, and the round's row says how it ended (by the exit code)
+    local status=$? outcome=failed
+    uv run proxies stop > /dev/null
+    [ -n "$round" ] || return 0
+    case $status in
+        0) outcome=finished ;;
+        130 | 143) outcome=stopped ;;
+    esac
+    psql -d "$DATABASE" -q -v id="$round" -v outcome="$outcome" -v summary="$round_summary" 2> /dev/null <<'SQL'
+UPDATE runs SET outcome = :'outcome', summary = nullif(:'summary', ''), finished_at = now(), updated_at = now()
+WHERE id = :id;
+SQL
+}
+trap end_round EXIT  # also after Ctrl+C or kill
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
@@ -199,6 +222,7 @@ echo "### $(date -u '+%F %T') round"
 if ! uv run proxies > data/proxies.log 2>&1; then
     tail -3 data/proxies.log
     echo "### the proxies didn't start"
+    round_summary="the proxies didn't start"
     exit 1
 fi
 tail -2 data/proxies.log | head -1

@@ -47,6 +47,18 @@ Each step loads what it needs from the database, works as fast as the proxies an
 stops. On the 52-core server the work is split between up to 48 processes (four cores stay free for
 sing-box), each with up to 500 items in progress at a time.
 
+Every round, every `uv run proxies` and every run of a step, whether in a round or by hand, leaves a row in the
+`runs` table (`src/media_monitoring/runs.py`):
+- **As it starts:** the step and its argument, and the round it's in, if it's in one.
+- **Every few seconds, while it works:** how many items it has done and saved, and its requests a second; a step
+  killed outright (out of memory, say) stops updating, and stays "running".
+- **As it ends:** how it ended (finished, stopped by Ctrl+C or kill, or failed), its last line, and every count:
+  each outcome of its items (ok, failed, gone, ...), its requests by outcome, its proxy tests, and the proxies still
+  working. `uv run proxies` keeps each list's numbers instead (found, new, skipped, when it last changed), the unique
+  configs and proxies by protocol, and how many proxies sing-box started.
+
+A step never fails for its row: without the table, it says so once and works as before.
+
 ## A round in numbers
 
 The round that started at 02:13 UTC on October 13, 2026, when views, likes and comments covered the last 90
@@ -78,6 +90,7 @@ half minutes, and reading every video's comments the first time took hours.
 - **`youtube_comments`:** top-level comments, no replies: the author's channel and name, the text, the time
   as YouTube shows it ("2 hours ago"), the time estimated from that, and when we first saw the comment.
 - **`youtube_comments_newest`:** each video's 40 newest comment IDs as of its last finished read, newest first.
+- **`runs`:** every round and run of a step, as they went (see [Rounds](#rounds)).
 
 `schema.sql` creates the tables. `run.sh` runs it at every start, and it only adds what's missing.
 

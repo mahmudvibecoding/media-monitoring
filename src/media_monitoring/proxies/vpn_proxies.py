@@ -216,8 +216,8 @@ def parse_piece(text):
 
 def collect():
     """Download all sources, and parse them in pieces spread over processes: on one core it takes about a minute.
-    Returns {key: (protocol, clean_link)} for the unique configs, and {key: {source, ...}} with every list each
-    config appeared in."""
+    Returns {key: (protocol, clean_link)} for the unique configs, {key: {source, ...}} with every list each config
+    appeared in, and the numbers of the report, for the run's row (see runs.py)."""
     texts, dates = asyncio.run(download_all())
     now = datetime.now(timezone.utc)
     work = [(n, piece) for n, text in enumerate(texts) if isinstance(text, str) for piece in pieces(readable(text))]
@@ -254,17 +254,21 @@ def collect():
         lists.note(f"({missing} of Au1rxx's {len(PARTS)} possible parts aren't published today)")
     protocols = Counter(protocol for protocol, _ in configs.values()).most_common()
     lists.total(len(configs), "unique configs: " + ", ".join(f"{count:,} {protocol}" for protocol, count in protocols))
-    return configs, sources
+    numbers = {"lists": len(rows), "per_list": lists.as_numbers(rows), "unique": len(configs),
+               "protocols": dict(protocols), "parts_unpublished": missing}
+    return configs, sources, numbers
 
 
 def main():
-    configs, sources = collect()
+    """Download, report and save the configs; returns the report's numbers"""
+    configs, sources, numbers = collect()
     os.makedirs("data", exist_ok=True)
     with open(OUTPUT, "w") as f:
         f.write("".join(f"{link}\n" for _, link in sorted(configs.values())))
     with open(SOURCES_OUTPUT, "w") as f:
         f.write("".join(f"{link} {' '.join(sorted(sources[key]))}\n" for key, (_, link) in configs.items()))
     lists.note(f"saved to {OUTPUT} and {SOURCES_OUTPUT}")
+    return numbers
 
 
 if __name__ == "__main__":  # only when run directly, not when imported

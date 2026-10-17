@@ -51,6 +51,9 @@ telegram` alone lists the steps.
 | `uv run proxies stop` | stops sing-box |
 | `uv run proxies check [vpn\|plain]` | reports how many proxies work, by protocol or type and by list (optional) |
 
+Every round, every `uv run proxies` and every run of a step leaves its numbers in the `runs` table: when it ran, how it
+ended, and what it counted.
+
 The database is `media_monitoring`; set `DATABASE_URL` to use another.
 
 ## The API

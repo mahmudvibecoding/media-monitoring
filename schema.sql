@@ -99,3 +99,22 @@ CREATE TABLE IF NOT EXISTS telegram_messages (
     first_seen_at     timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (channel_id, message_id)    -- a channel's messages sit together, so they load quickly
 );
+
+-- Every run: each round of run.sh, each "uv run proxies", and each run of a step ("uv run youtube comments 90", ...).
+-- A run writes its row as it starts, its numbers every few seconds while it goes (updated_at says it's still going),
+-- and how it ended; a run killed outright (out of memory, the machine going down) stays "running", and stops
+-- updating. The steps a round runs point to it.
+CREATE TABLE IF NOT EXISTS runs (
+    id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    round_id     bigint REFERENCES runs,        -- the round it ran in; NULL for a round, or a step run by hand
+    step         text NOT NULL,                 -- 'round', 'proxies', 'youtube comments', 'telegram messages', ...
+    argument     text,                          -- its command line's argument: '90', 'all', ...
+    started_at   timestamptz NOT NULL DEFAULT now(),
+    updated_at   timestamptz NOT NULL DEFAULT now(),
+    finished_at  timestamptz,
+    outcome      text NOT NULL DEFAULT 'running' CHECK (outcome IN ('running', 'finished', 'stopped', 'failed')),
+    numbers      jsonb NOT NULL DEFAULT '{}',   -- what it counted: items to do, done, saved, outcomes, requests, ...
+    summary      text                           -- its last line, as it printed it, or why it failed
+);
+CREATE INDEX IF NOT EXISTS runs_started ON runs (started_at DESC);
+CREATE INDEX IF NOT EXISTS runs_round ON runs (round_id) WHERE round_id IS NOT NULL;

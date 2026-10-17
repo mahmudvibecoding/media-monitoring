@@ -64,6 +64,17 @@ def report(title, rows, now):
             print(f"{ago(when, now):>12}  {found:>9,}  {new:>9,}  {skipped:>9,}  {list_name}")
 
 
+def as_numbers(rows):
+    """The report's rows (see report) as the run's numbers (see runs.py): one dict per list"""
+    return [
+        {"list": row[0], "error": str(row[1])}
+        if len(row) == 2
+        else {"list": row[0], "updated": row[1].isoformat() if row[1] else None, "found": row[2], "new": row[3],
+              "skipped": row[4]}
+        for row in rows
+    ]
+
+
 def total(count, what):
     """The report's total, under the found column."""
     print(f"{'total':>12}  {count:>9,}  {'':>9}  {'':>9}  {what}")

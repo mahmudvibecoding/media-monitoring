@@ -8,16 +8,22 @@ proxies, then restarts sing-box with the new configs in the background, and retu
 
 sing-box keeps running after this command ends and after its terminal closes. Its log is data/singbox/runner.log.
 """
+import re
 import subprocess
 import sys
 import time
 
+from media_monitoring import runs
 from media_monitoring.proxies import check, plain_proxies, vpn_proxies
 from media_monitoring.proxies.singbox import FOLDER, stop_old
 
 LOG = FOLDER / "runner.log"
 USAGE = "usage: uv run proxies [stop | check [vpn | plain]]"
 READY = "local proxies saved"  # what sing-box's runner prints once its proxies are listed in data/vpn_proxies.txt
+# What the runner's log says as it starts, for the run's numbers
+STARTING = re.compile(r"starting (\d+) configs in (\d+) sing-box processes")
+RUNNING = re.compile(r"(\d+) processes running after (\d+) s")
+SAVED = re.compile(r"(\d+) local proxies saved")
 
 
 def start_singbox():
@@ -40,21 +46,37 @@ def start_singbox():
         time.sleep(0.2)
 
 
+def singbox_numbers():
+    """How many configs sing-box's runner started, in how many processes, and how many local proxies it listed"""
+    log, numbers = LOG.read_text(), {}
+    if starting := STARTING.search(log):
+        numbers.update(configs=int(starting[1]), processes=int(starting[2]))
+    if running := RUNNING.search(log):
+        numbers.update(running=int(running[1]), seconds=int(running[2]))
+    if saved := SAVED.search(log):
+        numbers.update(local_proxies=int(saved[1]))
+    return numbers
+
+
 def refresh():
-    """Download both lists, and restart sing-box with the new configs in the background."""
-    # The plain proxies' lists at the same time as the VPN ones, in a process of their own: saving them takes seconds
-    # of Python that would otherwise slow this one down. Their report comes after the VPN one.
-    plain = subprocess.Popen([sys.executable, "-m", plain_proxies.__name__], stdout=subprocess.PIPE, text=True)
-    vpn_proxies.main()
-    report, _ = plain.communicate()
-    print("\n" + report, end="")
-    if plain.returncode:
-        sys.exit("the plain proxies' lists failed (see above)")
-    print("\nstarting sing-box in the background...")
-    ready = start_singbox()
-    if ready is None:
-        sys.exit(f"sing-box didn't start: see {LOG}")
-    print(f"{ready}\nsing-box runs in the background (log: {LOG}); stop it with: uv run proxies stop")
+    """Download both lists, and restart sing-box with the new configs in the background, recording the run with each
+    list's numbers and sing-box's (see runs.py)."""
+    with runs.Run("proxies") as record:
+        # The plain proxies' lists at the same time as the VPN ones, in a process of their own: saving them takes
+        # seconds of Python that would otherwise slow this one down. Their report comes after the VPN one, and the
+        # process adds its numbers to this run's row itself.
+        plain = subprocess.Popen([sys.executable, "-m", plain_proxies.__name__], stdout=subprocess.PIPE, text=True)
+        record.update(vpn=vpn_proxies.main())
+        report, _ = plain.communicate()
+        print("\n" + report, end="")
+        if plain.returncode:
+            sys.exit("the plain proxies' lists failed (see above)")
+        print("\nstarting sing-box in the background...")
+        ready = start_singbox()
+        if ready is None:
+            sys.exit(f"sing-box didn't start: see {LOG}")
+        record.end("finished", ready, singbox=singbox_numbers())
+        print(f"{ready}\nsing-box runs in the background (log: {LOG}); stop it with: uv run proxies stop")
 
 
 def main():

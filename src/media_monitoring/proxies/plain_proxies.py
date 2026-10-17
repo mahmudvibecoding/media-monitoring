@@ -15,6 +15,7 @@ from multiprocessing import get_context
 
 from curl_cffi import requests
 
+from media_monitoring import runs
 from media_monitoring.proxies import lists
 
 # (url, type): type is None when each line already starts with its type, like "http://...". Chosen by how many of
@@ -106,7 +107,7 @@ def collect():
 
 
 def save(results, dates):
-    """Report each list from collect(), and save the proxies of them all."""
+    """Report each list from collect(), and save the proxies of them all. Returns the report's numbers."""
     now = datetime.now(timezone.utc)
     sources, rows = defaultdict(set), []  # {proxy: {list it was in, ...}}, and the report's lines
     for (url, _), found, when in zip(SOURCES, results, dates):
@@ -129,10 +130,11 @@ def save(results, dates):
         f.writelines(proxy + "\n" for proxy in sources)
     os.replace(OUTPUT + ".tmp", OUTPUT)  # all at once: a collector reading it never sees half a list
     lists.note(f"saved to {OUTPUT} and {SOURCES_OUTPUT}")
+    return {"lists": len(rows), "per_list": lists.as_numbers(rows), "unique": len(sources), "kinds": dict(kinds)}
 
 
 def main():
-    save(*collect())
+    runs.add(plain=save(*collect()))  # to the row of "uv run proxies", which runs this in a process of its own
 
 
 if __name__ == "__main__":  # only when run directly, not when imported
