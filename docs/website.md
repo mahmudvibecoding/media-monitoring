@@ -136,9 +136,10 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   the search box and Escape empties it, and the last list stays, dimmed, while the next one loads.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. Next keeps a page one
-  has left alive, hidden, for going back to it, so the player is paused (through its own messages) as its page goes, and
-  a card's preview stops. In a channel's grid and beside a video, a video plays silently in its card once the mouse has
-  stayed on it half a second, as on YouTube, until the mouse leaves; a click still opens its page.
+  has left alive, hidden, for going back to it, so the player is unloaded as its page goes (nothing plays unseen), and
+  loaded again on going back, from the second it had got to (which the player tells a page that says it's listening); a
+  card's preview is unloaded too. In a channel's grid and beside a video, a video plays silently in its card once the
+  mouse has stayed on it half a second, as on YouTube, until the mouse leaves; a click still opens its page.
 - A channel's videos, a video's comments and a channel's messages load more as they're scrolled, as on YouTube and in
   Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest message, at the
   bottom, and loads older ones above as it's scrolled up.

@@ -184,11 +184,20 @@ function Cover({
   );
 }
 
-// The video playing over its cover, without sound or controls; the cover shows through until the player has loaded
+// The video playing over its cover, without sound or controls; the cover shows through until the player has loaded. As
+// its page goes (Next keeps it alive, hidden), the player is unloaded at once.
 function Preview({ video }: { video: YouTubeVideo }) {
   const [loaded, setLoaded] = useState(false);
+  const frame = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    const player = frame.current;
+    return () => {
+      if (player) player.src = "about:blank";
+    };
+  }, []);
   return (
     <iframe
+      ref={frame}
       src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=1&playlist=${video.id}&iv_load_policy=3&disablekb=1`}
       title={video.title ?? video.id}
       allow="autoplay; encrypted-media; picture-in-picture"

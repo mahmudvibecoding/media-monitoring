@@ -110,26 +110,51 @@ function VideoDetails({ id }: { id: string }) {
   );
 }
 
-// The video, played here by YouTube's own player (its privacy-enhanced address), which starts it as the page opens (with
-// sound once one has clicked anything on the site, as browsers allow; without, the player waits for a click). YouTube
-// wants to know which site the player is on (the address this page sends with the request), so unlike the pictures it
-// isn't asked for without one. Next keeps a page one has left alive, hidden, for going back to it: so that the video
-// doesn't go on playing there, unseen, it's paused (through the player's own messages) as the page goes.
+const PLAYER = "https://www.youtube-nocookie.com"; // YouTube's privacy-enhanced address for its player
+
+// The player's address for a video: playing it at once, from a second if given
+const embed = (id: string, from = 0) =>
+  `${PLAYER}/embed/${id}?autoplay=1&rel=0&enablejsapi=1${from > 0 ? `&start=${from}` : ""}`;
+
+// The video, played here by YouTube's own player, which starts it as the page opens (with sound once one has clicked
+// anything on the site, as browsers allow; without, the player waits for a click). YouTube wants to know which site
+// the player is on (the address this page sends with the request), so unlike the pictures it isn't asked for without
+// one. Next keeps a page one has left alive, hidden, for going back to it: as the page goes, the player is unloaded,
+// so that nothing goes on playing there, unseen, and as it comes back, loaded again, from the second it had got to.
+// That second is what the player tells a page that has said it's listening.
 function Player({ id, title }: { id: string; title: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const position = useRef(0); // seconds into the video, as the player last said
   useEffect(() => {
     const player = frame.current;
-    return () =>
-      player?.contentWindow?.postMessage(
-        JSON.stringify({ event: "command", func: "pauseVideo", args: [] }),
-        "https://www.youtube-nocookie.com",
-      );
-  }, []);
+    if (!player) return;
+    const listen = () =>
+      player.contentWindow?.postMessage(JSON.stringify({ event: "listening", id, channel: "widget" }), PLAYER);
+    function heard(event: MessageEvent) {
+      if (event.source !== player?.contentWindow || typeof event.data !== "string") return;
+      try {
+        const time = JSON.parse(event.data)?.info?.currentTime;
+        if (typeof time === "number") position.current = time;
+      } catch {
+        // not the player's message
+      }
+    }
+    window.addEventListener("message", heard);
+    player.addEventListener("load", listen);
+    if (player.src === "about:blank")
+      player.src = embed(id, Math.floor(position.current)); // back on the page
+    else listen(); // in case it loaded already
+    return () => {
+      window.removeEventListener("message", heard);
+      player.removeEventListener("load", listen);
+      player.src = "about:blank";
+    };
+  }, [id]);
   return (
     <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
       <iframe
         ref={frame}
-        src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&enablejsapi=1`}
+        src={embed(id)}
         title={title}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
