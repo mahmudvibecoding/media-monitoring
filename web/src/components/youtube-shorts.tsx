@@ -48,13 +48,16 @@ const embed = (id: string, from = 0) =>
 // panel beside), and Share; and at the right, the arrows to the Short before and after it among the channel's Shorts,
 // in the order they were listed in (the address's ?sort=…, newest first without it), which ↑ and ↓ and the wheel go
 // to as well. Going from one to the next changes the address without asking the server for a page, so Back goes back
-// through them; the next Shorts are in the list already, and each one's details are asked for as it comes.
+// through them; the next Shorts are in the list already, and each one's details are asked for as it comes. The Short
+// shown follows the address only while that's a Short's: Next keeps a page one has left alive, hidden, and it mustn't
+// go back to the one it opened on as the address moves to another page.
 export function ShortsPage({ id: opened }: { id: string }) {
   const t = useTranslations("youtube");
   const common = useTranslations("common");
   const site = useTranslations("metadata");
-  const path = usePathname();
-  const id = /^\/youtube\/shorts\/([^/]+)/.exec(path)?.[1] ?? opened;
+  const shown = /^\/youtube\/shorts\/([^/]+)/.exec(usePathname())?.[1];
+  const [id, setId] = useState(shown ?? opened);
+  if (shown && shown !== id) setId(shown);
   const asked = useSearchParams().get("sort");
   const sort: Sort | undefined = asked === "popular" || asked === "oldest" ? asked : undefined;
   const details = useQuery(youtubeVideoOptions({ path: { video_id: id } })).data;
@@ -178,8 +181,9 @@ const BUFFERING = 3;
 // buttons at its top left come under the mouse (M mutes), the red line along its bottom says where it's at and goes
 // where it's clicked, and the channel and the title are over its bottom (the title opens the description). The player
 // is 160 px taller than the frame at each end, so what YouTube puts along them (the title, its logo, and for a Short
-// its own like count) falls outside it, while the Short, as wide as the frame, fills it. As its page goes (Next keeps
-// it alive, hidden), the player is unloaded, and as it comes back, loaded again from where it was.
+// its own like count) falls outside it, while the Short, as wide as the frame, fills it. The player is loaded only once
+// its page shows (an effect, which a hidden page doesn't run, gives it its address), so a page Next keeps alive,
+// hidden, never plays; as the page goes, it's unloaded, and as it comes back, loaded again from where it was.
 function ShortPlayer({
   video,
   channel,
@@ -255,9 +259,7 @@ function ShortPlayer({
     window.addEventListener("message", heard);
     window.addEventListener("keydown", key);
     player.addEventListener("load", listen);
-    if (player.src === "about:blank")
-      player.src = embed(video.id, Math.floor(last.current.time)); // back on the page
-    else listen(); // in case it loaded already
+    player.src = embed(video.id, Math.floor(last.current.time)); // from the start, or from where it was
     return () => {
       window.removeEventListener("message", heard);
       window.removeEventListener("keydown", key);
@@ -274,7 +276,7 @@ function ShortPlayer({
     >
       <iframe
         ref={frame}
-        src={embed(video.id)}
+        src="about:blank"
         title={video.title ?? video.id}
         allow="autoplay; encrypted-media; picture-in-picture; web-share"
         tabIndex={-1}

@@ -155,11 +155,13 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   YouTube, with the next videos beside it from 1,000 px of the page's width, and under the description below that
   (full-width cards on a phone). YouTube's keys work on the page (K or the space bar, J and L, ← and →, M, F, 0 to 9),
   times in the description and the comments take the player there, and Share gives the video's link, from the second
-  it's at if asked. Next keeps a page one has left alive, hidden, for going back to it, so the player is unloaded as its
-  page goes (nothing plays unseen), and loaded again on going back, from the second it had got to (which the player
-  tells a page that says it's listening); a card's preview is unloaded too. In a channel's grid and beside a video, a
-  video plays silently in its card once the mouse has stayed on it half a second, as on YouTube, until the mouse leaves;
-  a click still opens its page.
+  it's at if asked. Next keeps a page one has left alive, hidden, for going back to it, so a player is given its address
+  only as its page shows (by an effect, which a hidden page doesn't run), never by a page in the background, is unloaded
+  as its page goes (nothing plays unseen), and is loaded again on going back, from the second it had got to (which the
+  player tells a page that says it's listening); a card's preview is unloaded too. A Shorts page left behind keeps to
+  the Short it showed as the address moves on. In a channel's grid and beside a video, a video plays silently in its
+  card once the mouse has stayed on it half a second, as on YouTube, until the mouse leaves; a click still opens its
+  page.
 - A Short opens on its own page, `/youtube/shorts/{id}`, as YouTube's do: upright, as tall as the screen allows, with
   the page's own controls over YouTube's player (a click plays and pauses, the sound button, the red line that says
   where it's at), the channel and the title over its bottom, and YouTube's round buttons beside it, whose comments open

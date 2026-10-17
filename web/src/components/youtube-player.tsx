@@ -32,11 +32,12 @@ const BUFFERING = 3;
 // The video, played here by YouTube's own player, which starts it as the page opens (with sound once one has clicked
 // anything on the site, as browsers allow; without, the player waits for a click). YouTube wants to know which site the
 // player is on (the address this page sends with the request), so unlike the pictures it isn't asked for without one.
-// The player tells a page that has said it's listening where it's at, and takes its commands. Next keeps a page one
-// has left alive, hidden, for going back to it: as the page goes, the player is unloaded, so that nothing goes on
-// playing there, unseen, and as it comes back, loaded again, from the second it had got to. YouTube's keys work on the
-// page as on YouTube's (while the player itself has the focus, it takes them): K or the space bar plays and pauses, J
-// and L go 10 s back and on, ← and → 5 s, M mutes, F fills the screen, and 0 to 9 go to that tenth of the video.
+// The player tells a page that has said it's listening where it's at, and takes its commands. Next keeps a page one has
+// left alive, hidden, for going back to it: the player is loaded only as its page shows (an effect, which a hidden page
+// doesn't run, gives it its address), unloaded as the page goes, so that nothing plays there unseen, and loaded again
+// as it comes back, from the second it had got to. YouTube's keys work on the page as on YouTube's (while the player
+// itself has the focus, it takes them): K or the space bar plays and pauses, J and L go 10 s back and on, ← and → 5 s,
+// M mutes, F fills the screen, and 0 to 9 go to that tenth of the video.
 export function Player({
   id,
   title,
@@ -124,9 +125,7 @@ export function Player({
         position: at,
       };
     }
-    if (player.src === "about:blank")
-      player.src = embed(id, Math.floor(at())); // back on the page
-    else listen(); // in case it loaded already
+    player.src = embed(id, Math.floor(at())); // from the start, or from where it was
     return () => {
       window.removeEventListener("message", heard);
       window.removeEventListener("keydown", key);
@@ -145,7 +144,7 @@ export function Player({
     >
       <iframe
         ref={frame}
-        src={embed(id)}
+        src="about:blank"
         title={title}
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
