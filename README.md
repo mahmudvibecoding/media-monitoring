@@ -131,11 +131,11 @@ YouTube's pages are under YouTube's top bar, whose search box suggests channels 
 is laid out like the channel on YouTube, with its About box, its videos and Shorts in grids, newest, most viewed or
 oldest first, that load more as they're scrolled, each playing silently while the mouse stays on it, and its search by
 title; a video's, like YouTube's watch page, with YouTube's player, which starts as the page opens and takes YouTube's
-keys, its description, its comments, a Share box and more from its channel; a Short's, like YouTube's Shorts, upright,
-with the comments and the description in panels beside it and the channel's other Shorts on ↑ and ↓; a Telegram
-channel's, like the channel in Telegram, its messages as bubbles, the newest at the bottom, with its info beside them.
-Anything in a list opens wherever it's clicked. Customers, for now, see a greeting. The menu's foot has the user's name,
-the language and signing out.
+keys, its description, its comments, a Share box and more from its channel; a Short's, like YouTube's Shorts, a feed
+that slides from one upright Short to the next with the wheel, a two-finger swipe or ↑ and ↓, with the comments and the
+description in panels beside it; a Telegram channel's, like the channel in Telegram, its messages as bubbles, the newest
+at the bottom, with its info beside them. Anything in a list opens wherever it's clicked. Customers, for now, see a
+greeting. The menu's foot has the user's name, the language and signing out.
 
 A visitor sees Russian until they choose another language, in the menu's foot (or the sign-in page's header); the choice
 is kept in a cookie for a year, and, once they're signed in, in their account, which the site switches to when they sign

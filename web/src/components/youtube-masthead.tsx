@@ -1,13 +1,13 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, type QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftIcon, MenuIcon, SearchIcon, XIcon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { type FormEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
-import { youtubeChannelsOptions, youtubeVideoOptions } from "@/api/@tanstack/react-query.gen";
-import type { YouTubeChannel } from "@/api/types.gen";
+import { youtubeChannelsOptions, youtubeVideoQueryKey } from "@/api/@tanstack/react-query.gen";
+import type { YouTubeChannel, YouTubeVideoDetails } from "@/api/types.gen";
 import { YouTubeLogo } from "@/components/brand-icons";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ChannelPicture, Dot, YouTubeLink, YouTubeTip, YT_ICON_BUTTON } from "@/components/youtube-ui";
@@ -21,13 +21,25 @@ const SEARCH_WAIT = 300; // milliseconds after the last key before the list is s
 const SUGGEST_WAIT = 150; // and before channels are suggested
 const SUGGESTIONS = 8;
 
+// What a page has put in the cache for a query, read without asking for it, and without making the query either: a
+// query made here, before the page's own, would keep the page from what came with it until after its first render
+// (TanStack Query hands what came with a page to a query that's there already only then), so it would first show its
+// grey shape. Nothing on the server, nor on the browser's first render, which follows the server's.
+function useCached<T>(queryKey: QueryKey): T | undefined {
+  const client = useQueryClient();
+  return useSyncExternalStore(
+    (changed) => client.getQueryCache().subscribe(changed),
+    () => client.getQueryData<T>(queryKey),
+    () => undefined,
+  );
+}
+
 // YouTube's top bar over its pages here, as YouTube's own: 56 px high, white, staying at the top as the page scrolls,
 // and the same from page to page. At its left, on a phone, the menu's button (as YouTube's ☰), then the way up (from a
 // video to its channel, from a Short to its channel's Shorts, from a channel to the channels) and the logo, which goes
-// to the channels; in its middle, the
-// search box. On the channels' list the box searches them as one types; elsewhere it suggests channels as one types,
-// as YouTube suggests searches, and searches the list on Enter. On a phone, the box is a button that opens it across
-// the bar.
+// to the channels; in its middle, the search box. On the channels' list the box searches them as one types; elsewhere
+// it suggests channels as one types, as YouTube suggests searches, and searches the list on Enter. On a phone, the box
+// is a button that opens it across the bar.
 export function YouTubeMasthead() {
   const common = useTranslations("common");
   const nav = useTranslations("nav");
@@ -35,9 +47,10 @@ export function YouTubeMasthead() {
   const path = usePathname();
   const [, page, video] = /^\/youtube\/(videos|shorts)\/([^/]+)/.exec(path) ?? [];
   const channel = /^\/youtube\/channels\/([^/]+)/.exec(path)?.[1];
-  // A video's channel, which its page has put in the cache (this one doesn't ask for it)
-  const videoChannel = useQuery({ ...youtubeVideoOptions({ path: { video_id: video ?? "" } }), enabled: false }).data
-    ?.channel_id;
+  // A video's channel, from its details, which its page has put in the cache
+  const videoChannel = useCached<YouTubeVideoDetails>(
+    youtubeVideoQueryKey({ path: { video_id: video ?? "" } }),
+  )?.channel_id;
   let up = channel ? LIST : null;
   if (video) up = videoChannel ? `${LIST}/${videoChannel}${page === "shorts" ? "?kind=short" : ""}` : LIST;
   const { toggleSidebar } = useSidebar();

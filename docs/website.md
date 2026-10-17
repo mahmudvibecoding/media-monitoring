@@ -79,7 +79,8 @@ theirs take milliseconds, but a video's comments are sorted by their time on eac
 ("2 months ago"), which the collector counted back from when it read it; the API also gives the unit it was said in, and
 whether the comment was edited. Beside the video, its channel's newest videos are the first page the channel's own page
 asks for. A Short's page asks for its details, its channel's, and its channel's Shorts in the order of the grid it was
-opened from; the Shorts after it are in that list, and only each one's details and comments are asked for as it comes.
+opened from: the Shorts after it in its feed are in that list, and only each one's details and comments are asked for as
+it comes.
 
 ### Which channels are listed
 
@@ -158,17 +159,22 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   it's at if asked. Next keeps a page one has left alive, hidden, for going back to it, so a player is given its address
   only as its page shows (by an effect, which a hidden page doesn't run), never by a page in the background, is unloaded
   as its page goes (nothing plays unseen), and is loaded again on going back, from the second it had got to (which the
-  player tells a page that says it's listening); a card's preview is unloaded too. A Shorts page left behind keeps to
-  the Short it showed as the address moves on. In a channel's grid and beside a video, a video plays silently in its
-  card once the mouse has stayed on it half a second, as on YouTube, until the mouse leaves; a click still opens its
-  page.
-- A Short opens on its own page, `/youtube/shorts/{id}`, as YouTube's do: upright, as tall as the screen allows, with
-  the page's own controls over YouTube's player (a click plays and pauses, the sound button, the red line that says
-  where it's at), the channel and the title over its bottom, and YouTube's round buttons beside it, whose comments open
-  their panel; the title opens the description's. ↑, ↓, the wheel and the arrows at the right go through the channel's
-  Shorts in the order of the grid it was opened from, changing the address without asking the server for a page, so Back
-  goes back through them. The player is 160 px taller than its frame at each end, so what YouTube puts along them (its
-  title, its logo, a Short's like count) falls outside it.
+  player tells a page that says it's listening); a card's preview is unloaded too. In a channel's grid and beside a
+  video, a video plays silently in its card once the mouse has stayed on it half a second, as on YouTube, until the
+  mouse leaves; a click still opens its page.
+- A Short opens on its own page, `/youtube/shorts/{id}`, as YouTube's do: a feed that slides up and down, a Short to a
+  screen, each upright, as tall as the screen allows, with the channel and the title over its bottom and YouTube's round
+  buttons beside it (the comments open their panel, the title the description's), and the next one's top under it. The
+  feed is the Short opened, then those after it in the order of the grid it was opened from, as YouTube's is, and it
+  loads on as it's scrolled. It's the browser's own scrolling, snapped to one Short at a time (CSS scroll snapping, as
+  YouTube's), so the wheel, a two-finger swipe and a finger slide it smoothly, and ↑, ↓ and the arrows at the right
+  slide it a Short at a time. The Short the feed comes to rest on plays (its player loaded only once it's at rest, so
+  nothing heavy happens while it slides), with the page's own controls over YouTube's player (a click plays and pauses,
+  the sound button, the red line that says where it's at); the others show their upright pictures (1080 × 1920), which
+  stay until a Short has started, so sliding to it doesn't go black. The address and the tab's title change to the Short
+  playing in place, without a step in the history, as YouTube's: Back goes back to where the Shorts were opened from.
+  The player is 160 px taller than its frame at each end, so what YouTube puts along them (its title, its logo, a
+  Short's like count) falls outside it.
 - A channel's videos, a video's comments and a channel's messages load more as they're scrolled, as on YouTube and in
   Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest message, at the
   bottom, and loads older ones above as it's scrolled up.

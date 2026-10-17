@@ -50,25 +50,29 @@ export function WatchGhost({ label }: { label: string }) {
   );
 }
 
-// A Short's page: the upright player in the middle, with YouTube's round buttons beside it
+// A Short's page: the upright player in the middle, with YouTube's round buttons beside it, and the arrows' column at
+// the right
 export function ShortsGhost({ label }: { label: string }) {
   return (
-    <div className="flex h-[calc(100svh-3.5rem)] justify-center px-4 pt-2 pb-8" aria-busy="true">
+    <div className="flex h-[calc(100svh-3.5rem)]" aria-busy="true">
       <span className="sr-only">{label}</span>
-      <div className="flex h-full items-end gap-3">
-        <Skeleton
-          className="h-full rounded-xl"
-          style={{ aspectRatio: "9 / 16", maxHeight: "calc((100vw - 32px) * 16 / 9)" }}
-        />
-        <div className="flex flex-col gap-4 max-sm:hidden">
-          {Array.from({ length: 3 }, (_, button) => (
-            <div key={button} className="flex flex-col items-center gap-1">
-              <Skeleton className="size-12 rounded-full" />
-              <Skeleton className="h-3 w-8" />
-            </div>
-          ))}
+      <div className="flex min-w-0 flex-1 justify-center px-4 pt-2 pb-8">
+        <div className="flex h-full items-end gap-3">
+          <Skeleton
+            className="h-full rounded-xl"
+            style={{ aspectRatio: "9 / 16", maxHeight: "calc((100vw - 32px) * 16 / 9)" }}
+          />
+          <div className="flex flex-col gap-4 max-sm:hidden">
+            {Array.from({ length: 3 }, (_, button) => (
+              <div key={button} className="flex flex-col items-center gap-1">
+                <Skeleton className="size-12 rounded-full" />
+                <Skeleton className="h-3 w-8" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+      <div className="hidden w-20 shrink-0 md:block" />
     </div>
   );
 }

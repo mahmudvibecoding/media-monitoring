@@ -12,9 +12,9 @@ import {
   VolumeXIcon,
   XIcon,
 } from "lucide-react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { type ReactNode, type RefObject, type WheelEvent, useEffect, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
 import {
   youtubeChannelOptions,
@@ -26,43 +26,43 @@ import { CommentList } from "@/components/youtube-comments";
 import { ShortsGhost } from "@/components/youtube-ghosts";
 import { ShareButton } from "@/components/youtube-share";
 import { YouTubeText } from "@/components/youtube-text";
-import { ChannelPicture, ShareIcon, YouTubeLink, YT_ICON_BUTTON } from "@/components/youtube-ui";
+import { ChannelPicture, CoverImage, ShareIcon, YouTubeLink, YT_ICON_BUTTON } from "@/components/youtube-ui";
 import { formatCompact, formatCount, formatYouTubeDay } from "@/lib/format";
 import { FIRST_PAGE, nextPage } from "@/lib/pages";
 import { cn } from "@/lib/utils";
-import { type Sort } from "@/lib/youtube";
+import { type Sort, thumbnail, uprightThumbnail } from "@/lib/youtube";
 
 const PLAYER = "https://www.youtube-nocookie.com";
-const AHEAD = 3; // Shorts left in the loaded list when its next page is asked for
+const AHEAD = 3; // Shorts left in the feed when the next page of the list is asked for
 const LOOK_FOR = 6; // pages of the channel's Shorts looked through for the one opened, when it isn't on the first
-const WHEEL_STEP = 50; // the wheel's turn that goes to the next Short,
-const WHEEL_REST = 700; // and the milliseconds before it can go on again
+const SETTLED = 150; // milliseconds without scrolling after which the feed is at rest (where scrollend isn't known)
+const TOP = 8; // px between YouTube's top bar and a Short at rest
+
+type PanelKind = "comments" | "description";
 
 // The player's address for a Short: playing at once, from a second if given, round again at its end, without YouTube's
 // controls (the page has its own), and taking the page's commands
 const embed = (id: string, from = 0) =>
   `${PLAYER}/embed/${id}?autoplay=1&controls=0&loop=1&playlist=${id}&rel=0&playsinline=1&enablejsapi=1&iv_load_policy=3&disablekb=1&fs=0${from > 0 ? `&start=${from}` : ""}`;
 
-// A Short's page, as YouTube's Shorts: the Short upright in the middle, as tall as the screen allows, with the channel
-// and the title over its bottom; beside it, YouTube's round buttons, the likes, the comments (which open the comments'
-// panel beside), and Share; and at the right, the arrows to the Short before and after it among the channel's Shorts,
-// in the order they were listed in (the address's ?sort=…, newest first without it), which ↑ and ↓ and the wheel go
-// to as well. Going from one to the next changes the address without asking the server for a page, so Back goes back
-// through them; the next Shorts are in the list already, and each one's details are asked for as it comes. The Short
-// shown follows the address only while that's a Short's: Next keeps a page one has left alive, hidden, and it mustn't
-// go back to the one it opened on as the address moves to another page.
+// A Short's page, as YouTube's Shorts: a feed that slides up and down, a Short to a screen, each upright in the middle
+// with the channel and the title over its bottom, YouTube's round buttons beside it (the likes, the comments, which open
+// their panel beside the feed, and Share), and the next one's top showing under it. The feed is the Short opened, then
+// those after it among the channel's Shorts, in the order of the grid it was opened from (the address's ?sort=…, newest
+// first without it), as YouTube's is; it loads on as it's scrolled. It's the browser's own scrolling, snapped to one
+// Short at a time, so the wheel, a two-finger swipe and a finger slide it, smoothly, as on YouTube; ↑ and ↓ and the
+// arrows at the right slide it a Short at a time. The Short the feed comes to rest on is the one playing: its player is
+// loaded (once the feed is at rest, so nothing heavy happens while it slides), the others show their pictures, and the
+// address and the tab's title change to it, in place (as YouTube's, without a step in the history: Back goes back to
+// where the Shorts were opened from). Each Short's details are asked for as it comes.
 export function ShortsPage({ id: opened }: { id: string }) {
   const t = useTranslations("youtube");
   const common = useTranslations("common");
   const site = useTranslations("metadata");
-  const shown = /^\/youtube\/shorts\/([^/]+)/.exec(usePathname())?.[1];
-  const [id, setId] = useState(shown ?? opened);
-  if (shown && shown !== id) setId(shown);
   const asked = useSearchParams().get("sort");
-  const sort: Sort | undefined = asked === "popular" || asked === "oldest" ? asked : undefined;
-  const details = useQuery(youtubeVideoOptions({ path: { video_id: id } })).data;
-  const [channelId, setChannelId] = useState(details?.channel_id);
-  if (details && details.channel_id !== channelId) setChannelId(details.channel_id);
+  const [sort] = useState<Sort | undefined>(asked === "popular" || asked === "oldest" ? asked : undefined); // the page's
+  const first = useQuery(youtubeVideoOptions({ path: { video_id: opened } })).data;
+  const channelId = first?.channel_id;
   const channel = useQuery({
     ...youtubeChannelOptions({ path: { channel_id: channelId ?? "" } }),
     enabled: !!channelId,
@@ -77,60 +77,118 @@ export function ShortsPage({ id: opened }: { id: string }) {
     enabled: !!channelId,
   });
   const shorts = list.data?.pages.flatMap((page) => page.videos) ?? [];
-  const at = shorts.findIndex((short) => short.id === id);
-  const video: YouTubeVideo | undefined = details ?? shorts[at];
-  const before = at > 0 ? shorts[at - 1] : undefined;
-  const after = at >= 0 ? shorts[at + 1] : undefined;
+  const at = shorts.findIndex((short) => short.id === opened);
+  const feed: YouTubeVideo[] = at >= 0 ? shorts.slice(at) : first ? [first] : []; // the opened one alone till found
+  const [active, setActive] = useState(0);
+  const current = feed[Math.min(active, feed.length - 1)];
+  const details = useQuery({
+    ...youtubeVideoOptions({ path: { video_id: current?.id ?? opened } }),
+    enabled: !!current,
+  }).data;
+  const [panel, setPanel] = useState<PanelKind | null>(null);
+  const scroller = useRef<HTMLDivElement>(null);
 
   // The list loads on: further pages while the opened Short isn't on those loaded (a few at most), and the next one as
-  // its end comes near
+  // the feed's end comes near
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = list;
   const loaded = list.data?.pages.length ?? 0;
   const wanted =
-    !!hasNextPage && !isFetchingNextPage && ((at < 0 && loaded < LOOK_FOR) || (at >= 0 && at >= shorts.length - AHEAD));
+    !!hasNextPage &&
+    !isFetchingNextPage &&
+    ((at < 0 && loaded < LOOK_FOR) || (at >= 0 && active >= feed.length - AHEAD));
   useEffect(() => {
     if (wanted) void fetchNextPage();
   }, [wanted, fetchNextPage]);
 
-  // The tab's title follows the Short shown, as the server wrote it for the first
-  const title = video?.title?.trim() || id;
+  // The Short playing is the one the feed comes to rest on: the one whose top is nearest its place under the top bar
+  // (followed from the time the feed is there)
+  const ready = !!first && !!current;
+  useEffect(() => {
+    const box = scroller.current;
+    if (!box) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const rest = () => {
+      clearTimeout(timer);
+      let [nearest, distance] = [0, Infinity];
+      box.querySelectorAll<HTMLElement>("[data-reel]").forEach((reel, index) => {
+        const off = Math.abs(reel.offsetTop - TOP - box.scrollTop);
+        if (off < distance) [nearest, distance] = [index, off];
+      });
+      setActive(nearest);
+    };
+    const scrolled = () => {
+      clearTimeout(timer);
+      timer = setTimeout(rest, SETTLED);
+    };
+    box.addEventListener("scroll", scrolled, { passive: true });
+    box.addEventListener("scrollend", rest);
+    return () => {
+      clearTimeout(timer);
+      box.removeEventListener("scroll", scrolled);
+      box.removeEventListener("scrollend", rest);
+    };
+  }, [ready]);
+
+  // The address and the tab's title follow it, in place
+  const currentId = current?.id;
+  const title = current?.title?.trim() || currentId || opened;
+  useEffect(() => {
+    if (currentId && window.location.pathname !== `/youtube/shorts/${currentId}`) {
+      window.history.replaceState(null, "", `/youtube/shorts/${currentId}${window.location.search}`);
+    }
+  }, [currentId]);
   useEffect(() => {
     document.title = `${title} · ${site("title")}`;
   }, [title, site]);
 
-  const [panel, setPanel] = useState<"comments" | "description" | null>(null);
-  const show = (short?: YouTubeVideo) =>
-    short && window.history.pushState(null, "", `/youtube/shorts/${short.id}${window.location.search}`);
+  // Slides the feed to a Short, smoothly
+  function slide(to: number) {
+    const box = scroller.current;
+    const reel = box?.querySelector<HTMLElement>(`[data-reel="${to}"]`);
+    if (box && reel) box.scrollTo({ top: reel.offsetTop - TOP, behavior: "smooth" });
+  }
 
-  // ↑ and ↓ go to the Short before and after, unless one's typing somewhere
+  // ↑ and ↓ slide it a Short at a time, unless one's typing somewhere
   useEffect(() => {
     function key(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
       if (event.metaKey || event.ctrlKey || event.altKey || target.isContentEditable) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
-      const to = event.key === "ArrowUp" ? before : event.key === "ArrowDown" ? after : undefined;
-      if (!to) return;
+      const step = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1 : 0;
+      if (!step) return;
       event.preventDefault();
-      window.history.pushState(null, "", `/youtube/shorts/${to.id}${window.location.search}`);
+      const box = scroller.current;
+      const reel = box?.querySelector<HTMLElement>(`[data-reel="${active + step}"]`);
+      if (box && reel) box.scrollTo({ top: reel.offsetTop - TOP, behavior: "smooth" });
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [before, after]);
+  }, [active]);
 
-  // So does the wheel, a step at a time
-  const rested = useRef(0);
-  function wheel(event: WheelEvent) {
-    if (Math.abs(event.deltaY) < WHEEL_STEP || event.timeStamp - rested.current < WHEEL_REST) return;
-    rested.current = event.timeStamp;
-    show(event.deltaY > 0 ? after : before);
+  // A Short's buttons open (or close) a panel for it, sliding to it first if it isn't the one playing
+  function open(index: number, which: PanelKind) {
+    if (index !== active) slide(index);
+    setPanel(index === active && panel === which ? null : which);
   }
 
-  if (!video) return <ShortsGhost label={common("loading")} />;
+  if (!first || !current) return <ShortsGhost label={common("loading")} />;
   return (
-    <div className="relative flex h-[calc(100svh-3.5rem)] justify-center gap-6 overflow-hidden px-4 pt-2 pb-8 font-roboto text-yt-text">
-      <div className="relative flex h-full min-w-0 items-center gap-3 sm:items-end" onWheel={wheel}>
-        <ShortPlayer key={id} video={video} channel={channel} onTitle={() => setPanel("description")} />
-        <Actions video={video} panel={panel} setPanel={setPanel} />
+    <div className="flex h-[calc(100svh-3.5rem)] font-roboto text-yt-text">
+      <div
+        ref={scroller}
+        className="relative h-full min-w-0 flex-1 snap-y snap-mandatory scroll-pt-2 [scrollbar-width:none] overflow-y-scroll overscroll-contain px-4 pt-2 pb-6 [&::-webkit-scrollbar]:hidden"
+      >
+        {feed.map((video, index) => (
+          <Reel
+            key={video.id}
+            index={index}
+            video={video}
+            channel={channel}
+            active={index === active}
+            panel={index === active ? panel : null}
+            open={(which) => open(index, which)}
+          />
+        ))}
       </div>
       {panel && (
         <Panel
@@ -138,20 +196,20 @@ export function ShortsPage({ id: opened }: { id: string }) {
           count={panel === "comments" ? details?.comments_collected : undefined}
           close={() => setPanel(null)}
         >
-          {(scroller) =>
+          {(panelScroller) =>
             panel === "comments" ? (
-              <CommentList key={id} id={id} owner={channelId} scroller={scroller} />
+              <CommentList key={current.id} id={current.id} owner={channelId} scroller={panelScroller} />
             ) : (
-              <About video={video} description={details?.description ?? null} channel={channel} />
+              <About video={current} description={details?.description ?? null} channel={channel} />
             )
           }
         </Panel>
       )}
-      <div className="absolute top-1/2 right-6 hidden -translate-y-1/2 flex-col gap-4 md:flex">
+      <div className="hidden w-20 shrink-0 flex-col items-center justify-center gap-4 md:flex">
         <button
           type="button"
-          onClick={() => show(before)}
-          disabled={!before}
+          onClick={() => slide(active - 1)}
+          disabled={active <= 0}
           aria-label={t("previous")}
           className="flex size-14 items-center justify-center rounded-full bg-yt-chip hover:bg-yt-chip-hover disabled:invisible"
         >
@@ -159,8 +217,8 @@ export function ShortsPage({ id: opened }: { id: string }) {
         </button>
         <button
           type="button"
-          onClick={() => show(after)}
-          disabled={!after}
+          onClick={() => slide(active + 1)}
+          disabled={active >= feed.length - 1}
           aria-label={t("next")}
           className="flex size-14 items-center justify-center rounded-full bg-yt-chip hover:bg-yt-chip-hover disabled:invisible"
         >
@@ -171,31 +229,87 @@ export function ShortsPage({ id: opened }: { id: string }) {
   );
 }
 
-// What the player last told about itself
-type State = { playing: boolean; muted: boolean; time: number; duration: number };
+// A Short in the feed: a screen's height (but for the space above it and the next one's top under it), a place the
+// feed's scrolling stops at, never passed by a single swipe; its picture in YouTube's upright frame with the channel
+// and the title over its bottom, and, while it's the one playing, its player over the picture; and its buttons beside it
+function Reel({
+  index,
+  video,
+  channel,
+  active,
+  panel,
+  open,
+}: {
+  index: number;
+  video: YouTubeVideo;
+  channel?: YouTubeChannelDetails;
+  active: boolean;
+  panel: PanelKind | null;
+  open: (which: PanelKind) => void;
+}) {
+  const name = channel?.handle ?? (channel?.title?.trim() || "");
+  return (
+    <section
+      data-reel={index}
+      aria-label={video.title?.trim() || video.id}
+      className="relative mb-4 flex h-[calc(100svh-6rem)] snap-start snap-always items-center justify-center gap-3 sm:items-end"
+    >
+      <div
+        className="group/short relative h-full shrink overflow-hidden rounded-xl bg-black"
+        style={{ aspectRatio: "9 / 16", maxHeight: "calc((100vw - 32px) * 16 / 9)" }}
+      >
+        <CoverImage
+          sources={[uprightThumbnail(video.id), thumbnail(video.id, "hq")]}
+          className="absolute inset-0 size-full object-cover"
+        />
+        {active && <ShortPlayer video={video} />}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 via-black/25 to-transparent px-3 pt-20 pb-5 text-white max-sm:pr-16">
+          {channel && (
+            <YouTubeLink
+              href={`/youtube/channels/${channel.id}`}
+              className="pointer-events-auto flex w-fit max-w-full items-center gap-2 text-sm leading-5 font-medium"
+            >
+              <ChannelPicture url={channel.avatar_url} size={32} />
+              <span className="truncate">{name}</span>
+            </YouTubeLink>
+          )}
+          <button
+            type="button"
+            onClick={() => open("description")}
+            className="pointer-events-auto mt-2 line-clamp-2 text-left text-sm leading-5 break-words"
+          >
+            {video.title?.trim() || video.id}
+          </button>
+        </div>
+      </div>
+      <Actions video={video} panel={panel} open={open} />
+    </section>
+  );
+}
+
+// What the player last told about itself; started once it has played, which the picture shows until
+type State = { playing: boolean; muted: boolean; time: number; duration: number; started: boolean };
 const PLAYING = 1;
 const BUFFERING = 3;
 
-// The Short, played by YouTube's player with the page's own controls over it, as YouTube's Shorts have them: a click
-// on it plays and pauses (K and the space bar too), a big play sign shows while it's paused, the play and sound
-// buttons at its top left come under the mouse (M mutes), the red line along its bottom says where it's at and goes
-// where it's clicked, and the channel and the title are over its bottom (the title opens the description). The player
-// is 160 px taller than the frame at each end, so what YouTube puts along them (the title, its logo, and for a Short
-// its own like count) falls outside it, while the Short, as wide as the frame, fills it. The player is loaded only once
+// The Short playing, by YouTube's player over its picture, with the page's own controls, as YouTube's Shorts have them:
+// a click on it plays and pauses (K and the space bar too), a big play sign shows while it's paused, the play and sound
+// buttons at its top left come under the mouse (M mutes), and the red line along its bottom says where it's at and goes
+// where it's clicked. The picture shows until the Short has started, so sliding to it doesn't go black. The player is
+// 160 px taller than the frame at each end, so what YouTube puts along them (the title, its logo, and for a Short its
+// own like count) falls outside it, while the Short, as wide as the frame, fills it. The player is loaded only once
 // its page shows (an effect, which a hidden page doesn't run, gives it its address), so a page Next keeps alive,
 // hidden, never plays; as the page goes, it's unloaded, and as it comes back, loaded again from where it was.
-function ShortPlayer({
-  video,
-  channel,
-  onTitle,
-}: {
-  video: YouTubeVideo;
-  channel?: YouTubeChannelDetails;
-  onTitle: () => void;
-}) {
+function ShortPlayer({ video }: { video: YouTubeVideo }) {
   const t = useTranslations("youtube");
   const frame = useRef<HTMLIFrameElement>(null);
-  const [state, setState] = useState<State>({ playing: true, muted: false, time: 0, duration: video.duration ?? 0 });
+  const [state, setState] = useState<State>({
+    playing: true,
+    muted: false,
+    time: 0,
+    duration: video.duration ?? 0,
+    started: false,
+  });
   const last = useRef(state); // the same, for the effect's handlers
   useEffect(() => {
     last.current = state;
@@ -237,6 +351,7 @@ function ShortPlayer({
         muted: typeof info.muted === "boolean" ? info.muted : now.muted,
         time: typeof info.currentTime === "number" ? info.currentTime : now.time,
         duration: typeof info.duration === "number" && info.duration > 0 ? info.duration : now.duration,
+        started: now.started || info.playerState === PLAYING,
       }));
     };
     const key = (event: KeyboardEvent) => {
@@ -268,19 +383,18 @@ function ShortPlayer({
     };
   }, [video.id]);
 
-  const name = channel?.handle ?? (channel?.title?.trim() || video.title?.trim() || "");
   return (
-    <div
-      className="group/short relative h-full shrink overflow-hidden rounded-xl bg-black"
-      style={{ aspectRatio: "9 / 16", maxHeight: "calc((100vw - 32px) * 16 / 9)" }}
-    >
+    <>
       <iframe
         ref={frame}
         src="about:blank"
         title={video.title ?? video.id}
         allow="autoplay; encrypted-media; picture-in-picture; web-share"
         tabIndex={-1}
-        className="pointer-events-none absolute inset-x-0 -top-[160px] h-[calc(100%+320px)] w-full"
+        className={cn(
+          "pointer-events-none absolute inset-x-0 -top-[160px] h-[calc(100%+320px)] w-full transition-opacity duration-300",
+          state.started ? "opacity-100" : "opacity-0",
+        )}
       />
       <button
         type="button"
@@ -312,26 +426,8 @@ function ShortPlayer({
           {state.muted ? <VolumeXIcon className="size-6" /> : <Volume2Icon className="size-6" />}
         </button>
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/60 via-black/25 to-transparent px-3 pt-20 pb-5 text-white max-sm:pr-16">
-        {channel && (
-          <YouTubeLink
-            href={`/youtube/channels/${channel.id}`}
-            className="pointer-events-auto flex w-fit max-w-full items-center gap-2 text-sm leading-5 font-medium"
-          >
-            <ChannelPicture url={channel.avatar_url} size={32} />
-            <span className="truncate">{name}</span>
-          </YouTubeLink>
-        )}
-        <button
-          type="button"
-          onClick={onTitle}
-          className="pointer-events-auto mt-2 line-clamp-2 text-left text-sm leading-5 break-words"
-        >
-          {video.title?.trim() || video.id}
-        </button>
-      </div>
       <Progress state={state} seek={seek} />
-    </div>
+    </>
   );
 }
 
@@ -373,11 +469,11 @@ function Progress({ state, seek }: { state: State; seek: (seconds: number) => vo
 function Actions({
   video,
   panel,
-  setPanel,
+  open,
 }: {
   video: YouTubeVideo;
-  panel: "comments" | "description" | null;
-  setPanel: (panel: "comments" | "description" | null) => void;
+  panel: PanelKind | null;
+  open: (which: PanelKind) => void;
 }) {
   const t = useTranslations("youtube");
   const videoTexts = useTranslations("youtubeVideo");
@@ -396,7 +492,7 @@ function Actions({
       <Labeled label={video.comments === null ? t("comments") : formatCompact(video.comments, locale, true)}>
         <button
           type="button"
-          onClick={() => setPanel(panel === "comments" ? null : "comments")}
+          onClick={() => open("comments")}
           aria-label={t("comments")}
           aria-pressed={panel === "comments"}
           className={cn(round, "hover:bg-yt-chip-hover max-sm:hover:bg-black/40")}
@@ -407,11 +503,11 @@ function Actions({
       <ShareButton
         id={video.id}
         short
-        look={({ open, label }) => (
+        look={({ open: share, label }) => (
           <Labeled label={label}>
             <button
               type="button"
-              onClick={open}
+              onClick={share}
               aria-label={label}
               className={cn(round, "hover:bg-yt-chip-hover max-sm:hover:bg-black/40")}
             >

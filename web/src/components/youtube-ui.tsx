@@ -176,7 +176,7 @@ function usePreview() {
 // A cover's picture from YouTube's image server: the first of sources it has, the next when it answers with an error or
 // with its 120 × 90 grey stand-in for a picture it hasn't got (looked at once in the browser too, for a picture that
 // came before the page was the browser's)
-function CoverImage({ sources, className }: { sources: string[]; className?: string }) {
+export function CoverImage({ sources, className }: { sources: string[]; className?: string }) {
   const [tried, setTried] = useState(0);
   const image = useRef<HTMLImageElement>(null);
   const missing = (picture: HTMLImageElement) => picture.complete && picture.naturalWidth <= 120;

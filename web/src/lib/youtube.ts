@@ -66,3 +66,6 @@ export const thumbnail = (id: string, size: "mq" | "hq" = "mq") => `https://i.yt
 // The bigger one, 640 × 480 (27 KB as WebP), sharp at the size of a channel's grid; not every video has it (YouTube
 // answers with a 120 × 90 grey picture instead), and the 480 × 360 one then stands in
 export const bigThumbnail = (id: string) => `https://i.ytimg.com/vi_webp/${id}/sddefault.webp`;
+
+// A Short's upright picture, 1080 × 1920 (110 KB as WebP), sharp as big as the Shorts page shows it
+export const uprightThumbnail = (id: string) => `https://i.ytimg.com/vi_webp/${id}/oardefault.webp`;
