@@ -790,6 +790,212 @@
         }
       }
     },
+    "/api/youtube/videos/{video_id}": {
+      "get": {
+        "summary": "Youtube Video",
+        "description": "A collected video's details, its channel, and how many of its comments have been collected. Counting takes a\nfew milliseconds for most videos (5 comments, the median), and up to 150 ms for the one with the most (128,669).",
+        "operationId": "youtube_video",
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{11}$",
+              "title": "Video Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeVideoDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: no video with that ID has been collected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a video's ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/youtube/videos/{video_id}/comments": {
+      "get": {
+        "summary": "Youtube Video Comments",
+        "description": "A video's collected comments (not their replies), newest first, a page at a time (a video that hasn't been\ncollected has none). How many there are is in the video's details, so that a page isn't counted again.",
+        "operationId": "youtube_video_comments",
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{11}$",
+              "title": "Video Id"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 1,
+              "description": "50 comments to a page",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "50 comments to a page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeComments"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a video's ID, or a parameter is out of its range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "Health",
@@ -1326,6 +1532,115 @@
         ],
         "title": "YouTubeChannels"
       },
+      "YouTubeComment": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "author_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Name"
+          },
+          "author_channel_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Channel Id"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "written_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Written At"
+          },
+          "precision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "second",
+                  "minute",
+                  "hour",
+                  "day",
+                  "week",
+                  "month",
+                  "year"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Precision"
+          },
+          "edited": {
+            "type": "boolean",
+            "title": "Edited"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "author_name",
+          "author_channel_id",
+          "text",
+          "written_at",
+          "precision",
+          "edited"
+        ],
+        "title": "YouTubeComment"
+      },
+      "YouTubeComments": {
+        "properties": {
+          "comments": {
+            "items": {
+              "$ref": "#/components/schemas/YouTubeComment"
+            },
+            "type": "array",
+            "title": "Comments"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          }
+        },
+        "type": "object",
+        "required": [
+          "comments",
+          "page_size"
+        ],
+        "title": "YouTubeComments"
+      },
       "YouTubeCounts": {
         "properties": {
           "channels": {
@@ -1455,6 +1770,165 @@
           "comments"
         ],
         "title": "YouTubeVideo"
+      },
+      "YouTubeVideoDetails": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "duration": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "video",
+                  "short"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "views": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Views"
+          },
+          "likes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Likes"
+          },
+          "comments": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comments"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "channel_id": {
+            "type": "string",
+            "title": "Channel Id"
+          },
+          "channel_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Title"
+          },
+          "stats_updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stats Updated At"
+          },
+          "comments_collected": {
+            "type": "integer",
+            "title": "Comments Collected"
+          },
+          "comments_complete": {
+            "type": "boolean",
+            "title": "Comments Complete"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "published_at",
+          "duration",
+          "kind",
+          "available",
+          "views",
+          "likes",
+          "comments",
+          "description",
+          "channel_id",
+          "channel_title",
+          "stats_updated_at",
+          "comments_collected",
+          "comments_complete"
+        ],
+        "title": "YouTubeVideoDetails"
       },
       "YouTubeVideos": {
         "properties": {

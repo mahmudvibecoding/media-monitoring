@@ -50,8 +50,6 @@
     "subscribers": "{count, plural, one {{formatted} subscriber} other {{formatted} subscribers}}",
     "subscribersHidden": "Subscribers hidden",
     "open": "Open on YouTube",
-    "more": "Show more",
-    "less": "Show less",
     "all": "All",
     "videos": "Videos",
     "shorts": "Shorts",
@@ -64,8 +62,26 @@
     "watch": "Watch on YouTube",
     "none": "No videos here yet."
   },
+  "youtubeVideo": {
+    "watch": "Watch on YouTube",
+    "short": "Short",
+    "unavailable": "Unavailable",
+    "views": "Views",
+    "likes": "Likes",
+    "comments": "Comments",
+    "collected": "Collected",
+    "complete": "The whole list has been read",
+    "incomplete": "The list hasn't been read to the end yet",
+    "statsAsOf": "Views and likes as of {when}",
+    "noStats": "Views and likes haven't been read yet",
+    "commentsTitle": "Comments",
+    "edited": "edited",
+    "none": "No comments collected."
+  },
   "common": {
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "more": "Show more",
+    "less": "Show less"
   },
   "pages": {
     "page": "Page {page} of {pages}",

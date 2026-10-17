@@ -50,8 +50,6 @@
     "subscribers": "{formatted} ta obunachi",
     "subscribersHidden": "Obunachilar yashirin",
     "open": "YouTube saytida ochish",
-    "more": "Toʻliq koʻrsatish",
-    "less": "Yigʻish",
     "all": "Hammasi",
     "videos": "Videolar",
     "shorts": "Shorts",
@@ -64,8 +62,26 @@
     "watch": "YouTube saytida koʻrish",
     "none": "Hozircha video yoʻq."
   },
+  "youtubeVideo": {
+    "watch": "YouTube saytida koʻrish",
+    "short": "Short",
+    "unavailable": "Mavjud emas",
+    "views": "Koʻrishlar",
+    "likes": "Layklar",
+    "comments": "Izohlar",
+    "collected": "Yigʻilgan",
+    "complete": "Roʻyxat toʻliq oʻqilgan",
+    "incomplete": "Roʻyxat hali oxirigacha oʻqilmagan",
+    "statsAsOf": "Koʻrishlar va layklar {when} holatiga",
+    "noStats": "Koʻrishlar va layklar hali oʻqilmagan",
+    "commentsTitle": "Izohlar",
+    "edited": "tahrirlangan",
+    "none": "Izohlar yigʻilmagan."
+  },
   "common": {
-    "loading": "Yuklanmoqda…"
+    "loading": "Yuklanmoqda…",
+    "more": "Toʻliq koʻrsatish",
+    "less": "Yigʻish"
   },
   "pages": {
     "page": "Sahifa: {page} / {pages}",

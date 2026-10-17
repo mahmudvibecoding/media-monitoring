@@ -42,7 +42,7 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
 - A request that changes something, from another site's page (its Origin header), is refused.
 - Sign-ins, failures, sign-outs and password changes go into the log, with the address, never a password.
 
-### YouTube's channels
+### YouTube
 
 `/api/youtube/channels` gives admins 50 channels at a time, the biggest first or by name, and how many match; with
 `search`, those whose name or handle has it in them. Through Caddy, a search takes about 13 ms, the first page 41 ms
@@ -67,6 +67,13 @@ collectors' own index, by channel and day, gives them in that order, so a page t
 that channel, and one 400 pages down 100 ms. The videos aren't counted again for each page, which would add those 50 ms
 to every page; the site takes their number from the channel's details.
 
+A video's page asks for two things too. `/api/youtube/videos/{id}` is its details and how many of its comments have been
+collected (YouTube's own count has the replies too, which aren't). `/api/youtube/videos/{id}/comments` is a page of its
+comments, newest first: most videos have a few (5, the median), and theirs take milliseconds, but a video's comments are
+sorted by their time on each request, so the video with the most, 128,669, takes 0.3 s for the first page and 0.75 s for
+the last. YouTube says only how long ago a comment was written ("2 months ago"), which the collector counted back from
+when it read it; the API also gives the unit it was said in, and whether the comment was edited.
+
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
@@ -85,7 +92,8 @@ to every page; the site takes their number from the channel's details.
 - Video covers come from YouTube's image server at 320 × 180 (15 KB), loaded as they scroll into view: Next's image
   optimizer would fetch them through the site's server, which can't reach the internet.
 - Dates and times are Tashkent's (UTC+5, the same all year), written by the site's own function (`src/lib/format.ts`),
-  for the same reason as counts.
+  for the same reason as counts. A comment's time is only as precise as YouTube's wording: 16.10.2026, 14:05 for
+  minutes, 16.10.2026, ≈14:00 for hours, ≈16.10.2026 for days and weeks, ≈10.2026 for months, ≈2025 for years.
 - A visitor sees Russian until choosing Uzbek (Latin script) or English in the header; the choice is kept in a cookie
   for a year and, for someone signed in, in their account. Signing in keeps a language this browser chose before (and
   saves it to the account); without one, it switches to the account's. Addresses are the same in every language,

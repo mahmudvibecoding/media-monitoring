@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses } from './types.gen';
+import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -106,6 +106,22 @@ export const youtubeChannel = <ThrowOnError extends boolean = false>(options: Op
  * every page, they'd take 50 ms of each page of the biggest channel.
  */
 export const youtubeChannelVideos = <ThrowOnError extends boolean = false>(options: Options<YoutubeChannelVideosData, ThrowOnError>): RequestResult<YoutubeChannelVideosResponses, YoutubeChannelVideosErrors, ThrowOnError> => (options.client ?? client).get<YoutubeChannelVideosResponses, YoutubeChannelVideosErrors, ThrowOnError>({ url: '/api/youtube/channels/{channel_id}/videos', ...options });
+
+/**
+ * Youtube Video
+ *
+ * A collected video's details, its channel, and how many of its comments have been collected. Counting takes a
+ * few milliseconds for most videos (5 comments, the median), and up to 150 ms for the one with the most (128,669).
+ */
+export const youtubeVideo = <ThrowOnError extends boolean = false>(options: Options<YoutubeVideoData, ThrowOnError>): RequestResult<YoutubeVideoResponses, YoutubeVideoErrors, ThrowOnError> => (options.client ?? client).get<YoutubeVideoResponses, YoutubeVideoErrors, ThrowOnError>({ url: '/api/youtube/videos/{video_id}', ...options });
+
+/**
+ * Youtube Video Comments
+ *
+ * A video's collected comments (not their replies), newest first, a page at a time (a video that hasn't been
+ * collected has none). How many there are is in the video's details, so that a page isn't counted again.
+ */
+export const youtubeVideoComments = <ThrowOnError extends boolean = false>(options: Options<YoutubeVideoCommentsData, ThrowOnError>): RequestResult<YoutubeVideoCommentsResponses, YoutubeVideoCommentsErrors, ThrowOnError> => (options.client ?? client).get<YoutubeVideoCommentsResponses, YoutubeVideoCommentsErrors, ThrowOnError>({ url: '/api/youtube/videos/{video_id}/comments', ...options });
 
 /**
  * Health

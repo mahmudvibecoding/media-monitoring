@@ -1,9 +1,11 @@
 """The collected YouTube data, for admins: the monitored channels a page at a time, searched and in the order the
 site's channels page asks for (GET /api/youtube/channels), a channel's details (.../{channel_id}), and its videos,
-newest first (.../{channel_id}/videos). The column and the indexes the channel list reads them by are in app.sql; a
-channel's videos come by the collectors' own index, by channel and day."""
+newest first (.../{channel_id}/videos); a video's details (GET /api/youtube/videos/{video_id}) and its comments, newest
+first (.../{video_id}/comments). The column and the indexes the channel list reads them by are in app.sql; a channel's
+videos come by the collectors' own index, by channel and day, and a video's comments by the comments table's key."""
 
 import asyncio
+import re
 from datetime import datetime
 from typing import Annotated, Literal
 
@@ -15,10 +17,11 @@ from pydantic import BaseModel
 from media_monitoring.api.accounts import Admin
 from media_monitoring.api.errors import Failure, failures
 
-PAGE_SIZE = 50  # channels, or videos
+PAGE_SIZE = 50  # channels, videos or comments
 LAST_PAGE = 10_000  # the furthest a page may be, so that skipping to it stays quick
 SEARCH_MAX = 100  # characters
 CHANNEL_ID = r"^UC[A-Za-z0-9_-]{22}$"  # YouTube's: UC and 22 more characters
+VIDEO_ID = r"^[A-Za-z0-9_-]{11}$"  # YouTube's: 11 characters
 
 router = APIRouter()
 
@@ -214,3 +217,116 @@ async def youtube_channel_videos(
         query = VIDEOS.format(kind=OF_KIND if kind else sql.SQL(""))
         videos = await (await cursor.execute(query, values)).fetchall()
     return YouTubeVideos(videos=videos, page_size=PAGE_SIZE)
+
+
+class YouTubeVideoDetails(YouTubeVideo):
+    description: str | None
+    channel_id: str
+    channel_title: str | None
+    stats_updated_at: datetime | None  # when its views, likes and comment count were last read
+    comments_collected: int  # its comments collected: YouTube's count has the replies too, which aren't
+    comments_complete: bool  # its whole comment list has been read once; new comments are read as they come
+
+
+class YouTubeComment(BaseModel):
+    id: str
+    author_name: str | None  # as YouTube shows it, most often the author's handle
+    author_channel_id: str | None
+    text: str | None
+    # YouTube says only how long ago a comment was written ("2 months ago"), and the collector counts that back from
+    # when it read the comment: written_at is as precise as the unit YouTube said it in
+    written_at: datetime | None
+    precision: Literal["second", "minute", "hour", "day", "week", "month", "year"] | None
+    edited: bool
+
+
+class YouTubeComments(BaseModel):
+    comments: list[YouTubeComment]  # this page's: fewer than page_size on the last one
+    page_size: int
+
+
+VIDEO = """
+    SELECT v.video_id AS id, v.title, v.description, v.published_at, v.duration_seconds AS duration, v.kind,
+        v.status = 'available' AS available, v.channel_id, c.title AS channel_title, s.views, s.likes, s.comments,
+        s.updated_at AS stats_updated_at, coalesce(s.comments_complete, false) AS comments_complete
+    FROM youtube_videos AS v
+    JOIN youtube_channels AS c USING (channel_id)
+    LEFT JOIN youtube_video_stats AS s USING (video_id)
+    WHERE v.video_id = %(video)s
+"""
+COMMENT_COUNT = "SELECT count(*) FROM youtube_comments WHERE video_id = %(video)s"
+
+
+@router.get(
+    "/api/youtube/videos/{video_id}",
+    responses=failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            404: "not_found: no video with that ID has been collected",
+            422: "invalid_request: that isn't a video's ID",
+        }
+    ),
+)
+async def youtube_video(
+    request: Request, _: Admin, video_id: Annotated[str, Path(pattern=VIDEO_ID)]
+) -> YouTubeVideoDetails:
+    """A collected video's details, its channel, and how many of its comments have been collected. Counting takes a
+    few milliseconds for most videos (5 comments, the median), and up to 150 ms for the one with the most (128,669)."""
+
+    async def details() -> dict | None:
+        async with request.state.pool.connection() as conn:
+            cursor = conn.cursor(row_factory=dict_row)
+            return await (await cursor.execute(VIDEO, {"video": video_id})).fetchone()
+
+    async def collected() -> int:
+        async with request.state.pool.connection() as conn:
+            (count,) = await (await conn.execute(COMMENT_COUNT, {"video": video_id})).fetchone()
+            return count
+
+    video, count = await asyncio.gather(details(), collected())  # each on a connection of its own, at the same time
+    if video is None:
+        raise Failure(404, "not_found", "No video with that ID has been collected")
+    return YouTubeVideoDetails(**video, comments_collected=count)
+
+
+# Newest first, by the estimated time, which every comment of a video is sorted by on each request: a few milliseconds
+# for most videos, 0.23 s for the one with the most comments (1.3 s the first time, from disk)
+COMMENTS = """
+    SELECT comment_id AS id, author_name, author_channel_id, text, published_text, published_at AS written_at
+    FROM youtube_comments WHERE video_id = %(video)s
+    ORDER BY published_at DESC NULLS LAST, comment_id
+    LIMIT %(limit)s OFFSET %(offset)s
+"""
+# How YouTube words a comment's age: "3 hours ago", "1 year ago", "2 months ago (edited)"
+AGE = re.compile(r"\d+ (second|minute|hour|day|week|month|year)s? ago( \(edited\))?")
+
+
+@router.get(
+    "/api/youtube/videos/{video_id}/comments",
+    responses=failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            422: "invalid_request: that isn't a video's ID, or a parameter is out of its range",
+        }
+    ),
+)
+async def youtube_video_comments(
+    request: Request,
+    _: Admin,
+    video_id: Annotated[str, Path(pattern=VIDEO_ID)],
+    page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} comments to a page")] = 1,
+) -> YouTubeComments:
+    """A video's collected comments (not their replies), newest first, a page at a time (a video that hasn't been
+    collected has none). How many there are is in the video's details, so that a page isn't counted again."""
+    values = {"video": video_id, "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
+    async with request.state.pool.connection() as conn:
+        cursor = conn.cursor(row_factory=dict_row)
+        rows = await (await cursor.execute(COMMENTS, values)).fetchall()
+    comments = []
+    for row in rows:
+        age = AGE.fullmatch(row.pop("published_text") or "")
+        precision, edited = (age.group(1), age.group(2) is not None) if age else (None, False)
+        comments.append(YouTubeComment(**row, precision=precision, edited=edited))
+    return YouTubeComments(comments=comments, page_size=PAGE_SIZE)

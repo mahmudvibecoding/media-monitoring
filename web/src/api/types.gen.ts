@@ -282,6 +282,54 @@ export type YouTubeChannels = {
 };
 
 /**
+ * YouTubeComment
+ */
+export type YouTubeComment = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Author Name
+     */
+    author_name: string | null;
+    /**
+     * Author Channel Id
+     */
+    author_channel_id: string | null;
+    /**
+     * Text
+     */
+    text: string | null;
+    /**
+     * Written At
+     */
+    written_at: string | null;
+    /**
+     * Precision
+     */
+    precision: 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year' | null;
+    /**
+     * Edited
+     */
+    edited: boolean;
+};
+
+/**
+ * YouTubeComments
+ */
+export type YouTubeComments = {
+    /**
+     * Comments
+     */
+    comments: Array<YouTubeComment>;
+    /**
+     * Page Size
+     */
+    page_size: number;
+};
+
+/**
  * YouTubeCounts
  */
 export type YouTubeCounts = {
@@ -339,6 +387,72 @@ export type YouTubeVideo = {
      * Comments
      */
     comments: number | null;
+};
+
+/**
+ * YouTubeVideoDetails
+ */
+export type YouTubeVideoDetails = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Published At
+     */
+    published_at: string | null;
+    /**
+     * Duration
+     */
+    duration: number | null;
+    /**
+     * Kind
+     */
+    kind: 'video' | 'short' | null;
+    /**
+     * Available
+     */
+    available: boolean;
+    /**
+     * Views
+     */
+    views: number | null;
+    /**
+     * Likes
+     */
+    likes: number | null;
+    /**
+     * Comments
+     */
+    comments: number | null;
+    /**
+     * Description
+     */
+    description: string | null;
+    /**
+     * Channel Id
+     */
+    channel_id: string;
+    /**
+     * Channel Title
+     */
+    channel_title: string | null;
+    /**
+     * Stats Updated At
+     */
+    stats_updated_at: string | null;
+    /**
+     * Comments Collected
+     */
+    comments_collected: number;
+    /**
+     * Comments Complete
+     */
+    comments_complete: boolean;
 };
 
 /**
@@ -785,6 +899,117 @@ export type YoutubeChannelVideosResponses = {
 };
 
 export type YoutubeChannelVideosResponse = YoutubeChannelVideosResponses[keyof YoutubeChannelVideosResponses];
+
+export type YoutubeVideoData = {
+    body?: never;
+    path: {
+        /**
+         * Video Id
+         */
+        video_id: string;
+    };
+    query?: never;
+    url: '/api/youtube/videos/{video_id}';
+};
+
+export type YoutubeVideoErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no video with that ID has been collected
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a video's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type YoutubeVideoError = YoutubeVideoErrors[keyof YoutubeVideoErrors];
+
+export type YoutubeVideoResponses = {
+    /**
+     * Successful Response
+     */
+    200: YouTubeVideoDetails;
+};
+
+export type YoutubeVideoResponse = YoutubeVideoResponses[keyof YoutubeVideoResponses];
+
+export type YoutubeVideoCommentsData = {
+    body?: never;
+    path: {
+        /**
+         * Video Id
+         */
+        video_id: string;
+    };
+    query?: {
+        /**
+         * Page
+         *
+         * 50 comments to a page
+         */
+        page?: number;
+    };
+    url: '/api/youtube/videos/{video_id}/comments';
+};
+
+export type YoutubeVideoCommentsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: that isn't a video's ID, or a parameter is out of its range
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type YoutubeVideoCommentsError = YoutubeVideoCommentsErrors[keyof YoutubeVideoCommentsErrors];
+
+export type YoutubeVideoCommentsResponses = {
+    /**
+     * Successful Response
+     */
+    200: YouTubeComments;
+};
+
+export type YoutubeVideoCommentsResponse = YoutubeVideoCommentsResponses[keyof YoutubeVideoCommentsResponses];
 
 export type HealthData = {
     body?: never;

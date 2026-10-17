@@ -1,3 +1,5 @@
+import type { YouTubeComment } from "@/api/types.gen";
+
 // A whole number with its digits grouped by threes, as each language writes it: a no-break space in Russian and
 // Uzbek (193 903 608), a comma in English (193,903,608). Done here rather than by Intl, whose Uzbek data differs
 // between Node (193 903 608) and Chrome (193,903,608), so the browser would rewrite what the server rendered.
@@ -27,4 +29,27 @@ export function formatDateTime(iso: string, locale: string): string {
 export function formatDuration(seconds: number): string {
   const [hours, minutes, rest] = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60];
   return hours ? `${hours}:${twoDigits(minutes)}:${twoDigits(rest)}` : `${minutes}:${twoDigits(rest)}`;
+}
+
+// When a comment was written, as precisely as YouTube said it: YouTube says only how long ago ("3 hours ago", "2 months
+// ago"), and that was counted back from when the comment was read. So a time to the minute for seconds and minutes;
+// ≈ and the hour for hours; ≈ and the day for days and weeks; ≈ and the month, or the year, for those.
+export function formatWhen(iso: string, precision: YouTubeComment["precision"], locale: string): string {
+  const moment = new Date(Date.parse(iso) + TASHKENT);
+  const [day, month, year] = [moment.getUTCDate(), moment.getUTCMonth(), moment.getUTCFullYear()];
+  const date =
+    locale === "en" ? `${day} ${MONTHS[month]} ${year}` : `${twoDigits(day)}.${twoDigits(month + 1)}.${year}`;
+  switch (precision) {
+    case "year":
+      return `≈${year}`;
+    case "month":
+      return locale === "en" ? `≈${MONTHS[month]} ${year}` : `≈${twoDigits(month + 1)}.${year}`;
+    case "week":
+    case "day":
+      return `≈${date}`;
+    case "hour":
+      return `${date}, ≈${twoDigits(moment.getUTCHours())}:00`;
+    default:
+      return formatDateTime(iso, locale);
+  }
 }

@@ -51,7 +51,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>YouTube</SidebarGroupLabel>
           <SidebarMenu>
-            <Item href="/youtube/channels" icon={TvIcon} label={t("nav.channels")} />
+            <Item href="/youtube/channels" also="/youtube/videos" icon={TvIcon} label={t("nav.channels")} />
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
@@ -59,10 +59,11 @@ export function AppSidebar() {
   );
 }
 
-function Item({ href, icon: Icon, label }: { href: string; icon: LucideIcon; label: string }) {
+// A page of the menu, which shows itself as the current one on its own pages and on also's (a channel's video)
+function Item({ href, also, icon: Icon, label }: { href: string; also?: string; icon: LucideIcon; label: string }) {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
-  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const active = href === "/" ? pathname === "/" : [href, also].some((path) => path && pathname.startsWith(path));
   return (
     <SidebarMenuItem>
       <SidebarMenuButton

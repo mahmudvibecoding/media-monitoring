@@ -1,8 +1,9 @@
-import type { YoutubeChannelsData, YoutubeChannelVideosData } from "@/api/types.gen";
+import type { YoutubeChannelsData, YoutubeChannelVideosData, YoutubeVideoCommentsData } from "@/api/types.gen";
 import { addressOf } from "@/lib/address";
 
 export type ChannelsQuery = NonNullable<YoutubeChannelsData["query"]>;
 export type VideosQuery = NonNullable<YoutubeChannelVideosData["query"]>;
+export type CommentsQuery = NonNullable<YoutubeVideoCommentsData["query"]>;
 
 export const SEARCH_MAX = 100; // characters, the most the API takes
 const LAST_PAGE = 10_000; // the furthest page the API gives
@@ -44,6 +45,16 @@ export function videosAddress(query: VideosQuery): string {
   return addressOf({ kind: query.kind ?? undefined, page: query.page });
 }
 
+// A video's comments: which page (?page=2)
+export function commentsQuery(params: URLSearchParams): CommentsQuery {
+  const page = pageOf(params);
+  return page ? { page } : {};
+}
+
+export function commentsAddress(query: CommentsQuery): string {
+  return addressOf({ page: query.page });
+}
+
 // Addresses on YouTube itself
 export const channelOnYouTube = (id: string) => `https://www.youtube.com/channel/${id}`;
 export const videoOnYouTube = (id: string) => `https://www.youtube.com/watch?v=${id}`;
@@ -52,5 +63,6 @@ export const videoOnYouTube = (id: string) => `https://www.youtube.com/watch?v=$
 // address names
 export const avatarAt = (url: string, size: number) => url.replace(/=s\d+(?=-|$)/, `=s${size}`);
 
-// A video's cover at 320 × 180 (15 KB), from YouTube's image server, which has it for every video by its ID
-export const thumbnail = (id: string) => `https://i.ytimg.com/vi/${id}/mqdefault.jpg`;
+// A video's cover from YouTube's image server, which has it for every video by its ID: 320 × 180 (15 KB), or 480 × 360
+// with black bars above and below (23 KB), which a 16:9 frame cuts off
+export const thumbnail = (id: string, size: "mq" | "hq" = "mq") => `https://i.ytimg.com/vi/${id}/${size}default.jpg`;

@@ -2,13 +2,15 @@
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ExternalLinkIcon } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 import { youtubeChannelOptions, youtubeChannelVideosOptions } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeVideo } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
+import { FoldedText } from "@/components/folded-text";
 import { Pages } from "@/components/pages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -62,29 +64,12 @@ export function ChannelDetails({ id }: { id: string }) {
           {t("open")}
         </Button>
       </div>
-      {data.description?.trim() && <Description text={data.description.trim()} />}
-    </section>
-  );
-}
-
-// A description of more than three lines shows three, and the rest when asked
-function Description({ text }: { text: string }) {
-  const t = useTranslations("youtubeChannel");
-  const [open, setOpen] = useState(false);
-  const long = text.length > 240 || text.split("\n").length > 3;
-  return (
-    <div className="max-w-3xl space-y-1">
-      <p
-        className={cn("text-sm break-words whitespace-pre-line text-muted-foreground", long && !open && "line-clamp-3")}
-      >
-        {text}
-      </p>
-      {long && (
-        <Button variant="link" size="sm" className="h-auto px-0" onClick={() => setOpen(!open)}>
-          {open ? t("less") : t("more")}
-        </Button>
+      {data.description?.trim() && (
+        <div className="max-w-3xl">
+          <FoldedText text={data.description.trim()} lines={3} className="text-sm text-muted-foreground" />
+        </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -181,39 +166,50 @@ function VideoRow({ video }: { video: YouTubeVideo }) {
   const count = (value: number | null) => (value === null ? "—" : formatCount(value, locale));
   return (
     <TableRow className={cn(!video.available && "text-muted-foreground")}>
-      {/* The video takes the room the numbers leave, its title in up to two lines */}
+      {/* The video takes the room the numbers leave, its title in up to two lines. It opens the video's page here (not
+          fetched ahead, as 50 rows would mean 50 requests), and the icon after it, YouTube's. */}
       <TableCell className="w-full max-w-0 pl-4">
-        <a
-          href={videoOnYouTube(video.id)}
-          target="_blank"
-          rel="noreferrer"
-          title={t("watch")}
-          className="group flex min-w-0 items-center gap-3"
-        >
-          {/* Straight from YouTube: Next's image optimizer would fetch it through the site's server, which can't
+        <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href={`/youtube/videos/${video.id}`}
+            prefetch={false}
+            className="group flex min-w-0 flex-1 items-center gap-3"
+          >
+            {/* Straight from YouTube: Next's image optimizer would fetch it through the site's server, which can't
               reach the internet */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={thumbnail(video.id)}
-            alt=""
-            width={320}
-            height={180}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            className="aspect-video w-24 shrink-0 rounded-md bg-muted object-cover sm:w-30"
-          />
-          <span className="min-w-0 space-y-1">
-            <span className="line-clamp-2 font-medium whitespace-normal group-hover:underline">
-              {video.title?.trim() || video.id}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={thumbnail(video.id)}
+              alt=""
+              width={320}
+              height={180}
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              className="aspect-video w-24 shrink-0 rounded-md bg-muted object-cover sm:w-30"
+            />
+            <span className="min-w-0 space-y-1">
+              <span className="line-clamp-2 font-medium whitespace-normal group-hover:underline">
+                {video.title?.trim() || video.id}
+              </span>
+              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                {video.published_at && <span>{formatDateTime(video.published_at, locale)}</span>}
+                {video.duration !== null && <span className="tabular-nums">{formatDuration(video.duration)}</span>}
+                {video.kind === "short" && <Badge variant="secondary">{t("short")}</Badge>}
+                {!video.available && <Badge variant="outline">{t("unavailable")}</Badge>}
+              </span>
             </span>
-            <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              {video.published_at && <span>{formatDateTime(video.published_at, locale)}</span>}
-              {video.duration !== null && <span className="tabular-nums">{formatDuration(video.duration)}</span>}
-              {video.kind === "short" && <Badge variant="secondary">{t("short")}</Badge>}
-              {!video.available && <Badge variant="outline">{t("unavailable")}</Badge>}
-            </span>
-          </span>
-        </a>
+          </Link>
+          <a
+            href={videoOnYouTube(video.id)}
+            target="_blank"
+            rel="noreferrer"
+            title={t("watch")}
+            aria-label={t("watch")}
+            className="shrink-0 text-muted-foreground hover:text-foreground"
+          >
+            <ExternalLinkIcon className="size-3.5" />
+          </a>
+        </div>
       </TableCell>
       <TableCell className="text-right tabular-nums">{count(video.views)}</TableCell>
       <TableCell className="hidden text-right tabular-nums sm:table-cell">{count(video.likes)}</TableCell>

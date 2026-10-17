@@ -50,8 +50,6 @@
     "subscribers": "{count, plural, one {{formatted} подписчик} few {{formatted} подписчика} many {{formatted} подписчиков} other {{formatted} подписчика}}",
     "subscribersHidden": "Подписчики скрыты",
     "open": "Открыть на YouTube",
-    "more": "Показать полностью",
-    "less": "Свернуть",
     "all": "Все",
     "videos": "Видео",
     "shorts": "Shorts",
@@ -64,8 +62,26 @@
     "watch": "Смотреть на YouTube",
     "none": "Видео пока нет."
   },
+  "youtubeVideo": {
+    "watch": "Смотреть на YouTube",
+    "short": "Short",
+    "unavailable": "Недоступно",
+    "views": "Просмотры",
+    "likes": "Лайки",
+    "comments": "Комментарии",
+    "collected": "Собрано",
+    "complete": "Список прочитан полностью",
+    "incomplete": "Список ещё не прочитан до конца",
+    "statsAsOf": "Просмотры и лайки на {when}",
+    "noStats": "Просмотры и лайки ещё не прочитаны",
+    "commentsTitle": "Комментарии",
+    "edited": "изменён",
+    "none": "Комментариев не собрано."
+  },
   "common": {
-    "loading": "Загрузка…"
+    "loading": "Загрузка…",
+    "more": "Показать полностью",
+    "less": "Свернуть"
   },
   "pages": {
     "page": "Страница {page} из {pages}",

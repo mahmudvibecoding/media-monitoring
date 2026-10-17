@@ -86,7 +86,9 @@ and how many match; with `search`, only those whose name or handle has it in the
 apostrophes aside (zor finds Zo‘r). `app.sql` has the column and the indexes it reads them by.
 `/api/youtube/channels/{id}` gives a channel's details, with how many of its videos have been collected, of each kind,
 and `/api/youtube/channels/{id}/videos` its videos, newest first, 50 to a page, all of them or only videos
-(`kind=video`) or only Shorts (`kind=short`), with their views, likes and comments.
+(`kind=video`) or only Shorts (`kind=short`), with their views, likes and comments. `/api/youtube/videos/{id}` gives a
+video's details, with how many of its comments have been collected, and `/api/youtube/videos/{id}/comments` its
+comments, newest first, 50 to a page, each with when it was written, as precisely as YouTube said it.
 
 ## The website
 
@@ -107,7 +109,8 @@ folds down to its icons (Ctrl+B) and slides in on a phone: the overview, with ho
 channels, a list searched as one types, the biggest first or by name, 50 to a page, whose address keeps the search, the
 order and the page. Each channel has a page of its own: its details and description, and its videos, newest first, all
 of them or only videos or only Shorts, with when each came out (in Tashkent's time), its length, views, likes and
-comments. Customers, for now, see a greeting. The header has the user's name and signing out.
+comments. Each video has one too: its details, numbers and description, and its comments, newest first, with their
+authors and when they were written. Customers, for now, see a greeting. The header has the user's name and signing out.
 
 A visitor sees Russian until they choose another language in the header; the choice is kept in a cookie for a year,
 and, once they're signed in, in their account, which the site switches to when they sign in in another browser.

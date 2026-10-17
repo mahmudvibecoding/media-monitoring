@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { changeLocale, changePassword, health, me, type Options, ready, signIn, signOut, status, youtubeChannel, youtubeChannels, youtubeChannelVideos } from '../sdk.gen';
-import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse } from '../types.gen';
+import { changeLocale, changePassword, health, me, type Options, ready, signIn, signOut, status, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -312,6 +312,81 @@ export const youtubeChannelVideosInfiniteOptions = (options: Options<YoutubeChan
             return data;
         },
         queryKey: youtubeChannelVideosInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const youtubeVideoQueryKey = (options: Options<YoutubeVideoData>) => createQueryKey('youtubeVideo', options);
+
+/**
+ * Youtube Video
+ *
+ * A collected video's details, its channel, and how many of its comments have been collected. Counting takes a
+ * few milliseconds for most videos (5 comments, the median), and up to 150 ms for the one with the most (128,669).
+ */
+export const youtubeVideoOptions = (options: Options<YoutubeVideoData>) => queryOptions<YoutubeVideoResponse, YoutubeVideoError, YoutubeVideoResponse, ReturnType<typeof youtubeVideoQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await youtubeVideo({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: youtubeVideoQueryKey(options)
+});
+
+export const youtubeVideoCommentsQueryKey = (options: Options<YoutubeVideoCommentsData>) => createQueryKey('youtubeVideoComments', options);
+
+/**
+ * Youtube Video Comments
+ *
+ * A video's collected comments (not their replies), newest first, a page at a time (a video that hasn't been
+ * collected has none). How many there are is in the video's details, so that a page isn't counted again.
+ */
+export const youtubeVideoCommentsOptions = (options: Options<YoutubeVideoCommentsData>) => queryOptions<YoutubeVideoCommentsResponse, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, ReturnType<typeof youtubeVideoCommentsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await youtubeVideoComments({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: youtubeVideoCommentsQueryKey(options)
+});
+
+export const youtubeVideoCommentsInfiniteQueryKey = (options: Options<YoutubeVideoCommentsData>): QueryKey<Options<YoutubeVideoCommentsData>> => createQueryKey('youtubeVideoComments', options, true);
+
+/**
+ * Youtube Video Comments
+ *
+ * A video's collected comments (not their replies), newest first, a page at a time (a video that hasn't been
+ * collected has none). How many there are is in the video's details, so that a page isn't counted again.
+ */
+export const youtubeVideoCommentsInfiniteOptions = (options: Options<YoutubeVideoCommentsData>) => {
+    const opts = infiniteQueryOptions<YoutubeVideoCommentsResponse, YoutubeVideoCommentsError, InfiniteData<YoutubeVideoCommentsResponse>, QueryKey<Options<YoutubeVideoCommentsData>>, number | Pick<QueryKey<Options<YoutubeVideoCommentsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<YoutubeVideoCommentsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await youtubeVideoComments({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: youtubeVideoCommentsInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
