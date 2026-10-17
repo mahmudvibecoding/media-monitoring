@@ -1,7 +1,7 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { EyeIcon, MessageCircleIcon, ThumbsUpIcon, UserIcon } from "lucide-react";
+import { EyeIcon, MessageCircleIcon, ThumbsUpIcon } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, useEffect, useRef } from "react";
@@ -187,7 +187,7 @@ function VideoComments({ id }: { id: string }) {
   } else {
     list = (
       <>
-        <ul className="space-y-6">
+        <ul className="space-y-5">
           {comments.map((comment) => (
             <Comment key={comment.id} comment={comment} />
           ))}
@@ -213,19 +213,52 @@ function VideoComments({ id }: { id: string }) {
   );
 }
 
-// A comment, as YouTube shows it: a round picture (a figure: YouTube doesn't give the authors' pictures with their
-// comments), the author (their channel on YouTube), how long ago, as precisely as YouTube said it, and the text
+// The colors YouTube puts behind the letter of someone without a picture
+const LETTER_COLORS = [
+  "#ef6c00",
+  "#5c6bc0",
+  "#7cb342",
+  "#c2185b",
+  "#00897b",
+  "#f4511e",
+  "#039be5",
+  "#8e24aa",
+  "#3949ab",
+  "#00acc1",
+  "#43a047",
+  "#e53935",
+  "#6d4c41",
+  "#546e7a",
+  "#fb8c00",
+  "#d81b60",
+];
+
+// The same color for the same author, every time: picked by their channel's ID (or their name)
+function colorOf(key: string): string {
+  let hash = 0;
+  for (const character of key) hash = (hash * 31 + (character.codePointAt(0) ?? 0)) | 0;
+  return LETTER_COLORS[Math.abs(hash) % LETTER_COLORS.length] ?? LETTER_COLORS[0]!;
+}
+
+// A comment, as YouTube shows it, in its sizes: a round picture, which is the author's first letter on a color of their
+// own (YouTube doesn't give the authors' pictures with their comments, and shows the letter for those without one), the
+// author (their channel on YouTube) and how long ago, as precisely as YouTube said it, then the text
 function Comment({ comment }: { comment: YouTubeComment }) {
   const t = useTranslations("youtubeVideo");
   const locale = useLocale();
   const author = comment.author_name?.trim() || "—";
+  const letter = (author.replace(/^@/, "").match(/[\p{L}\p{N}]/u)?.[0] ?? "?").toUpperCase();
   return (
     <li className="flex gap-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-yt-chip">
-        <UserIcon className="size-5 text-yt-muted" strokeWidth={1.5} />
+      <span
+        aria-hidden="true"
+        className="flex size-10 shrink-0 items-center justify-center rounded-full text-xl text-white select-none"
+        style={{ backgroundColor: colorOf(comment.author_channel_id ?? author) }}
+      >
+        {letter}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-baseline gap-x-1.5 text-[13px]">
+        <p className="flex flex-wrap items-baseline gap-x-1 text-[13px] leading-[18px]">
           {comment.author_channel_id ? (
             <a
               href={channelOnYouTube(comment.author_channel_id)}
@@ -252,7 +285,7 @@ function Comment({ comment }: { comment: YouTubeComment }) {
           <FoldedText
             text={comment.text}
             lines={4}
-            className="mt-0.5 text-sm leading-5"
+            className="mt-0.5 text-sm leading-5 text-yt-text"
             buttonClassName="font-medium text-yt-muted no-underline hover:text-yt-text hover:no-underline"
           />
         )}

@@ -136,10 +136,10 @@ signing out.
 A visitor sees Russian until they choose another language, in the menu's foot (or the sign-in page's header); the choice
 is kept in a cookie for a year, and, once they're signed in, in their account, which the site switches to when they sign
 in in another browser. The texts are in `messages/` (`ru.json`, `uz.json`, `en.json`), looked up by key: a key missing
-from a language, or one a page asks for that isn't there, fails the typecheck. The components are shadcn/ui's, on Base
-UI, kept in `src/components/ui/` as shadcn writes them (`pnpm exec shadcn add <name>` adds one). The font is Inter, and
-Roboto on YouTube's and Telegram's pages, both with every letter of the three languages, Uzbek's ʻ included; the site is
-light only.
+from a language, or one a page asks for that isn't there, fails the typecheck. The activity is only in English, its
+texts only in `en.json`. The components are shadcn/ui's, on Base UI, kept in `src/components/ui/` as shadcn writes them
+(`pnpm exec shadcn add <name>` adds one). The font is Inter, and Roboto on YouTube's and Telegram's pages, both with
+every letter of the three languages, Uzbek's ʻ included; the site is light only.
 
 The site reads the API through a typed client in `src/api/`, which `pnpm api` writes from `../openapi.json` (run it
 after `uv run api openapi`); it isn't edited by hand, and asking for an endpoint or a field the API doesn't have fails

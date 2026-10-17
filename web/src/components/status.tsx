@@ -28,15 +28,20 @@ export function Status() {
     <div className="grid gap-6 lg:grid-cols-5">
       <Group title="YouTube" icon={<YouTubeIcon className="size-4" />} className="lg:col-span-3">
         <Stats className="sm:grid-cols-3">
-          <Stat icon={TvIcon} label={t("youtube.channels")} value={count(data.youtube.channels)} />
-          <Stat icon={VideoIcon} label={t("youtube.videos")} value={count(data.youtube.videos)} />
-          <Stat icon={MessageCircleIcon} label={t("youtube.comments")} value={count(data.youtube.comments)} />
+          <Stat iconOnly icon={TvIcon} label={t("youtube.channels")} value={count(data.youtube.channels)} />
+          <Stat iconOnly icon={VideoIcon} label={t("youtube.videos")} value={count(data.youtube.videos)} />
+          <Stat iconOnly icon={MessageCircleIcon} label={t("youtube.comments")} value={count(data.youtube.comments)} />
         </Stats>
       </Group>
       <Group title="Telegram" icon={<SendIcon className="size-4" />} className="lg:col-span-2">
         <Stats className="sm:grid-cols-2">
-          <Stat icon={SendIcon} label={t("telegram.channels")} value={count(data.telegram.channels)} />
-          <Stat icon={MessageSquareTextIcon} label={t("telegram.messages")} value={count(data.telegram.messages)} />
+          <Stat iconOnly icon={SendIcon} label={t("telegram.channels")} value={count(data.telegram.channels)} />
+          <Stat
+            iconOnly
+            icon={MessageSquareTextIcon}
+            label={t("telegram.messages")}
+            value={count(data.telegram.messages)}
+          />
         </Stats>
       </Group>
     </div>

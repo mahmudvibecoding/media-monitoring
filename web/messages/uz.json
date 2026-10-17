@@ -26,7 +26,7 @@
   },
   "nav": {
     "overview": "Umumiy koʻrinish",
-    "activity": "Faollik",
+    "activity": "Activity",
     "toggle": "Menyuni koʻrsatish yoki yashirish"
   },
   "youtubeChannels": {
@@ -41,8 +41,6 @@
   "youtubeChannel": {
     "subscribers": "{formatted} ta obunachi",
     "subscribersHidden": "Obunachilar yashirin",
-    "open": "YouTube saytida ochish",
-    "all": "Hammasi",
     "videos": "Videolar",
     "shorts": "Shorts",
     "unavailable": "Mavjud emas",
@@ -83,173 +81,6 @@
     "lastPost": "Oxirgi post",
     "savedMessages": "Saqlangan xabarlar",
     "close": "Yopish"
-  },
-  "activity": {
-    "title": "Faollik",
-    "allSteps": "Barcha qadamlar",
-    "step": "Qadam",
-    "count": "{formatted} ta ishga tushirish",
-    "byHand": "qoʻlda ishga tushirilgan",
-    "none": "Hozircha ishga tushirishlar yoʻq.",
-    "noSteps": "Hozircha qadamlar yoʻq.",
-    "days": "{formatted} kun",
-    "arguments": {
-      "all": "hammasi",
-      "unread": "oʻqilmaganlar"
-    },
-    "outcomes": {
-      "running": "Ishlamoqda",
-      "finished": "Tugadi",
-      "stopped": "Toʻxtatildi",
-      "failed": "Xato",
-      "lost": "Yoʻqolgan",
-      "lostHint": "Tugamay jim boʻlib qoldi: majburan toʻxtatilgan yoki server oʻchgan"
-    },
-    "line": {
-      "vpnLists": "VPN roʻyxatlari",
-      "configs": "Konfiglar",
-      "plainProxies": "Oddiy proksilar",
-      "inSingbox": "sing-boxda",
-      "failed": "Xatolar",
-      "workingProxies": "Ishlayotgan proksilar"
-    },
-    "steps": {
-      "round": {
-        "name": "Raund"
-      },
-      "proxies": {
-        "name": "Yangi proksilar"
-      },
-      "youtube channels": {
-        "name": "YouTube kanallari",
-        "items": "Kanallar",
-        "saved": "Oʻzgarganlar",
-        "results": {
-          "ok": "Yangilangan",
-          "gone": "YouTubeda yoʻq",
-          "failed": "Xato"
-        }
-      },
-      "youtube videos": {
-        "name": "Yangi videolar",
-        "items": "Kanallar",
-        "saved": "Yangi videolar",
-        "results": {
-          "ok": "Tekshirilgan",
-          "first runs": "Birinchi marta oʻqilgan",
-          "gone": "Videosiz",
-          "failed": "Xato"
-        }
-      },
-      "youtube details": {
-        "name": "Video maʼlumotlari",
-        "items": "Videolar",
-        "saved": "Maʼlumoti olingan",
-        "results": {
-          "ok": "Maʼlumoti olingan",
-          "gone": "Mavjud emas",
-          "failed": "Xato"
-        }
-      },
-      "youtube stats": {
-        "name": "Koʻrishlar va layklar",
-        "items": "Videolar",
-        "saved": "Yangilanganlar",
-        "results": {
-          "ok": "Yangilangan",
-          "gone": "Hisoblagichsiz",
-          "failed": "Xato"
-        }
-      },
-      "youtube comments": {
-        "name": "Izohlar",
-        "items": "Videolar",
-        "saved": "Yangi izohlar",
-        "results": {
-          "ok": "Oʻqilgan",
-          "failed": "Xato"
-        }
-      },
-      "telegram channels": {
-        "name": "Telegram kanallari",
-        "items": "Kanallar",
-        "saved": "Oʻzgarganlar",
-        "results": {
-          "ok": "Oʻqilgan",
-          "other channel": "Username endi boshqa kanalda",
-          "failed": "Xato"
-        }
-      },
-      "telegram messages": {
-        "name": "Telegram xabarlari",
-        "items": "Kanallar",
-        "saved": "Yangi xabarlar",
-        "results": {
-          "new messages": "Yangi xabarli",
-          "messages with text": "Matnli xabarlar",
-          "pages": "Oʻqilgan sahifalar",
-          "nothing new": "Yangilik yoʻq",
-          "other channel": "Username endi boshqa kanalda",
-          "failed": "Xato",
-          "read when asked again": "Qayta soʻralganda oʻqilgan"
-        }
-      }
-    },
-    "requests": {
-      "ok": "Javob berdi",
-      "broken": "Proksi ishlamadi",
-      "gone": "Yoʻq",
-      "blocked": "Bloklangan",
-      "hidden": "Yashirilgan",
-      "youtube error": "YouTube xatosi",
-      "telegram error": "Telegram xatosi",
-      "bad request": "Notoʻgʻri soʻrov",
-      "failed": "Xato"
-    },
-    "back": "Faollik",
-    "started": "Boshlangan",
-    "finished": "Tugagan",
-    "took": "Davomiyligi",
-    "goingFor": "Davom etmoqda",
-    "inRound": "Raundning bir qismi",
-    "stepsTitle": "Uning qadamlari",
-    "work": "Ish",
-    "toDo": "{items}, jami",
-    "done": "Bajarilgan",
-    "saved": "Saqlangan",
-    "processes": "Jarayonlar",
-    "speed": "Soniyasiga soʻrovlar",
-    "workingProxies": "Oxirida ishlayotgan proksilar",
-    "outcomesTitle": "Natijalar",
-    "requestsTitle": "Soʻrovlar",
-    "proxyTestsTitle": "Proksi tekshiruvlari",
-    "proxiesTitle": "Proksilar",
-    "vpnInReserve": "VPN proksilar",
-    "plainInReserve": "Oddiy proksilar",
-    "plainBroughtIn": "Oddiy proksilarni olgan jarayonlar",
-    "vpnListsTitle": "VPN roʻyxatlari",
-    "uniqueConfigs": "Takrorlanmas konfiglar",
-    "plainListsTitle": "Oddiy proksi roʻyxatlari",
-    "uniqueProxies": "Takrorlanmas oddiy proksilar",
-    "singboxProcesses": "Ishlayotgan sing-box jarayonlari",
-    "ofProcesses": "{count} tadan",
-    "localProxies": "sing-boxdagi lokal proksilar",
-    "byProtocol": "Protokollar boʻyicha konfiglar",
-    "byKind": "Turlar boʻyicha oddiy proksilar",
-    "list": "Roʻyxat",
-    "updated": "Oʻzgargan",
-    "found": "Topilgan",
-    "new": "Yangi",
-    "skipped": "Oʻtkazilgan",
-    "downloadFailed": "Yuklab boʻlmadi: {error}",
-    "overview": {
-      "title": "Faollik",
-      "all": "Barcha faollik",
-      "lastRound": "Oxirgi raund",
-      "noRounds": "Hozircha raundlar boʻlmagan.",
-      "runningNow": "Hozir ishlamoqda",
-      "nothingRunning": "Hozir hech narsa ishlamayapti."
-    }
   },
   "common": {
     "loading": "Yuklanmoqda…",

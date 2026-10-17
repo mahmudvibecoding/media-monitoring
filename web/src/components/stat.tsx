@@ -8,18 +8,32 @@ export function Stats({ className, children }: { className?: string; children: R
   return <dl className={cn("grid gap-px overflow-hidden rounded-lg border bg-border", className)}>{children}</dl>;
 }
 
-// One of them: its name, with an icon if it has one, the number, and maybe a note below
+// One of them: its name, with an icon if it has one, the number, and maybe a note below; or, with iconOnly, the icon
+// beside the number, the name on hover (and for screen readers)
 export function Stat({
   label,
   value,
   note,
   icon: Icon,
+  iconOnly = false,
 }: {
   label: string;
   value: ReactNode;
   note?: string;
   icon?: ComponentType<{ className?: string }>;
+  iconOnly?: boolean;
 }) {
+  if (iconOnly && Icon) {
+    return (
+      <div className="bg-background px-4 py-3" title={label}>
+        <dt className="sr-only">{label}</dt>
+        <dd className="flex items-center gap-2.5 text-xl font-semibold tracking-tight tabular-nums">
+          <Icon className="size-5 shrink-0 text-muted-foreground" />
+          {value}
+        </dd>
+      </div>
+    );
+  }
   return (
     <div className="bg-background px-4 py-3">
       <dt className="flex items-center gap-1.5 leading-tight text-muted-foreground">

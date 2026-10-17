@@ -1,7 +1,6 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -9,19 +8,19 @@ import { youtubeChannelOptions, youtubeChannelVideosInfiniteOptions } from "@/ap
 import { ApiError } from "@/components/api-error";
 import { FoldedText } from "@/components/folded-text";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChannelPicture, ShortCard, VideoCard, YT_BUTTON } from "@/components/youtube-ui";
+import { ChannelPicture, ShortCard, VideoCard } from "@/components/youtube-ui";
 import { go } from "@/lib/address";
 import { formatCompact, formatCount, pluralOf } from "@/lib/format";
 import { FIRST_PAGE, nextPage } from "@/lib/pages";
 import { useLoadMore } from "@/lib/use-load-more";
 import { cn } from "@/lib/utils";
-import { channelOnYouTube, videosAddress, videosQuery } from "@/lib/youtube";
+import { videosAddress, videosQuery } from "@/lib/youtube";
 
-const KINDS = ["all", "video", "short"] as const;
+const KINDS = ["video", "short"] as const;
 type Kind = (typeof KINDS)[number];
 
-// The top of a channel's page, as YouTube's: its big round picture, its name, handle, subscribers and videos, the
-// first line of its description (the rest on asking), and a button to it on YouTube where YouTube has Subscribe
+// The top of a channel's page, as YouTube's: its big round picture, its name, handle, subscribers and videos, and the
+// first line of its description (the rest on asking); the picture stays at the top as the description opens
 export function ChannelDetails({ id }: { id: string }) {
   const t = useTranslations("youtubeChannel");
   const locale = useLocale();
@@ -37,7 +36,7 @@ export function ChannelDetails({ id }: { id: string }) {
     t("videoCount", { count: pluralOf(data.videos.all), formatted: formatCompact(data.videos.all, locale) }),
   ];
   return (
-    <section className="flex flex-col gap-4 font-roboto text-yt-text sm:flex-row sm:items-center sm:gap-6">
+    <section className="flex flex-col gap-4 font-roboto text-yt-text sm:flex-row sm:items-start sm:gap-6">
       <ChannelPicture url={data.avatar_url} size={160} className="size-24! sm:size-40!" />
       <div className="min-w-0 flex-1 space-y-2">
         <h1 className="text-2xl font-bold break-words sm:text-4xl">{name}</h1>
@@ -56,17 +55,13 @@ export function ChannelDetails({ id }: { id: string }) {
             buttonClassName="font-medium text-yt-text no-underline hover:no-underline"
           />
         )}
-        <a href={channelOnYouTube(id)} target="_blank" rel="noreferrer" className={cn(YT_BUTTON, "mt-1")}>
-          <ExternalLinkIcon className="size-4" />
-          {t("open")}
-        </a>
       </div>
     </section>
   );
 }
 
-// The channel's videos, newest first, in YouTube's tabs (all of them, only videos, or only Shorts, as the address
-// asks: ?kind=short) and its grid of covers, upright for Shorts. More load as the grid is scrolled down, as on
+// The channel's videos, newest first, in YouTube's tabs (its videos, or its Shorts, as the address asks: ?kind=short)
+// and its grid of covers, upright for Shorts. More load as the grid is scrolled down, as on
 // YouTube.
 export function ChannelVideos({ id }: { id: string }) {
   const t = useTranslations("youtubeChannel");
@@ -77,9 +72,9 @@ export function ChannelVideos({ id }: { id: string }) {
     getNextPageParam: nextPage("videos"),
   });
   const marker = useLoadMore({ more: !!hasNextPage, loading: isFetchingNextPage, load: fetchNextPage });
-  const kind: Kind = query.kind ?? "all";
+  const kind: Kind = query.kind === "short" ? "short" : "video";
   const videos = data?.pages.flatMap((page) => page.videos) ?? [];
-  const labels: Record<Kind, string> = { all: t("all"), video: t("videos"), short: t("shorts") };
+  const labels: Record<Kind, string> = { video: t("videos"), short: t("shorts") };
 
   let list;
   if (!data) {
@@ -114,9 +109,7 @@ export function ChannelVideos({ id }: { id: string }) {
             key={option}
             type="button"
             aria-current={option === kind ? "page" : undefined}
-            onClick={() =>
-              go(videosAddress({ kind: option === "video" || option === "short" ? option : undefined }), "push")
-            }
+            onClick={() => go(videosAddress({ kind: option }), "push")}
             className={cn(
               "-mb-px flex h-12 items-center gap-1.5 border-b-2 text-base font-medium",
               option === kind ? "border-yt-text text-yt-text" : "border-transparent text-yt-muted hover:text-yt-text",

@@ -2,6 +2,7 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { getTranslations } from "next-intl/server";
 
 import { latestRunsOptions, statusOptions } from "@/api/@tanstack/react-query.gen";
+import { EnglishOnly } from "@/components/english-only";
 import { LatestActivity } from "@/components/latest-activity";
 import { Status } from "@/components/status";
 import { serverClient, signedInUser } from "@/lib/api-server";
@@ -31,7 +32,9 @@ export default async function Home() {
       <h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Status />
-        <LatestActivity />
+        <EnglishOnly>
+          <LatestActivity />
+        </EnglishOnly>
       </HydrationBoundary>
     </div>
   );

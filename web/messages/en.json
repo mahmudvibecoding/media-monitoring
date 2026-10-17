@@ -41,8 +41,6 @@
   "youtubeChannel": {
     "subscribers": "{count, plural, one {{formatted} subscriber} other {{formatted} subscribers}}",
     "subscribersHidden": "Subscribers hidden",
-    "open": "Open on YouTube",
-    "all": "All",
     "videos": "Videos",
     "shorts": "Shorts",
     "unavailable": "Unavailable",

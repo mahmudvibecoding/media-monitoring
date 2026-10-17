@@ -11,7 +11,7 @@ import { serverClient, signedInUser } from "@/lib/api-server";
 import { getQueryClient } from "@/lib/query-client";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("activity");
+  const t = await getTranslations({ locale: "en", namespace: "activity" });
   return { title: t("title") };
 }
 
@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ActivityPage({ searchParams }: PageProps<"/activity">) {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();
-  const t = await getTranslations("activity");
+  const t = await getTranslations({ locale: "en", namespace: "activity" }); // in English, as the whole activity
   const query = runsQuery(toSearchParams(await searchParams));
   const queryClient = getQueryClient();
   await queryClient.prefetchQuery(runsOptions({ client: serverClient, query }));

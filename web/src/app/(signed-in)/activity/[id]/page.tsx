@@ -29,7 +29,7 @@ function idOf(given: string): number | null {
 export async function generateMetadata({ params }: PageProps<"/activity/[id]">): Promise<Metadata> {
   const run = await loadRun(idOf((await params).id));
   if (!run) return {};
-  const steps: Record<string, { name: string }> = (await getMessages()).activity.steps;
+  const steps: Record<string, { name: string }> = (await getMessages({ locale: "en" })).activity.steps;
   return { title: steps[run.step]?.name ?? run.step };
 }
 
@@ -40,7 +40,7 @@ export default async function RunPage({ params }: PageProps<"/activity/[id]">) {
   const id = idOf((await params).id);
   const run = await loadRun(id);
   if (id === null || run === null) notFound();
-  const t = await getTranslations("activity");
+  const t = await getTranslations({ locale: "en", namespace: "activity" }); // in English, as the whole activity
   const queryClient = getQueryClient();
   if (run) queryClient.setQueryData(runDetailsQueryKey({ path: { run_id: id } }), run);
   return (

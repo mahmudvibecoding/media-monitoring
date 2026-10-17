@@ -21,14 +21,13 @@ export function channelsAddress(query: ChannelsQuery): string {
   return addressOf({ search: query.search, page: query.page });
 }
 
-// A channel's videos: of which kind (?kind=short); more of them load as the list is scrolled, so no page
+// A channel's videos: its videos, or its Shorts (?kind=short); more of them load as the list is scrolled, so no page
 export function videosQuery(params: URLSearchParams): VideosQuery {
-  const kind = params.get("kind");
-  return kind === "video" || kind === "short" ? { kind } : {};
+  return { kind: params.get("kind") === "short" ? "short" : "video" };
 }
 
 export function videosAddress(query: VideosQuery): string {
-  return addressOf({ kind: query.kind ?? undefined });
+  return addressOf({ kind: query.kind === "short" ? "short" : undefined });
 }
 
 // Addresses on YouTube itself

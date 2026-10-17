@@ -168,8 +168,10 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   Addresses are the same in every language, since search engines see nothing but the sign-in page.
 - Counts are written by the site's own function (`src/lib/format.ts`), not the browser's `Intl`: Chrome's Uzbek data
   writes 55,859 where Node's writes 55 859, and the browser would rewrite what the server rendered.
-- The texts are in `web/messages/` (`ru.json`, `uz.json`, `en.json`): a key missing from one, or asked for by a page
-  but not there, fails the typecheck.
+- The texts are in `web/messages/` (`ru.json`, `uz.json`, `en.json`): a key missing from one, or asked for by a page but
+  not there, fails the typecheck. The activity is only in English, whatever the language chosen, its numbers, dates and
+  times too: its texts are only in `en.json`, and its pages and the overview's activity have an English frame of their
+  own (`EnglishOnly`).
 - The font is Inter, and Roboto on YouTube's and Telegram's pages: Geist, Next's and shadcn's own, has no `ʻ`, which
   Uzbek writes oʻ and gʻ with; both of these have it.
 - `web/src/api/` is the API's client, generated from `openapi.json` (`pnpm api`), so an endpoint or a field the API

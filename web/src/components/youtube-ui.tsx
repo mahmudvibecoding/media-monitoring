@@ -50,9 +50,7 @@ export function YouTubeMasthead({ up }: { up: string }) {
   );
 }
 
-// YouTube's button, black like its Subscribe button; and its grey pill, for a count, which can't be clicked
-export const YT_BUTTON =
-  "inline-flex h-9 items-center gap-2 rounded-full bg-yt-text px-4 text-sm font-medium text-white hover:bg-[#272727]";
+// YouTube's grey pill, for a count, which can't be clicked
 export const YT_PILL =
   "inline-flex h-9 items-center gap-2 rounded-full bg-yt-chip px-4 text-sm font-medium text-yt-text";
 
@@ -183,7 +181,10 @@ function Cover({
   );
 }
 
-// The video playing over its cover, without sound or controls; the cover shows through until the player has loaded. As
+// The video playing over its cover, as YouTube's previews play: the video alone, without sound, controls or the player's
+// own lines. The player still puts the video's title along its top and its logo along its bottom, so it's 60 px taller
+// than the cover at each end: the video, as wide as the cover, fills the cover's height in its middle, and what's
+// along its ends falls outside the cover, which cuts it off. The cover shows through until the player has loaded. As
 // its page goes (Next keeps it alive, hidden), the player is unloaded at once.
 function Preview({ video }: { video: YouTubeVideo }) {
   const [loaded, setLoaded] = useState(false);
@@ -197,14 +198,14 @@ function Preview({ video }: { video: YouTubeVideo }) {
   return (
     <iframe
       ref={frame}
-      src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=1&playlist=${video.id}&iv_load_policy=3&disablekb=1`}
+      src={`https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=1&playlist=${video.id}&iv_load_policy=3&disablekb=1&fs=0&cc_load_policy=0`}
       title={video.title ?? video.id}
       allow="autoplay; encrypted-media; picture-in-picture"
       tabIndex={-1}
       aria-hidden="true"
       onLoad={() => setLoaded(true)}
       className={cn(
-        "pointer-events-none absolute inset-0 size-full transition-opacity duration-300",
+        "pointer-events-none absolute inset-x-0 -top-[60px] h-[calc(100%+120px)] w-full transition-opacity duration-300",
         loaded ? "opacity-100" : "opacity-0",
       )}
     />
