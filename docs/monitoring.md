@@ -166,7 +166,9 @@ subscriber count from its public page.
   `t.me/<username>`, has the exact count, but Telegram answers about 10 of those a second per address, against
   hundreds of public pages.
 - **The newest message, once.** A channel without a last message yet gets the newest one on its page (for an album,
-  its last item), so reading its messages can start there.
+  its last item), so reading its messages can start there. While the page's newest message is still that one, its time
+  is taken from the page again: a time is the message's date link's, and one read wrong, like a scheduled stream's
+  time in its notice ("Live stream scheduled for Oct 18 at 16:00"), is put right.
 - **Through the proxies, like YouTube's steps.** A hidden page goes out again through another proxy, up to ten
   times, and the proxy keeps working: Telegram hides some channels from an address, not all of them. From the
   server's own address alone, Telegram hid about half the pages at 500 a second; at about 30,000 requests a second,
