@@ -6,11 +6,12 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { cache } from "react";
 
-import { youtubeChannelQueryKey, youtubeChannelVideosOptions } from "@/api/@tanstack/react-query.gen";
+import { youtubeChannelQueryKey, youtubeChannelVideosInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import { youtubeChannel } from "@/api/sdk.gen";
 import { ChannelDetails, ChannelVideos } from "@/components/youtube-channel";
 import { toSearchParams } from "@/lib/address";
 import { serverClient, signedInUser } from "@/lib/api-server";
+import { FIRST_PAGE } from "@/lib/pages";
 import { getQueryClient } from "@/lib/query-client";
 import { videosQuery } from "@/lib/youtube";
 
@@ -27,8 +28,8 @@ export async function generateMetadata({ params }: PageProps<"/youtube/channels/
   return channel ? { title: channel.title?.trim() || channel.id } : {};
 }
 
-// A monitored YouTube channel, for admins: its details, and its videos as the address asks for them (kind, page). The
-// page arrives with both, and the browser takes over from there.
+// A monitored YouTube channel, for admins: its details, and its videos of the kind the address asks for. The page
+// arrives with both (the first 50 videos), and the browser takes over from there.
 export default async function YouTubeChannelPage({ params, searchParams }: PageProps<"/youtube/channels/[id]">) {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();
@@ -39,14 +40,15 @@ export default async function YouTubeChannelPage({ params, searchParams }: PageP
   const query = videosQuery(toSearchParams(await searchParams));
   const queryClient = getQueryClient();
   if (channel) queryClient.setQueryData(youtubeChannelQueryKey({ path: { channel_id: id } }), channel);
-  await queryClient.prefetchQuery(
-    youtubeChannelVideosOptions({ client: serverClient, path: { channel_id: id }, query }),
-  );
+  await queryClient.prefetchInfiniteQuery({
+    ...youtubeChannelVideosInfiniteOptions({ client: serverClient, path: { channel_id: id }, query }),
+    ...FIRST_PAGE,
+  });
   return (
     <div className="space-y-6">
       <Link
         href="/youtube/channels"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
       >
         <ChevronLeftIcon className="size-4" />
         {t("back")}

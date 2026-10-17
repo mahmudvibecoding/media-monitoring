@@ -15,7 +15,7 @@ export default async function Home() {
   if (user?.role !== "admin") {
     return (
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">{t("greeting", { name: user?.name ?? "" })}</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t("greeting", { name: user?.name ?? "" })}</h1>
         <p className="text-muted-foreground">{t("empty")}</p>
       </div>
     );
@@ -28,7 +28,7 @@ export default async function Home() {
   ]);
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Status />
         <LatestActivity />

@@ -8,8 +8,8 @@ import { runDetailsOptions } from "@/api/@tanstack/react-query.gen";
 import type { RunWithSteps } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { LIVE_EVERY } from "@/components/activity";
-import { OutcomeBadge, RunRow, useRunTexts } from "@/components/runs";
-import { Stat } from "@/components/stat";
+import { Outcome, RunRow, useRunTexts } from "@/components/runs";
+import { Stat, Stats } from "@/components/stat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { anyRunning, countsOf, numberOf, secondsOf } from "@/lib/activity";
@@ -33,23 +33,23 @@ export function RunDetails({ id }: { id: number }) {
     <div className="space-y-8">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold">{name(data)}</h1>
-          <OutcomeBadge outcome={data.outcome} />
+          <h1 className="text-lg font-semibold tracking-tight">{name(data)}</h1>
+          <Outcome outcome={data.outcome} />
         </div>
-        <p className="text-sm text-muted-foreground tabular-nums">
+        <p className="text-muted-foreground tabular-nums">
           {t("started")}: {formatDateTime(data.started_at, locale)}
           {data.finished_at && ` · ${t("finished")}: ${formatDateTime(data.finished_at, locale)}`}
           {` · ${going ? t("goingFor") : t("took")}: ${formatSeconds(secondsOf(data), locale)}`}
         </p>
         {data.round_id !== null && (
-          <p className="text-sm">
-            <Link href={`/activity/${data.round_id}`} className="hover:underline">
+          <p>
+            <Link href={`/activity/${data.round_id}`} className="underline-offset-4 hover:underline">
               {t("inRound")}
             </Link>
           </p>
         )}
         {data.summary && (
-          <p className="max-w-3xl rounded-lg bg-muted px-3 py-2 font-mono text-sm break-words">{data.summary}</p>
+          <p className="max-w-3xl rounded-md bg-muted px-3 py-2 font-mono text-xs break-words">{data.summary}</p>
         )}
       </header>
       {data.step === "round" ? (
@@ -68,9 +68,9 @@ function Steps({ run }: { run: RunWithSteps }) {
   const t = useTranslations("activity");
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold">{t("stepsTitle")}</h2>
+      <h2 className="font-medium">{t("stepsTitle")}</h2>
       {run.steps?.length ? (
-        <ul className="divide-y rounded-xl border">
+        <ul className="divide-y overflow-hidden rounded-lg border">
           {run.steps.map((step) => (
             <li key={step.id}>
               <RunRow run={step} />
@@ -98,15 +98,15 @@ function StepNumbers({ run }: { run: RunWithSteps }) {
   return (
     <div className="space-y-8">
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("work")}</h2>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <h2 className="font-medium">{t("work")}</h2>
+        <Stats className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label={t("toDo", { items: texts.items ?? "" })} value={count(numberOf(numbers, "items"))} />
           <Stat label={t("done")} value={count(numberOf(numbers, "done"))} />
           <Stat label={texts.saved ?? t("saved")} value={count(numberOf(numbers, "saved"))} />
           <Stat label={t("processes")} value={count(processes)} />
           <Stat label={t("speed")} value={count(numberOf(numbers, "requests_per_second"))} />
           <Stat label={t("workingProxies")} value={count(numberOf(numbers, "working_proxies"))} />
-        </dl>
+        </Stats>
       </section>
       <div className="grid gap-6 md:grid-cols-3">
         <Counts title={t("outcomesTitle")} counts={countsOf(numbers, "results")} names={texts.results ?? {}} />
@@ -114,15 +114,15 @@ function StepNumbers({ run }: { run: RunWithSteps }) {
         <Counts title={t("proxyTestsTitle")} counts={countsOf(numbers, "proxy_tests")} names={requestNames} />
       </div>
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("proxiesTitle")}</h2>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <h2 className="font-medium">{t("proxiesTitle")}</h2>
+        <Stats className="sm:grid-cols-3">
           <Stat label={t("vpnInReserve")} value={count(numberOf(numbers, "vpn_proxies"))} />
           <Stat label={t("plainInReserve")} value={count(numberOf(numbers, "plain_proxies"))} />
           <Stat
             label={t("plainBroughtIn")}
             value={brought === undefined ? "—" : `${formatCount(brought, locale)} / ${count(processes)}`}
           />
-        </dl>
+        </Stats>
       </section>
     </div>
   );
@@ -136,8 +136,8 @@ function ProxiesNumbers({ numbers }: { numbers: Record<string, unknown> }) {
   return (
     <div className="space-y-8">
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("proxiesTitle")}</h2>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <h2 className="font-medium">{t("proxiesTitle")}</h2>
+        <Stats className="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label={t("vpnListsTitle")} value={count(numberOf(numbers, "vpn", "lists"))} />
           <Stat label={t("uniqueConfigs")} value={count(numberOf(numbers, "vpn", "unique"))} />
           <Stat label={t("plainListsTitle")} value={count(numberOf(numbers, "plain", "lists"))} />
@@ -152,7 +152,7 @@ function ProxiesNumbers({ numbers }: { numbers: Record<string, unknown> }) {
             }
           />
           <Stat label={t("localProxies")} value={count(numberOf(numbers, "singbox", "local_proxies"))} />
-        </dl>
+        </Stats>
       </section>
       <div className="grid gap-6 md:grid-cols-2">
         <Counts title={t("byProtocol")} counts={countsOf(numbers, "vpn", "protocols")} names={{}} />
@@ -178,8 +178,8 @@ function Counts({
   if (!counts.length) return null;
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="rounded-xl border">
+      <h2 className="font-medium">{title}</h2>
+      <div className="overflow-hidden rounded-lg border">
         <Table>
           <TableBody>
             {counts.map(([key, value]) => (
@@ -212,8 +212,8 @@ function Lists({ title, lists }: { title: string; lists: unknown[] | undefined }
   if (!lists?.length) return null;
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <div className="rounded-xl border">
+      <h2 className="font-medium">{title}</h2>
+      <div className="overflow-hidden rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -261,13 +261,9 @@ function DetailsSkeleton() {
   return (
     <div className="space-y-6" aria-busy="true">
       <span className="sr-only">{t("loading")}</span>
-      <Skeleton className="h-8 w-72" />
+      <Skeleton className="h-7 w-72" />
       <Skeleton className="h-4 w-96 max-w-full" />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {Array.from({ length: 6 }, (_, box) => (
-          <Skeleton key={box} className="h-20 rounded-xl" />
-        ))}
-      </div>
+      <Skeleton className="h-20 rounded-lg" />
     </div>
   );
 }

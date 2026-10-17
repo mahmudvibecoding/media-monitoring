@@ -1,186 +1,266 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon } from "lucide-react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { CheckIcon, EyeIcon, MessageCircleIcon, ThumbsUpIcon, UserIcon } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
+import type { ReactNode } from "react";
 
-import { youtubeVideoCommentsOptions, youtubeVideoOptions } from "@/api/@tanstack/react-query.gen";
+import {
+  youtubeChannelVideosOptions,
+  youtubeVideoCommentsInfiniteOptions,
+  youtubeVideoOptions,
+} from "@/api/@tanstack/react-query.gen";
 import type { YouTubeComment } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
+import { YouTubeLogo } from "@/components/brand-icons";
 import { FoldedText } from "@/components/folded-text";
-import { Pages } from "@/components/pages";
-import { Stat } from "@/components/stat";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { go } from "@/lib/address";
-import { formatCount, formatDateTime, formatDuration, formatWhen } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { channelOnYouTube, commentsAddress, commentsQuery, thumbnail, videoOnYouTube } from "@/lib/youtube";
+import { When } from "@/components/when";
+import { ChannelPicture, SmallVideoCard, YT_BUTTON_GREY } from "@/components/youtube-ui";
+import { formatCompact, formatCount, formatDateTime, formatDuration, formatWhen, pluralOf } from "@/lib/format";
+import { FIRST_PAGE, nextPage } from "@/lib/pages";
+import { useLoadMore } from "@/lib/use-load-more";
+import { channelOnYouTube, thumbnail, videoOnYouTube } from "@/lib/youtube";
 
-// The top of a video's page: its cover, title, channel and dates, a link to it on YouTube, its numbers, and its
-// description
-export function VideoDetails({ id }: { id: string }) {
+// A video's page, laid out like YouTube's: the cover where YouTube has the player (it opens the video on YouTube), the
+// title, the channel with its picture and subscribers, the counts in YouTube's pills, the description in its grey box,
+// and the comments; beside it, more from the same channel
+export function VideoPage({ id }: { id: string }) {
+  return (
+    <div className="grid gap-6 font-roboto text-yt-text xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="min-w-0 space-y-6">
+        <VideoDetails id={id} />
+        <VideoComments id={id} />
+      </div>
+      <MoreFromChannel id={id} />
+    </div>
+  );
+}
+
+function VideoDetails({ id }: { id: string }) {
   const t = useTranslations("youtubeVideo");
+  const channelTexts = useTranslations("youtubeChannel");
   const locale = useLocale();
   const { data, error, isFetching, refetch } = useQuery(youtubeVideoOptions({ path: { video_id: id } }));
   if (!data) {
     return error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <DetailsSkeleton />;
   }
-  const count = (value: number | null) => (value === null ? "—" : formatCount(value, locale));
+  const channel = data.channel_title?.trim() || data.channel_id;
+  const pill = (icon: ReactNode, value: number | null, label: string) =>
+    value === null ? null : (
+      <span className={YT_BUTTON_GREY} title={`${label}: ${formatCount(value, locale)}`}>
+        {icon}
+        <span className="tabular-nums">{formatCompact(value, locale, true)}</span>
+        <span className="sr-only">{label}</span>
+      </span>
+    );
   return (
-    <section className="space-y-5">
-      <div className="flex flex-wrap gap-5">
-        {/* Straight from YouTube: Next's image optimizer would fetch it through the site's server, which can't reach
-            the internet. The 16:9 frame cuts off the black bars of the 480 × 360 cover. */}
+    <section className="space-y-3">
+      <a
+        href={videoOnYouTube(id)}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={t("watch")}
+        className="group relative block aspect-video overflow-hidden rounded-xl bg-black"
+      >
+        {/* Straight from YouTube, as the covers in the lists */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={thumbnail(id, "hq")}
           alt=""
-          width={480}
-          height={360}
           referrerPolicy="no-referrer"
-          className="aspect-video w-full rounded-lg bg-muted object-cover sm:w-80"
+          className="size-full object-cover transition-opacity group-hover:opacity-85"
         />
-        <div className="min-w-0 flex-1 basis-72 space-y-3">
-          <h1 className="text-xl font-semibold break-words">{data.title?.trim() || data.id}</h1>
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-            <Link href={`/youtube/channels/${data.channel_id}`} className="font-medium text-foreground hover:underline">
-              {data.channel_title?.trim() || data.channel_id}
-            </Link>
-            {data.published_at && <span>{formatDateTime(data.published_at, locale)}</span>}
-            {data.duration !== null && <span className="tabular-nums">{formatDuration(data.duration)}</span>}
-            {data.kind === "short" && <Badge variant="secondary">{t("short")}</Badge>}
-            {!data.available && <Badge variant="outline">{t("unavailable")}</Badge>}
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            nativeButton={false}
-            render={<a href={videoOnYouTube(id)} target="_blank" rel="noreferrer" />}
-          >
-            <ExternalLinkIcon />
-            {t("watch")}
-          </Button>
+        <span className="absolute inset-0 flex items-center justify-center">
+          <YouTubeLogo className="h-12 w-17 opacity-90 drop-shadow-lg transition-opacity group-hover:opacity-100" />
+        </span>
+        {data.duration !== null && (
+          <span className="absolute right-2 bottom-2 rounded bg-black/80 px-1.5 py-0.5 text-xs font-medium text-white tabular-nums">
+            {formatDuration(data.duration)}
+          </span>
+        )}
+      </a>
+      <h1 className="text-xl leading-7 font-bold break-words">{data.title?.trim() || data.id}</h1>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <Link href={`/youtube/channels/${data.channel_id}`} className="flex min-w-0 items-center gap-3">
+          <ChannelPicture url={data.channel_avatar_url} size={40} />
+          <span className="min-w-0">
+            <span className="block truncate text-base font-medium">{channel}</span>
+            {data.channel_subscribers !== null && (
+              <span className="block text-xs text-yt-muted" title={formatCount(data.channel_subscribers, locale)}>
+                {channelTexts("subscribers", {
+                  count: pluralOf(data.channel_subscribers),
+                  formatted: formatCompact(data.channel_subscribers, locale),
+                })}
+              </span>
+            )}
+          </span>
+        </Link>
+        <div className="flex flex-wrap gap-2 sm:ml-auto">
+          {pill(<ThumbsUpIcon className="size-4" />, data.likes, t("likes"))}
+          {pill(<MessageCircleIcon className="size-4" />, data.comments, t("comments"))}
+          <a href={channelOnYouTube(data.channel_id)} target="_blank" rel="noreferrer" className={YT_BUTTON_GREY}>
+            {channelTexts("open")}
+          </a>
         </div>
       </div>
-      <div className="space-y-2">
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label={t("views")} value={count(data.views)} />
-          <Stat label={t("likes")} value={count(data.likes)} />
-          <Stat label={t("comments")} value={count(data.comments)} />
-          <Stat
-            label={t("collected")}
-            value={formatCount(data.comments_collected, locale)}
-            note={data.comments_complete ? t("complete") : t("incomplete")}
+      <div className="space-y-1 rounded-xl bg-yt-chip p-3 text-sm">
+        <p className="font-medium">
+          {data.views !== null && (
+            <span className="mr-2 inline-flex items-center gap-1" title={t("views")}>
+              <EyeIcon className="size-4" />
+              {formatCount(data.views, locale)}
+            </span>
+          )}
+          {data.published_at && <When iso={data.published_at} youtube />}
+          {data.kind === "short" && <span className="ml-2 text-yt-muted">#Shorts</span>}
+          {!data.available && <span className="ml-2 text-yt-muted">{t("unavailable")}</span>}
+        </p>
+        {data.description?.trim() && (
+          <FoldedText
+            text={data.description.trim()}
+            lines={3}
+            buttonClassName="font-medium text-yt-text no-underline hover:no-underline"
           />
-        </dl>
-        <p className="text-xs text-muted-foreground">
+        )}
+        <p className="pt-1 text-xs text-yt-muted">
           {data.stats_updated_at
             ? t("statsAsOf", { when: formatDateTime(data.stats_updated_at, locale) })
             : t("noStats")}
         </p>
       </div>
-      {data.description?.trim() && (
-        <div className="max-w-3xl">
-          <FoldedText text={data.description.trim()} lines={3} className="text-sm text-muted-foreground" />
-        </div>
-      )}
     </section>
   );
 }
 
-// The video's collected comments, newest first, a page at a time, as the address asks for (?page=2). How many there
-// are, for the pages, comes with the video's details. While the next page loads, the last one stays, dimmed.
-export function VideoComments({ id }: { id: string }) {
+// The collected comments, newest first, as YouTube lists them: the author, when, whether it was edited, and the text,
+// folded after four lines. More load as the list is scrolled down. Their number comes with the video's details.
+function VideoComments({ id }: { id: string }) {
   const t = useTranslations("youtubeVideo");
-  const query = commentsQuery(useSearchParams());
-  const total = useQuery(youtubeVideoOptions({ path: { video_id: id } })).data?.comments_collected;
-  const { data, error, isFetching, isPlaceholderData, refetch } = useQuery({
-    ...youtubeVideoCommentsOptions({ path: { video_id: id }, query }),
-    placeholderData: keepPreviousData,
+  const locale = useLocale();
+  const video = useQuery(youtubeVideoOptions({ path: { video_id: id } })).data;
+  const { data, error, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, refetch } = useInfiniteQuery({
+    ...youtubeVideoCommentsInfiniteOptions({ path: { video_id: id } }),
+    ...FIRST_PAGE,
+    getNextPageParam: nextPage("comments"),
   });
-  const section = useRef<HTMLElement>(null);
-  const page = query.page ?? 1;
-  let pages = page; // without the video's count (it failed to load), a full page means there's another
-  if (data) {
-    pages =
-      total !== undefined
-        ? Math.max(1, Math.ceil(total / data.page_size))
-        : page + Number(data.comments.length === data.page_size);
-  }
-
-  // Past the last page (an old link, or fewer comments since): the last page instead
-  const pastTheEnd = !!data && !isPlaceholderData && data.comments.length === 0 && page > 1;
-  useEffect(() => {
-    if (pastTheEnd) go(commentsAddress({ page: pages > 1 && pages < page ? pages : undefined }), "replace");
-  }, [pastTheEnd, page, pages]);
-
-  // A new page of comments starts at their heading, not at the top of the video's page
-  function turn(to: number) {
-    go(commentsAddress({ page: to > 1 ? to : undefined }), "push");
-    section.current?.scrollIntoView({ block: "start" });
-  }
+  const marker = useLoadMore({ more: !!hasNextPage, loading: isFetchingNextPage, load: fetchNextPage });
+  const comments = data?.pages.flatMap((page) => page.comments) ?? [];
 
   let list;
   if (!data) {
     list = error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <CommentsSkeleton />;
-  } else if (data.comments.length === 0) {
-    list = page === 1 && <p className="text-muted-foreground">{t("none")}</p>;
+  } else if (comments.length === 0) {
+    list = <p className="text-yt-muted">{t("none")}</p>;
   } else {
     list = (
       <>
-        <ul className={cn("divide-y rounded-xl border px-4 transition-opacity", isPlaceholderData && "opacity-60")}>
-          {data.comments.map((comment) => (
+        <ul className="space-y-6">
+          {comments.map((comment) => (
             <Comment key={comment.id} comment={comment} />
           ))}
         </ul>
-        {pages > 1 && <Pages page={page} pages={pages} turn={turn} />}
+        <div ref={marker} />
+        {isFetchingNextPage && <CommentsSkeleton rows={2} />}
       </>
     );
   }
 
   return (
-    <section ref={section} className="scroll-mt-4 space-y-4">
-      <h2 className="text-lg font-semibold">{t("commentsTitle")}</h2>
+    <section className="space-y-6">
+      {video && (
+        <div className="flex flex-wrap items-baseline gap-x-3">
+          <h2 className="text-xl font-bold">
+            {t("commentCount", {
+              count: video.comments_collected,
+              formatted: formatCount(video.comments_collected, locale),
+            })}
+          </h2>
+          <span
+            className="inline-flex items-center gap-1 text-sm text-yt-muted"
+            title={video.comments_complete ? t("complete") : t("incomplete")}
+          >
+            {video.comments_complete && <CheckIcon className="size-4" />}
+            {video.comments_complete ? t("complete") : t("incomplete")}
+          </span>
+        </div>
+      )}
       {list}
     </section>
   );
 }
 
-// A comment: its author (their channel on YouTube), when it was written, as precisely as YouTube said it, whether it
-// was edited, and its text, folded after six lines
+// A comment, as YouTube shows it: a round picture (a figure: YouTube doesn't give the authors' pictures with their
+// comments), the author (their channel on YouTube), how long ago, as precisely as YouTube said it, and the text
 function Comment({ comment }: { comment: YouTubeComment }) {
   const t = useTranslations("youtubeVideo");
   const locale = useLocale();
   const author = comment.author_name?.trim() || "—";
   return (
-    <li className="space-y-1 py-3">
-      <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
-        {comment.author_channel_id ? (
-          <a
-            href={channelOnYouTube(comment.author_channel_id)}
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium break-all hover:underline"
-          >
-            {author}
-          </a>
-        ) : (
-          <span className="font-medium break-all">{author}</span>
+    <li className="flex gap-4">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-yt-chip">
+        <UserIcon className="size-5 text-yt-muted" strokeWidth={1.5} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-baseline gap-x-1.5 text-[13px]">
+          {comment.author_channel_id ? (
+            <a
+              href={channelOnYouTube(comment.author_channel_id)}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium break-all"
+            >
+              {author}
+            </a>
+          ) : (
+            <span className="font-medium break-all">{author}</span>
+          )}
+          {comment.written_at && (
+            <When
+              iso={comment.written_at}
+              youtube
+              title={formatWhen(comment.written_at, comment.precision, locale)}
+              className="text-xs text-yt-muted"
+            />
+          )}
+          {comment.edited && <span className="text-xs text-yt-muted">({t("edited")})</span>}
+        </p>
+        {comment.text && (
+          <FoldedText
+            text={comment.text}
+            lines={4}
+            className="mt-0.5 text-sm leading-5"
+            buttonClassName="font-medium text-yt-muted no-underline hover:text-yt-text hover:no-underline"
+          />
         )}
-        {comment.written_at && (
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {formatWhen(comment.written_at, comment.precision, locale)}
-          </span>
-        )}
-        {comment.edited && <span className="text-xs text-muted-foreground">{t("edited")}</span>}
-      </p>
-      {comment.text && <FoldedText text={comment.text} lines={6} className="text-sm" />}
+      </div>
     </li>
+  );
+}
+
+// Beside the video, as YouTube's next ones: the channel's newest videos (its first page, the same the channel's page
+// asks for), without this one
+function MoreFromChannel({ id }: { id: string }) {
+  const t = useTranslations("youtubeVideo");
+  const video = useQuery(youtubeVideoOptions({ path: { video_id: id } })).data;
+  const { data } = useQuery({
+    ...youtubeChannelVideosOptions({ path: { channel_id: video?.channel_id ?? "" } }),
+    enabled: !!video,
+  });
+  if (!video || !data) return null;
+  const others = data.videos.filter((other) => other.id !== id).slice(0, 20);
+  if (!others.length) return null;
+  const channel = video.channel_title?.trim() || video.channel_id;
+  return (
+    <aside className="space-y-3">
+      <h2 className="text-base font-medium">{t("moreFrom", { channel })}</h2>
+      <ul className="space-y-2">
+        {others.map((other) => (
+          <SmallVideoCard key={other.id} video={other} channel={channel} />
+        ))}
+      </ul>
+    </aside>
   );
 }
 
@@ -188,27 +268,31 @@ function Comment({ comment }: { comment: YouTubeComment }) {
 function DetailsSkeleton() {
   const t = useTranslations("common");
   return (
-    <div className="flex flex-wrap gap-5" aria-busy="true">
+    <div className="space-y-3" aria-busy="true">
       <span className="sr-only">{t("loading")}</span>
-      <Skeleton className="aspect-video w-full rounded-lg sm:w-80" />
-      <div className="flex-1 basis-72 space-y-3">
-        <Skeleton className="h-7 w-full max-w-md" />
-        <Skeleton className="h-4 w-60" />
+      <Skeleton className="aspect-video rounded-xl" />
+      <Skeleton className="h-7 w-full max-w-2xl" />
+      <div className="flex items-center gap-3">
+        <Skeleton className="size-10 rounded-full" />
+        <Skeleton className="h-4 w-48" />
       </div>
     </div>
   );
 }
 
-// The comments' shape while the first of them load
-function CommentsSkeleton() {
+// The comments' shape while they load
+function CommentsSkeleton({ rows = 6 }: { rows?: number }) {
   const t = useTranslations("common");
   return (
-    <div className="space-y-4 rounded-xl border p-4" aria-busy="true">
+    <div className="space-y-6" aria-busy="true">
       <span className="sr-only">{t("loading")}</span>
-      {Array.from({ length: 6 }, (_, row) => (
-        <div key={row} className="space-y-2">
-          <Skeleton className="h-4 w-48" />
-          <Skeleton className="h-4 w-full max-w-xl" />
+      {Array.from({ length: rows }, (_, row) => (
+        <div key={row} className="flex gap-4">
+          <Skeleton className="size-10 shrink-0 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3 w-40" />
+            <Skeleton className="h-4 w-full max-w-xl" />
+          </div>
         </div>
       ))}
     </div>

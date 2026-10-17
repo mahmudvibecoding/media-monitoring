@@ -26,7 +26,7 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
   await queryClient.prefetchQuery(runsOptions({ client: serverClient, query }));
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Activity />
       </HydrationBoundary>

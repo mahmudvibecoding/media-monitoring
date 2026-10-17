@@ -1,8 +1,7 @@
-import type { TelegramChannelMessagesData, TelegramChannelsData } from "@/api/types.gen";
+import type { TelegramChannelsData } from "@/api/types.gen";
 import { addressOf, pageOf, searchOf } from "@/lib/address";
 
 export type TelegramChannelsQuery = NonNullable<TelegramChannelsData["query"]>;
-export type MessagesQuery = NonNullable<TelegramChannelMessagesData["query"]>;
 
 // The queries below come from a page's address: only values the API takes, and none that's its default, so the server
 // and the browser build the same query, and so the same key for TanStack Query's cache
@@ -21,16 +20,6 @@ export function telegramChannelsQuery(params: URLSearchParams): TelegramChannels
 
 export function telegramChannelsAddress(query: TelegramChannelsQuery): string {
   return addressOf({ search: query.search, sort: query.sort, page: query.page });
-}
-
-// A channel's messages: which page (?page=2)
-export function messagesQuery(params: URLSearchParams): MessagesQuery {
-  const page = pageOf(params);
-  return page ? { page } : {};
-}
-
-export function messagesAddress(query: MessagesQuery): string {
-  return addressOf({ page: query.page });
 }
 
 // Addresses on Telegram itself: a channel's, and one of its messages'

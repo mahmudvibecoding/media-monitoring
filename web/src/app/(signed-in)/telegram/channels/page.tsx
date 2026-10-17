@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { telegramChannelsOptions } from "@/api/@tanstack/react-query.gen";
+import { TelegramLogo } from "@/components/brand-icons";
 import { TelegramChannels } from "@/components/telegram-channels";
 import { toSearchParams } from "@/lib/address";
 import { serverClient, signedInUser } from "@/lib/api-server";
@@ -26,7 +27,10 @@ export default async function TelegramChannelsPage({ searchParams }: PageProps<"
   await queryClient.prefetchQuery(telegramChannelsOptions({ client: serverClient, query }));
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="mx-auto flex max-w-3xl items-center gap-2 font-roboto text-xl font-medium text-tg-text">
+        <TelegramLogo className="size-7" />
+        {t("title")}
+      </h1>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <TelegramChannels />
       </HydrationBoundary>

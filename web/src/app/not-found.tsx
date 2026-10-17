@@ -11,7 +11,7 @@ export default async function NotFound() {
     <>
       <Header />
       <main className="mx-auto max-w-7xl space-y-4 px-6 py-8">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">{t("description")}</p>
         <Button nativeButton={false} render={<Link href="/" />}>
           {t("home")}

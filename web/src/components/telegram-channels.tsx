@@ -1,7 +1,6 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -10,21 +9,22 @@ import { useEffect } from "react";
 import { telegramChannelsOptions } from "@/api/@tanstack/react-query.gen";
 import type { TelegramChannel } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
-import { ListSkeleton } from "@/components/list-skeleton";
 import { Pages } from "@/components/pages";
 import { SearchBox } from "@/components/search-box";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChannelPhoto } from "@/components/telegram-ui";
+import { Skeleton } from "@/components/ui/skeleton";
 import { go } from "@/lib/address";
-import { formatCount, formatDateTime, initialOf } from "@/lib/format";
+import { formatChatDate, formatCompact, formatCount, formatDateTime, pluralOf } from "@/lib/format";
+import { telegramChannelsAddress, telegramChannelsQuery } from "@/lib/telegram";
+import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
-import { channelOnTelegram, telegramChannelsAddress, telegramChannelsQuery } from "@/lib/telegram";
 
-const ORDERS = ["subscribers", "name", "latest"] as const;
+const ORDERS = ["subscribers", "latest", "name"] as const;
 
-// The monitored Telegram channels, as the address asks for them, a page at a time: searched as one types, the biggest
-// first, by name, or the latest to post first. While the next list loads, the last one stays, dimmed.
+// The monitored Telegram channels, as the address asks for them, a page at a time, laid out like Telegram's list of
+// chats: a round picture, the name, @username and subscribers, and when the channel last posted. Searched as one types;
+// the biggest first, the latest to post first, or by name, in tabs like Telegram's folders. While the next page loads,
+// the last one stays, dimmed.
 export function TelegramChannels() {
   const t = useTranslations("telegramChannels");
   const locale = useLocale();
@@ -48,122 +48,135 @@ export function TelegramChannels() {
     window.scrollTo({ top: 0 });
   }
 
-  const labels = { subscribers: t("biggest"), name: t("byName"), latest: t("latest") };
+  const labels = { subscribers: t("biggest"), latest: t("latest"), name: t("byName") };
   let list;
   if (!data) {
-    list = error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <ListSkeleton />;
+    list = error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <ChatsSkeleton />;
   } else if (data.total === 0) {
-    list = <p className="text-muted-foreground">{search ? t("noMatch", { search }) : t("none")}</p>;
+    list = <p className="px-2 py-4 text-tg-muted">{search ? t("noMatch", { search }) : t("none")}</p>;
   } else {
     list = (
       <>
-        <div className={cn("rounded-xl border transition-opacity", isPlaceholderData && "opacity-60")}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-4">{t("channel")}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t("username")}</TableHead>
-                <TableHead className="hidden lg:table-cell">{t("latestPost")}</TableHead>
-                <TableHead className="pr-4 text-right">{t("subscribers")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.channels.map((channel) => (
-                <ChannelRow key={channel.id} channel={channel} />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ul className={cn("transition-opacity", isPlaceholderData && "opacity-60")}>
+          {data.channels.map((channel) => (
+            <ChatRow key={channel.id} channel={channel} />
+          ))}
+        </ul>
         {pages > 1 && <Pages page={page} pages={pages} turn={turn} />}
       </>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-3xl space-y-3 font-roboto text-tg-text">
       <div className="flex flex-wrap items-center gap-3">
         <SearchBox
+          look="telegram"
           search={search ?? ""}
           placeholder={t("search")}
           onSearch={(next) => go(telegramChannelsAddress({ search: next || undefined, sort }), "replace")}
         />
-        <Select
-          items={ORDERS.map((order) => ({ value: order, label: labels[order] }))}
-          value={sort ?? "subscribers"}
-          onValueChange={(value) =>
-            go(
-              telegramChannelsAddress({ search, sort: value === "name" || value === "latest" ? value : undefined }),
-              "push",
-            )
-          }
-        >
-          <SelectTrigger aria-label={t("order")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ORDERS.map((order) => (
-              <SelectItem key={order} value={order}>
-                {labels[order]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         {data && (
-          <p className="ml-auto text-sm text-muted-foreground tabular-nums">
+          <p className="ml-auto text-sm text-tg-muted tabular-nums">
             {search
               ? t("found", { formatted: formatCount(data.total, locale) })
               : t("count", { count: data.total, formatted: formatCount(data.total, locale) })}
           </p>
         )}
       </div>
+      <nav className="flex gap-6 border-b px-2" aria-label={t("order")}>
+        {ORDERS.map((order) => {
+          const active = (sort ?? "subscribers") === order;
+          return (
+            <button
+              key={order}
+              type="button"
+              aria-current={active ? "true" : undefined}
+              onClick={() =>
+                go(telegramChannelsAddress({ search, sort: order === "subscribers" ? undefined : order }), "push")
+              }
+              className={cn(
+                "relative h-11 text-[15px] font-medium",
+                active ? "text-tg-blue" : "text-tg-muted hover:text-tg-text",
+              )}
+            >
+              {labels[order]}
+              {active && <span className="absolute inset-x-0 bottom-0 h-[3px] rounded-t-full bg-tg-blue" />}
+            </button>
+          );
+        })}
+      </nav>
       {list}
     </div>
   );
 }
 
-function ChannelRow({ channel }: { channel: TelegramChannel }) {
-  const t = useTranslations("telegramChannels");
+// A channel as Telegram lists a chat: its picture, its name with when it last posted at the right (the time today,
+// the weekday this week, the date before), and its @username and subscribers below. The whole row opens the channel's
+// page here (not fetched ahead: 50 rows would mean 50 requests).
+function ChatRow({ channel }: { channel: TelegramChannel }) {
+  const t = useTranslations("telegramChannel");
   const locale = useLocale();
+  const now = useNow();
   const name = channel.title?.trim() || `@${channel.username}`;
+  const subscribers =
+    channel.subscribers === null
+      ? null
+      : t("subscribers", {
+          count: pluralOf(channel.subscribers),
+          formatted: formatCompact(channel.subscribers, locale),
+        });
   return (
-    <TableRow>
-      {/* The name takes the room the other columns leave, and a name too long for it is cut short (…). It opens the
-          channel's page here (not fetched ahead: 50 rows would mean 50 requests), and the icon after it, Telegram's. */}
-      <TableCell className="w-full max-w-0 pl-4">
-        <div className="flex min-w-0 items-center gap-2">
+    <li className="relative flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-tg-hover">
+      <ChannelPhoto id={channel.id} name={name} url={channel.photo_url} size={54} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline gap-2">
           <Link
             href={`/telegram/channels/${channel.id}`}
             prefetch={false}
-            className="flex min-w-0 items-center gap-3 hover:underline"
+            className="min-w-0 truncate text-base font-medium after:absolute after:inset-0"
           >
-            <Avatar>
-              {channel.photo_url && <AvatarImage src={channel.photo_url} alt="" referrerPolicy="no-referrer" />}
-              <AvatarFallback>{initialOf(name)}</AvatarFallback>
-            </Avatar>
-            <span className="min-w-0">
-              <span className="block truncate font-medium">{name}</span>
-              <span className="block truncate text-muted-foreground sm:hidden">@{channel.username}</span>
-            </span>
+            {name}
           </Link>
-          <a
-            href={channelOnTelegram(channel.username)}
-            target="_blank"
-            rel="noreferrer"
-            title={t("open")}
-            aria-label={t("open")}
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-          >
-            <ExternalLinkIcon className="size-3.5" />
-          </a>
+          {channel.last_message_at && (
+            <time
+              dateTime={channel.last_message_at}
+              title={formatDateTime(channel.last_message_at, locale)}
+              className="ml-auto shrink-0 text-xs text-tg-muted tabular-nums"
+            >
+              {formatChatDate(channel.last_message_at, now, locale)}
+            </time>
+          )}
         </div>
-      </TableCell>
-      <TableCell className="hidden text-muted-foreground sm:table-cell">@{channel.username}</TableCell>
-      <TableCell className="hidden text-muted-foreground tabular-nums lg:table-cell">
-        {channel.last_message_at ? formatDateTime(channel.last_message_at, locale) : "—"}
-      </TableCell>
-      <TableCell className="pr-4 text-right tabular-nums">
-        {channel.subscribers === null ? "—" : formatCount(channel.subscribers, locale)}
-      </TableCell>
-    </TableRow>
+        <p className="truncate text-[15px] text-tg-muted">
+          @{channel.username}
+          {subscribers && (
+            <span title={channel.subscribers === null ? undefined : formatCount(channel.subscribers, locale)}>
+              {" · "}
+              {subscribers}
+            </span>
+          )}
+        </p>
+      </div>
+    </li>
+  );
+}
+
+// The list's shape while its first channels load
+function ChatsSkeleton() {
+  const t = useTranslations("common");
+  return (
+    <div aria-busy="true">
+      <span className="sr-only">{t("loading")}</span>
+      {Array.from({ length: 10 }, (_, row) => (
+        <div key={row} className="flex items-center gap-3 px-2 py-2">
+          <Skeleton className="size-[54px] rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-56" />
+            <Skeleton className="h-3 w-40" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

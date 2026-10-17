@@ -16,7 +16,7 @@ export default async function SignIn({ searchParams }: PageProps<"/sign-in">) {
     <>
       <Header />
       <main className="mx-auto flex max-w-sm flex-col gap-6 px-6 py-16">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        <h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>
         <SignInForm next={target} />
       </main>
     </>

@@ -216,6 +216,8 @@ class YouTubeVideoDetails(YouTubeVideo):
     description: str | None
     channel_id: str
     channel_title: str | None
+    channel_avatar_url: str | None  # its channel's picture, as saved (900 px)
+    channel_subscribers: int | None  # its channel's subscribers; None when hidden
     stats_updated_at: datetime | None  # when its views, likes and comment count were last read
     comments_collected: int  # its comments collected: YouTube's count has the replies too, which aren't
     comments_complete: bool  # its whole comment list has been read once; new comments are read as they come
@@ -240,7 +242,8 @@ class YouTubeComments(BaseModel):
 
 VIDEO = """
     SELECT v.video_id AS id, v.title, v.description, v.published_at, v.duration_seconds AS duration, v.kind,
-        v.status = 'available' AS available, v.channel_id, c.title AS channel_title, s.views, s.likes, s.comments,
+        v.status = 'available' AS available, v.channel_id, c.title AS channel_title, c.avatar_url AS channel_avatar_url,
+        c.subscriber_count AS channel_subscribers, s.views, s.likes, s.comments,
         s.updated_at AS stats_updated_at, coalesce(s.comments_complete, false) AS comments_complete
     FROM youtube_videos AS v
     JOIN youtube_channels AS c USING (channel_id)

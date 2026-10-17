@@ -3,7 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { QueryProvider } from "@/components/query-provider";
-import { inter } from "@/lib/fonts";
+import { inter, roboto } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={cn("font-sans", inter.variable)}>
+    <html lang={locale} className={cn("font-sans", inter.variable, roboto.variable)}>
       <body className="min-h-screen antialiased">
         <NextIntlClientProvider>
           <QueryProvider>{children}</QueryProvider>

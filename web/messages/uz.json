@@ -27,7 +27,6 @@
   "nav": {
     "overview": "Umumiy koʻrinish",
     "activity": "Faollik",
-    "channels": "Kanallar",
     "toggle": "Menyuni koʻrsatish yoki yashirish"
   },
   "youtubeChannels": {
@@ -38,11 +37,7 @@
     "order": "Tartib",
     "biggest": "Avval yiriklari",
     "byName": "Nomi boʻyicha",
-    "channel": "Kanal",
-    "handle": "Taxallus",
-    "subscribers": "Obunachilar",
     "hidden": "yashirin",
-    "open": "YouTube saytida ochish",
     "none": "Hozircha kanallar yoʻq.",
     "noMatch": "«{search}» boʻyicha kanal topilmadi."
   },
@@ -54,30 +49,25 @@
     "all": "Hammasi",
     "videos": "Videolar",
     "shorts": "Shorts",
-    "video": "Video",
-    "views": "Koʻrishlar",
-    "likes": "Layklar",
-    "comments": "Izohlar",
-    "short": "Short",
     "unavailable": "Mavjud emas",
-    "watch": "YouTube saytida koʻrish",
-    "none": "Hozircha video yoʻq."
+    "none": "Hozircha video yoʻq.",
+    "viewCount": "{formatted} marta koʻrilgan",
+    "videoCount": "{formatted} ta video"
   },
   "youtubeVideo": {
     "watch": "YouTube saytida koʻrish",
-    "short": "Short",
     "unavailable": "Mavjud emas",
     "views": "Koʻrishlar",
     "likes": "Layklar",
     "comments": "Izohlar",
-    "collected": "Yigʻilgan",
     "complete": "Roʻyxat toʻliq oʻqilgan",
     "incomplete": "Roʻyxat hali oxirigacha oʻqilmagan",
     "statsAsOf": "Koʻrishlar va layklar {when} holatiga",
     "noStats": "Koʻrishlar va layklar hali oʻqilmagan",
-    "commentsTitle": "Izohlar",
     "edited": "tahrirlangan",
-    "none": "Izohlar yigʻilmagan."
+    "none": "Izohlar yigʻilmagan.",
+    "commentCount": "{formatted} ta izoh",
+    "moreFrom": "{channel}: boshqa videolar"
   },
   "telegramChannels": {
     "title": "Telegram kanallari",
@@ -88,23 +78,20 @@
     "biggest": "Avval yiriklari",
     "byName": "Nomi boʻyicha",
     "latest": "Avval yangi postlar",
-    "channel": "Kanal",
-    "username": "Username",
-    "latestPost": "Soʻnggi post",
-    "subscribers": "Obunachilar",
-    "open": "Telegramda ochish",
     "none": "Hozircha kanallar yoʻq.",
     "noMatch": "«{search}» boʻyicha kanal topilmadi."
   },
   "telegramChannel": {
     "back": "Telegram kanallari",
     "subscribers": "{formatted} ta obunachi",
-    "latestPost": "Soʻnggi post: {when}",
     "open": "Telegramda ochish",
-    "messagesTitle": "Xabarlar",
-    "saved": "{formatted} ta xabar saqlangan",
     "openMessage": "Telegramda ochish",
-    "none": "Xabarlar saqlanmagan."
+    "none": "Xabarlar saqlanmagan.",
+    "info": "Maʼlumot",
+    "link": "Havola",
+    "lastPost": "Oxirgi post",
+    "savedMessages": "Saqlangan xabarlar",
+    "close": "Yopish"
   },
   "activity": {
     "title": "Faollik",
@@ -277,6 +264,20 @@
     "loading": "Yuklanmoqda…",
     "more": "Toʻliq koʻrsatish",
     "less": "Yigʻish"
+  },
+  "time": {
+    "justNow": "hozirgina",
+    "minutesAgo": "{count} daq. oldin",
+    "hoursAgo": "{count} soat oldin",
+    "daysAgo": "{count} kun oldin",
+    "youtube": {
+      "minutes": "{count} daqiqa oldin",
+      "hours": "{count} soat oldin",
+      "days": "{count} kun oldin",
+      "weeks": "{count} hafta oldin",
+      "months": "{count} oy oldin",
+      "years": "{count} yil oldin"
+    }
   },
   "pages": {
     "page": "Sahifa: {page} / {pages}",

@@ -90,8 +90,9 @@ apostrophes aside (zor finds Zo‘r). `app.sql` has the column and the indexes i
 `/api/youtube/channels/{id}` gives a channel's details, with how many of its videos have been collected, of each kind,
 and `/api/youtube/channels/{id}/videos` its videos, newest first, 50 to a page, all of them or only videos
 (`kind=video`) or only Shorts (`kind=short`), with their views, likes and comments. `/api/youtube/videos/{id}` gives a
-video's details, with how many of its comments have been collected, and `/api/youtube/videos/{id}/comments` its
-comments, newest first, 50 to a page, each with when it was written, as precisely as YouTube said it.
+video's details, with its channel's picture and subscribers and how many of its comments have been collected, and
+`/api/youtube/videos/{id}/comments` its comments, newest first, 50 to a page, each with when it was written, as
+precisely as YouTube said it.
 
 `/api/telegram/channels` lists the monitored Telegram channels in the same way, the biggest first, by name, or the
 latest to post first (`sort=latest`), searched by name or @username; `/api/telegram/channels/{id}` gives a channel's
@@ -117,24 +118,25 @@ pnpm dev                         # serve it while working on it, updated on ever
 versions are pinned exactly, and pnpm only installs releases at least a day old.
 
 Every page but `/sign-in` needs someone signed in: a visitor who isn't goes to `/sign-in`, and back afterwards, and an
-account with a temporary password to `/change-password` until it has its own. Admins have a menu at the side, which
-folds down to its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds, the last
-round and what runs now; the activity, every round with its steps and every run started by hand, newest first, with
-their numbers, one step's alone if asked, and a page for each run with all its numbers; and YouTube's channels, a list
-searched as one types, the biggest first or by name, 50 to a page, whose address keeps the search, the order and the
-page. Each channel has a page of its own: its details and description, and its videos, newest first, all of them or only
-videos or only Shorts, with when each came out (in Tashkent's time), its length, views, likes and comments. Each video
-has one too: its details, numbers and description, and its comments, newest first, with their authors and when they were
-written. Telegram's channels have a list and pages of their own in the same way, the list also in the order of their
-latest posts, and a channel's page with its saved messages. Customers, for now, see a greeting. The header has the
-user's name and signing out.
+account with a temporary password to `/change-password` until it has its own. The site is light and sober, and its
+YouTube and Telegram pages look like YouTube's and Telegram's own. Admins have a menu at the side, which folds down to
+its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds, the last round and what
+runs now; YouTube's channels, a grid of their pictures searched as one types, the biggest first or by name, 50 to a
+page, whose address keeps the search, the order and the page; Telegram's channels, a list like Telegram's chats, also in
+the order of their latest posts; and at the bottom the activity, every round with its steps and every run started by
+hand, newest first, with their numbers, and a page for each run with all its numbers. A YouTube channel's page is laid
+out like the channel on YouTube, its videos and Shorts in grids that load more as they're scrolled; a video's, like
+YouTube's watch page, with its comments and more from its channel; a Telegram channel's, like the channel in Telegram,
+its messages as bubbles, the newest at the bottom, with its info beside them. Anything in a list opens wherever it's
+clicked. Customers, for now, see a greeting. The menu's foot has the user's name, the language and signing out.
 
-A visitor sees Russian until they choose another language in the header; the choice is kept in a cookie for a year,
-and, once they're signed in, in their account, which the site switches to when they sign in in another browser.
-The texts are in `messages/` (`ru.json`, `uz.json`, `en.json`), looked up by key: a key missing from a language, or
-one a page asks for that isn't there, fails the typecheck. The components are shadcn/ui's, on Base UI, kept in
-`src/components/ui/` as shadcn writes them (`pnpm exec shadcn add <name>` adds one). The font is Inter, which has
-every letter of the three languages, Uzbek's ʻ included, and the colors follow the device's light or dark setting.
+A visitor sees Russian until they choose another language, in the menu's foot (or the sign-in page's header); the choice
+is kept in a cookie for a year, and, once they're signed in, in their account, which the site switches to when they sign
+in in another browser. The texts are in `messages/` (`ru.json`, `uz.json`, `en.json`), looked up by key: a key missing
+from a language, or one a page asks for that isn't there, fails the typecheck. The components are shadcn/ui's, on Base
+UI, kept in `src/components/ui/` as shadcn writes them (`pnpm exec shadcn add <name>` adds one). The font is Inter, and
+Roboto on YouTube's and Telegram's pages, both with every letter of the three languages, Uzbek's ʻ included; the site is
+light only.
 
 The site reads the API through a typed client in `src/api/`, which `pnpm api` writes from `../openapi.json` (run it
 after `uv run api openapi`); it isn't edited by hand, and asking for an endpoint or a field the API doesn't have fails

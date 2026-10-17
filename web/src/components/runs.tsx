@@ -1,13 +1,22 @@
 "use client";
 
+import {
+  CircleAlertIcon,
+  CircleCheckIcon,
+  CircleMinusIcon,
+  CircleXIcon,
+  LoaderCircleIcon,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useLocale, useMessages, useTranslations } from "next-intl";
 
 import type { Run } from "@/api/types.gen";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { When } from "@/components/when";
 import { numberOf, secondsOf } from "@/lib/activity";
-import { formatCount, formatDateTime, formatSeconds } from "@/lib/format";
+import { formatCount, formatSeconds } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 type StepTexts = { name: string; items?: string; saved?: string; results?: Record<string, string> };
 
@@ -32,21 +41,26 @@ export function useRunTexts() {
   return { step, name };
 }
 
-const BADGES = {
-  running: "default",
-  finished: "secondary",
-  stopped: "outline",
-  failed: "destructive",
-  lost: "destructive",
-} as const;
+const OUTCOMES: Record<Run["outcome"], { icon: LucideIcon; className: string }> = {
+  running: { icon: LoaderCircleIcon, className: "text-success [&>svg]:animate-spin" },
+  finished: { icon: CircleCheckIcon, className: "text-muted-foreground" },
+  stopped: { icon: CircleMinusIcon, className: "text-warning" },
+  failed: { icon: CircleXIcon, className: "text-destructive" },
+  lost: { icon: CircleAlertIcon, className: "text-destructive" },
+};
 
-// How a run ended, or that it's still going
-export function OutcomeBadge({ outcome }: { outcome: Run["outcome"] }) {
+// How a run ended, or that it's still going: an icon and a word, colored only when it isn't simply finished
+export function Outcome({ outcome }: { outcome: Run["outcome"] }) {
   const t = useTranslations("activity.outcomes");
+  const { icon: Icon, className } = OUTCOMES[outcome];
   return (
-    <Badge variant={BADGES[outcome]} title={outcome === "lost" ? t("lostHint") : undefined}>
+    <span
+      className={cn("inline-flex items-center gap-1 text-xs font-medium", className)}
+      title={outcome === "lost" ? t("lostHint") : undefined}
+    >
+      <Icon className="size-3.5" />
       {t(outcome)}
-    </Badge>
+    </span>
   );
 }
 
@@ -80,25 +94,26 @@ export function RunLine({ run }: { run: Run }) {
     add(t("workingProxies"), numberOf(numbers, "working_proxies"));
   }
   if (!parts.length) return null;
-  return <p className="text-sm text-muted-foreground tabular-nums">{parts.join(" · ")}</p>;
+  return <p className="text-muted-foreground tabular-nums">{parts.join(" · ")}</p>;
 }
 
-// A run in a list: its name (a link to its page), how it ended, when it started and how long it took, its main
-// numbers, and how far it is while it runs
-export function RunRow({ run, note }: { run: Run; note?: string }) {
+// A run in a list, which opens its page wherever it's clicked: its name, how it ended, when it started and how long it
+// took, its main numbers, and how far it is while it runs
+export function RunRow({ run, note, className }: { run: Run; note?: string; className?: string }) {
   const locale = useLocale();
   const { name } = useRunTexts();
   const items = numberOf(run.numbers, "items");
   const done = numberOf(run.numbers, "done") ?? 0;
   return (
-    <div className="space-y-1.5 px-4 py-3">
+    <div className={cn("relative space-y-1.5 px-4 py-3 transition-colors hover:bg-muted/60", className)}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <Link href={`/activity/${run.id}`} className="font-medium hover:underline">
+        {/* Its clickable area covers the whole row */}
+        <Link href={`/activity/${run.id}`} className="font-medium after:absolute after:inset-0">
           {name(run)}
         </Link>
-        <OutcomeBadge outcome={run.outcome} />
-        <span className="text-sm text-muted-foreground tabular-nums">
-          {formatDateTime(run.started_at, locale)} · {formatSeconds(secondsOf(run), locale)}
+        <Outcome outcome={run.outcome} />
+        <span className="text-muted-foreground tabular-nums">
+          <When iso={run.started_at} /> · {formatSeconds(secondsOf(run), locale)}
         </span>
         {note && <span className="text-xs text-muted-foreground">{note}</span>}
       </div>

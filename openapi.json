@@ -2991,6 +2991,28 @@
             ],
             "title": "Channel Title"
           },
+          "channel_avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Avatar Url"
+          },
+          "channel_subscribers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Subscribers"
+          },
           "stats_updated_at": {
             "anyOf": [
               {
@@ -3026,6 +3048,8 @@
           "description",
           "channel_id",
           "channel_title",
+          "channel_avatar_url",
+          "channel_subscribers",
           "stats_updated_at",
           "comments_collected",
           "comments_complete"

@@ -1,7 +1,6 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -10,21 +9,18 @@ import { useEffect } from "react";
 import { youtubeChannelsOptions } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannel } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
-import { ListSkeleton } from "@/components/list-skeleton";
 import { Pages } from "@/components/pages";
 import { SearchBox } from "@/components/search-box";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ChannelPicture, Chips } from "@/components/youtube-ui";
 import { go } from "@/lib/address";
-import { formatCount, initialOf } from "@/lib/format";
+import { formatCompact, formatCount, pluralOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { avatarAt, channelOnYouTube, channelsAddress, channelsQuery } from "@/lib/youtube";
+import { channelsAddress, channelsQuery } from "@/lib/youtube";
 
-const AVATAR_SIZE = 88; // pixels: twice what the list shows, for sharp screens
-
-// The monitored channels, as the address asks for them, a page at a time: searched as one types, the biggest first or
-// by name. While the next list loads, the last one stays, dimmed.
+// The monitored channels, as the address asks for them, a page at a time, laid out the way YouTube lays out channels:
+// round pictures in a grid, each with its name, handle and subscribers. Searched as one types, the biggest first or by
+// name (YouTube's chips). While the next page loads, the last one stays, dimmed.
 export function YouTubeChannels() {
   const t = useTranslations("youtubeChannels");
   const locale = useLocale();
@@ -50,122 +46,107 @@ export function YouTubeChannels() {
 
   let list;
   if (!data) {
-    list = error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <ListSkeleton />;
+    list = error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <TilesSkeleton />;
   } else if (data.total === 0) {
-    list = <p className="text-muted-foreground">{search ? t("noMatch", { search }) : t("none")}</p>;
+    list = <p className="text-yt-muted">{search ? t("noMatch", { search }) : t("none")}</p>;
   } else {
     list = (
       <>
-        <div className={cn("rounded-xl border transition-opacity", isPlaceholderData && "opacity-60")}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-4">{t("channel")}</TableHead>
-                <TableHead className="hidden sm:table-cell">{t("handle")}</TableHead>
-                <TableHead className="pr-4 text-right">{t("subscribers")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.channels.map((channel) => (
-                <ChannelRow key={channel.id} channel={channel} />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <ul
+          className={cn(
+            "grid grid-cols-2 gap-x-4 gap-y-6 transition-opacity sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6",
+            isPlaceholderData && "opacity-60",
+          )}
+        >
+          {data.channels.map((channel) => (
+            <ChannelTile key={channel.id} channel={channel} />
+          ))}
+        </ul>
         {pages > 1 && <Pages page={page} pages={pages} turn={turn} />}
       </>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-6 font-roboto text-yt-text">
+      <div className="flex flex-wrap items-center gap-4">
         <SearchBox
+          look="youtube"
           search={search ?? ""}
           placeholder={t("search")}
           onSearch={(next) => go(channelsAddress({ search: next || undefined, sort }), "replace")}
         />
-        <Select
-          items={[
-            { value: "subscribers", label: t("biggest") },
-            { value: "name", label: t("byName") },
-          ]}
-          value={sort ?? "subscribers"}
-          onValueChange={(value) =>
-            go(channelsAddress({ search, sort: value === "name" ? "name" : undefined }), "push")
-          }
-        >
-          <SelectTrigger aria-label={t("order")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="subscribers">{t("biggest")}</SelectItem>
-            <SelectItem value="name">{t("byName")}</SelectItem>
-          </SelectContent>
-        </Select>
         {data && (
-          <p className="ml-auto text-sm text-muted-foreground tabular-nums">
+          <p className="ml-auto text-sm text-yt-muted tabular-nums">
             {search
               ? t("found", { formatted: formatCount(data.total, locale) })
               : t("count", { count: data.total, formatted: formatCount(data.total, locale) })}
           </p>
         )}
       </div>
+      <Chips
+        label={t("order")}
+        options={[
+          { value: "subscribers", label: t("biggest") },
+          { value: "name", label: t("byName") },
+        ]}
+        value={sort ?? "subscribers"}
+        onChange={(value) => go(channelsAddress({ search, sort: value === "name" ? "name" : undefined }), "push")}
+      />
       {list}
     </div>
   );
 }
 
-function ChannelRow({ channel }: { channel: YouTubeChannel }) {
+// A channel as YouTube shows one among others: its picture, name, handle and subscribers, centered. The whole tile
+// opens the channel's page here (not fetched ahead: 50 tiles would mean 50 requests).
+function ChannelTile({ channel }: { channel: YouTubeChannel }) {
   const t = useTranslations("youtubeChannels");
+  const channelTexts = useTranslations("youtubeChannel");
   const locale = useLocale();
   const name = channel.title?.trim() || channel.id; // the ID until the channel's details are fetched
   return (
-    <TableRow>
-      {/* The name takes the room the other columns leave, and a name too long for it is cut short (…). It opens the
-          channel's page here (not fetched ahead: 50 rows would mean 50 requests), and the icon after it, YouTube's. */}
-      <TableCell className="w-full max-w-0 pl-4">
-        <div className="flex min-w-0 items-center gap-2">
-          <Link
-            href={`/youtube/channels/${channel.id}`}
-            prefetch={false}
-            className="flex min-w-0 items-center gap-3 hover:underline"
-          >
-            <Avatar>
-              {channel.avatar_url && (
-                <AvatarImage src={avatarAt(channel.avatar_url, AVATAR_SIZE)} alt="" referrerPolicy="no-referrer" />
-              )}
-              <AvatarFallback>{initialOf(name)}</AvatarFallback>
-            </Avatar>
-            <span className="min-w-0">
-              <span className={cn("block truncate font-medium", !channel.title && "font-mono text-muted-foreground")}>
-                {name}
-              </span>
-              {channel.handle && (
-                <span className="block truncate text-muted-foreground sm:hidden">{channel.handle}</span>
-              )}
-            </span>
-          </Link>
-          <a
-            href={channelOnYouTube(channel.id)}
-            target="_blank"
-            rel="noreferrer"
-            title={t("open")}
-            aria-label={t("open")}
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-          >
-            <ExternalLinkIcon className="size-3.5" />
-          </a>
-        </div>
-      </TableCell>
-      <TableCell className="hidden text-muted-foreground sm:table-cell">{channel.handle}</TableCell>
-      <TableCell className="pr-4 text-right tabular-nums">
-        {channel.subscribers === null ? (
-          <span className="text-muted-foreground">{t("hidden")}</span>
-        ) : (
-          formatCount(channel.subscribers, locale)
+    <li className="group relative flex flex-col items-center rounded-xl px-2 py-4 text-center hover:bg-yt-chip">
+      <ChannelPicture url={channel.avatar_url} size={104} />
+      <Link
+        href={`/youtube/channels/${channel.id}`}
+        prefetch={false}
+        className={cn(
+          "mt-3 line-clamp-2 text-base leading-snug font-medium after:absolute after:inset-0",
+          channel.title ? "break-words" : "font-mono text-xs break-all text-yt-muted",
         )}
-      </TableCell>
-    </TableRow>
+      >
+        {name}
+      </Link>
+      {channel.handle && <p className="mt-1 w-full truncate text-xs text-yt-muted">{channel.handle}</p>}
+      <p
+        className="text-xs text-yt-muted"
+        title={channel.subscribers === null ? undefined : formatCount(channel.subscribers, locale)}
+      >
+        {channel.subscribers === null
+          ? t("hidden")
+          : channelTexts("subscribers", {
+              count: pluralOf(channel.subscribers),
+              formatted: formatCompact(channel.subscribers, locale),
+            })}
+      </p>
+    </li>
+  );
+}
+
+// The grid's shape while its first channels load
+function TilesSkeleton() {
+  const t = useTranslations("common");
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" aria-busy="true">
+      <span className="sr-only">{t("loading")}</span>
+      {Array.from({ length: 12 }, (_, tile) => (
+        <div key={tile} className="flex flex-col items-center gap-3 py-4">
+          <Skeleton className="size-26 rounded-full" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+      ))}
+    </div>
   );
 }

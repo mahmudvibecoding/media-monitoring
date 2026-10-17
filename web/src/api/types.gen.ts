@@ -689,6 +689,14 @@ export type YouTubeVideoDetails = {
      */
     channel_title: string | null;
     /**
+     * Channel Avatar Url
+     */
+    channel_avatar_url: string | null;
+    /**
+     * Channel Subscribers
+     */
+    channel_subscribers: number | null;
+    /**
      * Stats Updated At
      */
     stats_updated_at: string | null;

@@ -1,7 +1,6 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect } from "react";
@@ -10,12 +9,12 @@ import { runsOptions } from "@/api/@tanstack/react-query.gen";
 import type { RunWithSteps } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { Pages } from "@/components/pages";
-import { OutcomeBadge, RunRow, useRunTexts } from "@/components/runs";
+import { RunRow, useRunTexts } from "@/components/runs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { anyRunning, runsAddress, runsQuery, secondsOf, STEPS } from "@/lib/activity";
+import { anyRunning, runsAddress, runsQuery, STEPS } from "@/lib/activity";
 import { go } from "@/lib/address";
-import { formatCount, formatDateTime, formatSeconds } from "@/lib/format";
+import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export const LIVE_EVERY = 5_000; // milliseconds between looks at runs that may change
@@ -56,12 +55,12 @@ export function Activity() {
   } else {
     list = (
       <>
-        <div className={cn("space-y-4 transition-opacity", isPlaceholderData && "opacity-60")}>
+        <div className={cn("space-y-3 transition-opacity", isPlaceholderData && "opacity-60")}>
           {data.runs.map((run) =>
             run.step === "round" ? (
               <Round key={run.id} run={run} />
             ) : (
-              <section key={run.id} className="rounded-xl border">
+              <section key={run.id} className="overflow-hidden rounded-lg border">
                 <RunRow run={run} note={run.round_id === null ? t("byHand") : undefined} />
               </section>
             ),
@@ -96,7 +95,7 @@ export function Activity() {
           </SelectContent>
         </Select>
         {data && (
-          <p className="ml-auto text-sm text-muted-foreground tabular-nums">
+          <p className="ml-auto text-muted-foreground tabular-nums">
             {t("count", { count: data.total, formatted: formatCount(data.total, locale) })}
           </p>
         )}
@@ -106,33 +105,23 @@ export function Activity() {
   );
 }
 
-// A round: when it started, how it ended and how long it took, then its steps in the order they ran
+// A round: its own row (when it started, how it ended, how long it took), then its steps in the order they ran, set in
+// under it
 function Round({ run }: { run: RunWithSteps }) {
   const t = useTranslations("activity");
-  const locale = useLocale();
-  const { name } = useRunTexts();
   return (
-    <section className="rounded-xl border">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-3">
-        <Link href={`/activity/${run.id}`} className="font-semibold hover:underline">
-          {name(run)}
-        </Link>
-        <OutcomeBadge outcome={run.outcome} />
-        <span className="text-sm text-muted-foreground tabular-nums">
-          {formatDateTime(run.started_at, locale)} · {formatSeconds(secondsOf(run), locale)}
-        </span>
-        {run.summary && <span className="text-sm text-muted-foreground">{run.summary}</span>}
-      </header>
+    <section className="overflow-hidden rounded-lg border">
+      <RunRow run={run} note={run.summary ?? undefined} className="bg-muted/40" />
       {run.steps?.length ? (
-        <ul className="divide-y">
+        <ul className="divide-y border-t">
           {run.steps.map((step) => (
             <li key={step.id}>
-              <RunRow run={step} />
+              <RunRow run={step} className="pl-8" />
             </li>
           ))}
         </ul>
       ) : (
-        <p className="px-4 py-3 text-sm text-muted-foreground">{t("noSteps")}</p>
+        <p className="border-t px-4 py-3 pl-8 text-muted-foreground">{t("noSteps")}</p>
       )}
     </section>
   );
@@ -145,7 +134,7 @@ function ActivitySkeleton() {
     <div className="space-y-4" aria-busy="true">
       <span className="sr-only">{t("loading")}</span>
       {Array.from({ length: 3 }, (_, block) => (
-        <div key={block} className="space-y-3 rounded-xl border p-4">
+        <div key={block} className="space-y-3 rounded-lg border p-4">
           <Skeleton className="h-5 w-64" />
           <Skeleton className="h-4 w-full max-w-lg" />
           <Skeleton className="h-4 w-full max-w-md" />

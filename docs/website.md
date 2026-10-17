@@ -67,12 +67,14 @@ collectors' own index, by channel and day, gives them in that order, so a page t
 that channel, and one 400 pages down 100 ms. The videos aren't counted again for each page, which would add those 50 ms
 to every page; the site takes their number from the channel's details.
 
-A video's page asks for two things too. `/api/youtube/videos/{id}` is its details and how many of its comments have been
-collected (YouTube's own count has the replies too, which aren't). `/api/youtube/videos/{id}/comments` is a page of its
-comments, newest first: most videos have a few (5, the median), and theirs take milliseconds, but a video's comments are
-sorted by their time on each request, so the video with the most, 128,669, takes 0.3 s for the first page and 0.75 s for
-the last. YouTube says only how long ago a comment was written ("2 months ago"), which the collector counted back from
-when it read it; the API also gives the unit it was said in, and whether the comment was edited.
+A video's page asks for three things. `/api/youtube/videos/{id}` is its details, its channel's picture and subscribers,
+and how many of its comments have been collected (YouTube's own count has the replies too, which aren't).
+`/api/youtube/videos/{id}/comments` is a page of its comments, newest first: most videos have a few (5, the median), and
+theirs take milliseconds, but a video's comments are sorted by their time on each request, so the video with the most,
+128,669, takes 0.3 s for the first page and 0.75 s for the last. YouTube says only how long ago a comment was written
+("2 months ago"), which the collector counted back from when it read it; the API also gives the unit it was said in, and
+whether the comment was edited. Beside the video, its channel's newest videos are the first page the channel's own page
+asks for.
 
 ### Telegram
 
@@ -101,39 +103,56 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
+- Light only, and sober: white, near-black and greys, with color only for a status (running, stopped, failed). YouTube's
+  pages look like YouTube's own (its font, Roboto, its greys, its black and grey pill buttons and chips, its grids of
+  covers and its watch page), and Telegram's like Telegram's (its list of chats, its blue, its chat with bubbles on
+  its background, its info panel).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
   inside a page comes after Next has begun sending it: a 200, followed only by the browser's scripts. The site's server
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
-- Admins have a menu at the side (shadcn's sidebar): the overview and the activity, then each kind of collected data.
-  It folds down to its icons, which it remembers in a cookie, and slides in over the page on a phone.
-- The lists keep their search, order and page in the address, so Back, Forward and a copied link bring them back. They
-  change the address through the browser's history rather than by loading the page again, and ask the API themselves,
-  through Caddy; the server renders a list only when the page is loaded. A search starts 300 ms after the last key, and
-  the last list stays, dimmed, while the next one loads.
+- Admins have a menu at the side (shadcn's sidebar) and no bar above the page: the overview, YouTube and Telegram, then
+  apart at the bottom the activity, and at its foot who's signed in, with the language and signing out. It folds down to
+  its icons (its button, a click on its edge, or Ctrl+B), which it remembers in a cookie, and slides in over the page on
+  a phone, where a thin bar opens it.
+- Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
+  middle-click opens it in a new tab, as a link does.
+- The channel lists keep their search, order and page in the address, so Back, Forward and a copied link bring them
+  back. They change the address through the browser's history rather than by loading the page again, and ask the API
+  themselves, through Caddy; the server renders a list only when the page is loaded. A search starts 300 ms after the
+  last key, "/" goes to the search box and Escape empties it, and the last list stays, dimmed, while the next one loads.
+- A channel's videos, a video's comments and a channel's messages load more as they're scrolled, as on YouTube and in
+  Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest message, at the
+  bottom, and loads older ones above as it's scrolled up.
+- Counts in lists are cut short, as YouTube and Telegram write them (2.19M subscribers, 48K views), with the exact
+  number on hover; times are how long ago (3 h ago, 2 days ago), with the exact time on hover. How long ago is counted
+  in the browser: Next won't let the server read the clock while it prerenders a page, so the server writes the date and
+  the browser turns it into how long ago.
 - The activity (`/activity`) shows the runs as the API gives them, and a page for each with every number it kept: its
   items' outcomes, its requests and proxy tests by outcome, its proxies; for `uv run proxies`, a row per list. A step's
   texts are looked up by its name as the table has it (`activity.steps` in the messages), and so are its outcomes'
   names; one without a text shows as it is. The activity's first page, the overview's runs, and any page with a run
   going are asked for again every 5 s. How long a run has been going is counted to its last update, not to the
   browser's clock, so the server's page and the browser's agree.
-- Channel pictures come from YouTube's image server at 88 px (8 KB each), not at the 900 px saved (114 KB), and
-  Telegram's from its own, at the one size its pages give, 160 px (10 KB).
-- Video covers come from YouTube's image server at 320 × 180 (15 KB), loaded as they scroll into view: Next's image
-  optimizer would fetch them through the site's server, which can't reach the internet.
+- Channel pictures come from YouTube's image server at twice the size shown (208 px in the grid), not at the 900 px
+  saved (114 KB), and Telegram's from its own, at the one size its pages give, 160 px (10 KB). Video covers come from
+  YouTube's image server, 480 × 360 (23 KB) in grids and 320 × 180 beside a video, loaded as they scroll into view:
+  Next's image optimizer would fetch them through the site's server, which can't reach the internet. A picture that
+  doesn't load leaves a figure (YouTube) or the channel's initials on Telegram's colors (Telegram).
 - Dates and times are Tashkent's (UTC+5, the same all year), written by the site's own function (`src/lib/format.ts`),
   for the same reason as counts. A comment's time is only as precise as YouTube's wording: 16.10.2026, 14:05 for
   minutes, 16.10.2026, ≈14:00 for hours, ≈16.10.2026 for days and weeks, ≈10.2026 for months, ≈2025 for years.
-- A visitor sees Russian until choosing Uzbek (Latin script) or English in the header; the choice is kept in a cookie
-  for a year and, for someone signed in, in their account. Signing in keeps a language this browser chose before (and
-  saves it to the account); without one, it switches to the account's. Addresses are the same in every language,
-  since search engines see nothing but the sign-in page.
+- A visitor sees Russian until choosing Uzbek (Latin script) or English (in the menu's foot, or in the header of the
+  sign-in page); the choice is kept in a cookie for a year and, for someone signed in, in their account. Signing in
+  keeps a language this browser chose before (and saves it to the account); without one, it switches to the account's.
+  Addresses are the same in every language, since search engines see nothing but the sign-in page.
 - Counts are written by the site's own function (`src/lib/format.ts`), not the browser's `Intl`: Chrome's Uzbek data
   writes 55,859 where Node's writes 55 859, and the browser would rewrite what the server rendered.
 - The texts are in `web/messages/` (`ru.json`, `uz.json`, `en.json`): a key missing from one, or asked for by a page
   but not there, fails the typecheck.
-- The font is Inter: Geist, Next's and shadcn's own, has no `ʻ`, which Uzbek writes oʻ and gʻ with.
+- The font is Inter, and Roboto on YouTube's and Telegram's pages: Geist, Next's and shadcn's own, has no `ʻ`, which
+  Uzbek writes oʻ and gʻ with; both of these have it.
 - `web/src/api/` is the API's client, generated from `openapi.json` (`pnpm api`), so an endpoint or a field the API
   doesn't have fails the typecheck. Requests are built on one placeholder address, `http://api`, on the server and in
   the browser alike, and sent on from it: TanStack Query's keys include that address, and they must match for the

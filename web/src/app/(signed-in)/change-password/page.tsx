@@ -11,7 +11,7 @@ export default async function ChangePassword({ searchParams }: PageProps<"/chang
   const { next } = await searchParams;
   return (
     <div className="max-w-sm space-y-4">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>
       {user?.must_change_password && <p className="text-muted-foreground">{t("required")}</p>}
       <ChangePasswordForm next={safeNext(typeof next === "string" ? next : undefined)} />
     </div>

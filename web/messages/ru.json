@@ -27,7 +27,6 @@
   "nav": {
     "overview": "Обзор",
     "activity": "Активность",
-    "channels": "Каналы",
     "toggle": "Показать или скрыть меню"
   },
   "youtubeChannels": {
@@ -38,11 +37,7 @@
     "order": "Порядок",
     "biggest": "Сначала крупные",
     "byName": "По названию",
-    "channel": "Канал",
-    "handle": "Псевдоним",
-    "subscribers": "Подписчики",
     "hidden": "скрыто",
-    "open": "Открыть на YouTube",
     "none": "Каналов пока нет.",
     "noMatch": "По запросу «{search}» каналов нет."
   },
@@ -54,30 +49,25 @@
     "all": "Все",
     "videos": "Видео",
     "shorts": "Shorts",
-    "video": "Видео",
-    "views": "Просмотры",
-    "likes": "Лайки",
-    "comments": "Комментарии",
-    "short": "Short",
     "unavailable": "Недоступно",
-    "watch": "Смотреть на YouTube",
-    "none": "Видео пока нет."
+    "none": "Видео пока нет.",
+    "viewCount": "{count, plural, one {{formatted} просмотр} few {{formatted} просмотра} many {{formatted} просмотров} other {{formatted} просмотра}}",
+    "videoCount": "{formatted} видео"
   },
   "youtubeVideo": {
     "watch": "Смотреть на YouTube",
-    "short": "Short",
     "unavailable": "Недоступно",
     "views": "Просмотры",
     "likes": "Лайки",
     "comments": "Комментарии",
-    "collected": "Собрано",
     "complete": "Список прочитан полностью",
     "incomplete": "Список ещё не прочитан до конца",
     "statsAsOf": "Просмотры и лайки на {when}",
     "noStats": "Просмотры и лайки ещё не прочитаны",
-    "commentsTitle": "Комментарии",
     "edited": "изменён",
-    "none": "Комментариев не собрано."
+    "none": "Комментариев не собрано.",
+    "commentCount": "{count, plural, one {{formatted} комментарий} few {{formatted} комментария} many {{formatted} комментариев} other {{formatted} комментария}}",
+    "moreFrom": "Ещё от {channel}"
   },
   "telegramChannels": {
     "title": "Каналы Telegram",
@@ -88,23 +78,20 @@
     "biggest": "Сначала крупные",
     "byName": "По названию",
     "latest": "Сначала недавние посты",
-    "channel": "Канал",
-    "username": "Юзернейм",
-    "latestPost": "Последний пост",
-    "subscribers": "Подписчики",
-    "open": "Открыть в Telegram",
     "none": "Каналов пока нет.",
     "noMatch": "По запросу «{search}» каналов нет."
   },
   "telegramChannel": {
     "back": "Каналы Telegram",
     "subscribers": "{count, plural, one {{formatted} подписчик} few {{formatted} подписчика} many {{formatted} подписчиков} other {{formatted} подписчика}}",
-    "latestPost": "Последний пост: {when}",
     "open": "Открыть в Telegram",
-    "messagesTitle": "Сообщения",
-    "saved": "{count, plural, one {Сохранено {formatted} сообщение} few {Сохранено {formatted} сообщения} many {Сохранено {formatted} сообщений} other {Сохранено {formatted} сообщения}}",
     "openMessage": "Открыть в Telegram",
-    "none": "Сообщений не сохранено."
+    "none": "Сообщений не сохранено.",
+    "info": "Информация",
+    "link": "Ссылка",
+    "lastPost": "Последний пост",
+    "savedMessages": "Сохранено сообщений",
+    "close": "Закрыть"
   },
   "activity": {
     "title": "Активность",
@@ -277,6 +264,20 @@
     "loading": "Загрузка…",
     "more": "Показать полностью",
     "less": "Свернуть"
+  },
+  "time": {
+    "justNow": "только что",
+    "minutesAgo": "{count} мин назад",
+    "hoursAgo": "{count} ч назад",
+    "daysAgo": "{count} дн. назад",
+    "youtube": {
+      "minutes": "{count, plural, one {# минуту назад} few {# минуты назад} many {# минут назад} other {# минуты назад}}",
+      "hours": "{count, plural, one {# час назад} few {# часа назад} many {# часов назад} other {# часа назад}}",
+      "days": "{count, plural, one {# день назад} few {# дня назад} many {# дней назад} other {# дня назад}}",
+      "weeks": "{count, plural, one {# неделю назад} few {# недели назад} many {# недель назад} other {# недели назад}}",
+      "months": "{count, plural, one {# месяц назад} few {# месяца назад} many {# месяцев назад} other {# месяца назад}}",
+      "years": "{count, plural, one {# год назад} few {# года назад} many {# лет назад} other {# года назад}}"
+    }
   },
   "pages": {
     "page": "Страница {page} из {pages}",
