@@ -104,7 +104,8 @@ export const youtubeChannel = <ThrowOnError extends boolean = false>(options: Op
  * Youtube Channel Videos
  *
  * A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their
- * views, likes and comments (a channel that isn't monitored has none). How many there are of each kind is in the
+ * views, likes and comments (a channel that isn't monitored has none); with a search, only those whose title has it
+ * in them, whatever the case of its letters, and apostrophes aside. How many there are of each kind is in the
  * channel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel.
  */
 export const youtubeChannelVideos = <ThrowOnError extends boolean = false>(options: Options<YoutubeChannelVideosData, ThrowOnError>): RequestResult<YoutubeChannelVideosResponses, YoutubeChannelVideosErrors, ThrowOnError> => (options.client ?? client).get<YoutubeChannelVideosResponses, YoutubeChannelVideosErrors, ThrowOnError>({ url: '/api/youtube/channels/{channel_id}/videos', ...options });

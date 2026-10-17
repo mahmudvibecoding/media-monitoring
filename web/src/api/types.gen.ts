@@ -1112,6 +1112,12 @@ export type YoutubeChannelVideosData = {
          */
         sort?: 'newest' | 'popular' | 'oldest';
         /**
+         * Search
+         *
+         * Part of a video's title
+         */
+        search?: string;
+        /**
          * Page
          *
          * 50 videos to a page

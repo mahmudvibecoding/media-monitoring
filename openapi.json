@@ -662,7 +662,7 @@
     "/api/youtube/channels/{channel_id}/videos": {
       "get": {
         "summary": "Youtube Channel Videos",
-        "description": "A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their\nviews, likes and comments (a channel that isn't monitored has none). How many there are of each kind is in the\nchannel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel.",
+        "description": "A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their\nviews, likes and comments (a channel that isn't monitored has none); with a search, only those whose title has it\nin them, whatever the case of its letters, and apostrophes aside. How many there are of each kind is in the\nchannel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel.",
         "operationId": "youtube_channel_videos",
         "parameters": [
           {
@@ -713,6 +713,19 @@
               "title": "Sort"
             },
             "description": "Newest, most viewed, or oldest first"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Part of a video's title",
+              "default": "",
+              "title": "Search"
+            },
+            "description": "Part of a video's title"
           },
           {
             "name": "page",

@@ -66,7 +66,10 @@ the one with the most (20,176). `/api/youtube/channels/{id}/videos` is a page of
 first (`sort=oldest`): the collectors' own index, by channel and day, gives them in either order, so a page takes about
 15 ms through Caddy even for that channel, and one 400 pages down 100 ms. The most viewed first (`sort=popular`) read
 every video's views, which are a table of their own: a few milliseconds for most channels, 0.25 s for the biggest (0.9 s
-the first time, from disk). The videos aren't counted again for each page, which would add those 50 ms to every page.
+the first time, from disk). With `search`, only the videos whose titles have it in them, whatever the case of the
+letters and apostrophes aside, as the channels' search: reading every title of the channel's takes a millisecond for
+most channels and 0.27 s for the biggest. The videos aren't counted again for each page, which would add those 50 ms to
+every page.
 
 A video's page asks for three things. `/api/youtube/videos/{id}` is its details, its channel's picture and subscribers,
 and how many of its comments have been collected (YouTube's own count has the replies too, which aren't).
@@ -143,7 +146,8 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   the search box and Escape empties it, and the last list stays, dimmed, while the next one loads. YouTube's search box
   is in its top bar: on the channels' list it searches them as one types; on its other pages it suggests channels as one
   types, as YouTube suggests searches (↑ and ↓ go through them, Enter or a click opens one), and Enter searches the
-  list.
+  list. A channel's tabs end in YouTube's magnifier, which opens a field that searches the channel's videos by their
+  titles (the address keeps it), listed as YouTube lists results.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. The player is as wide
   as its column but no taller than leaves room for the title under it (16:9 of the screen's height less 116 px), as on

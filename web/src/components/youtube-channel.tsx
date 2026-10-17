@@ -2,18 +2,26 @@
 
 import { Dialog } from "@base-ui/react/dialog";
 import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { GlobeIcon, type LucideIcon, SquarePlayIcon, UserRoundIcon, XIcon } from "lucide-react";
+import { GlobeIcon, type LucideIcon, SearchIcon, SquarePlayIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import { youtubeChannelOptions, youtubeChannelVideosInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannelDetails } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { Skeleton } from "@/components/ui/skeleton";
 import { YouTubeText } from "@/components/youtube-text";
-import { ChannelPicture, Dot, ShortCard, VideoCard, YT_ICON_BUTTON } from "@/components/youtube-ui";
-import { go } from "@/lib/address";
+import {
+  ChannelPicture,
+  Dot,
+  ResultCard,
+  ShortCard,
+  VideoCard,
+  YouTubeTip,
+  YT_ICON_BUTTON,
+} from "@/components/youtube-ui";
+import { go, SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatCompact, formatCount, pluralOf } from "@/lib/format";
 import { FIRST_PAGE, nextPage } from "@/lib/pages";
 import { useLoadMore } from "@/lib/use-load-more";
@@ -155,8 +163,8 @@ function Fact({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode 
 
 // The channel's videos in YouTube's tabs (its Videos and its Shorts, each only when it has some; the address says
 // which: ?kind=…), YouTube's chips for the order (newest, most viewed, oldest: ?sort=…) and its grid of covers, upright
-// for Shorts. More load as the grid is scrolled down, as on YouTube; while another tab or order loads, the grid that
-// was there stays, dimmed.
+// for Shorts; or, searched with the tabs' magnifier (?search=…), YouTube's list of results. More load as the grid is
+// scrolled down, as on YouTube; while another tab or order loads, the grid that was there stays, dimmed.
 export function ChannelVideos({ id }: { id: string }) {
   const t = useTranslations("youtubeChannel");
   const counts = useQuery(youtubeChannelOptions({ path: { channel_id: id } })).data?.videos;
@@ -164,6 +172,7 @@ export function ChannelVideos({ id }: { id: string }) {
   const query = videosQuery(useSearchParams(), first);
   const kind: Kind = query.kind === "short" ? "short" : "video";
   const sort = query.sort ?? "newest";
+  const search = query.search;
   const { data, error, isFetching, isFetchingNextPage, isPlaceholderData, hasNextPage, fetchNextPage, refetch } =
     useInfiniteQuery({
       ...youtubeChannelVideosInfiniteOptions({ path: { channel_id: id }, query }),
@@ -180,7 +189,19 @@ export function ChannelVideos({ id }: { id: string }) {
   if (!data) {
     list = error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <GridSkeleton />;
   } else if (videos.length === 0) {
-    list = <p className="text-sm text-yt-muted">{t("none")}</p>;
+    list = <p className="text-sm text-yt-muted">{search ? t("noResults") : t("none")}</p>;
+  } else if (search) {
+    list = (
+      <>
+        <ul className={cn("mt-6 max-w-[1096px] space-y-4 transition-opacity", isPlaceholderData && "opacity-60")}>
+          {videos.map((video) => (
+            <ResultCard key={video.id} video={video} />
+          ))}
+        </ul>
+        <div ref={marker} />
+        {isFetchingNextPage && <GridSkeleton rows={1} />}
+      </>
+    );
   } else {
     list = (
       <>
@@ -209,16 +230,16 @@ export function ChannelVideos({ id }: { id: string }) {
 
   return (
     <section className="@container font-roboto text-yt-text">
-      <nav className="flex border-b border-yt-divider" aria-label={t("videos")}>
+      <nav className="flex items-center border-b border-yt-divider" aria-label={t("videos")}>
         {tabs.map((option) => (
           <button
             key={option}
             type="button"
-            aria-current={option === kind ? "page" : undefined}
-            onClick={() => option !== kind && go(videosAddress({ kind: option }, first), "push")}
+            aria-current={!search && option === kind ? "page" : undefined}
+            onClick={() => (search || option !== kind) && go(videosAddress({ kind: option }, first), "push")}
             className={cn(
               "relative mr-6 flex h-12 items-center text-base leading-[22px] font-medium",
-              option === kind
+              !search && option === kind
                 ? "text-yt-text after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-yt-text"
                 : "text-yt-muted hover:text-yt-text",
             )}
@@ -226,8 +247,12 @@ export function ChannelVideos({ id }: { id: string }) {
             {labels[option]}
           </button>
         ))}
+        <ChannelSearch
+          search={search ?? ""}
+          onSearch={(next) => go(videosAddress(next ? { search: next } : { kind }, first), "push")}
+        />
       </nav>
-      <div className="flex gap-2 pt-4 pb-6">
+      <div className={cn("flex gap-2 pt-4 pb-6", search && "hidden")}>
         {SORTS.map((option) => (
           <button
             key={option}
@@ -248,6 +273,65 @@ export function ChannelVideos({ id }: { id: string }) {
       </div>
       {list}
     </section>
+  );
+}
+
+// The tabs' magnifier, as on a YouTube channel: it opens a field beside it, underlined, which searches the channel's
+// videos by their titles on Enter; an empty field closes again as it's left. It follows the address's search (Back).
+function ChannelSearch({ search, onSearch }: { search: string; onSearch: (search: string) => void }) {
+  const t = useTranslations("youtube");
+  const [open, setOpen] = useState(!!search);
+  const [text, setText] = useState(search);
+  const [shown, setShown] = useState(search); // the search the field last showed from the address
+  if (search !== shown) {
+    setShown(search);
+    setText(search);
+    setOpen(!!search);
+  }
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <form
+      role="search"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSearch(searchOf(new URLSearchParams({ search: text })));
+      }}
+      className="flex h-12 items-center"
+    >
+      <YouTubeTip label={t("search")}>
+        <button
+          type="button"
+          aria-label={t("search")}
+          onClick={() => {
+            setOpen(true);
+            requestAnimationFrame(() => input.current?.focus());
+          }}
+          className={cn(YT_ICON_BUTTON, "-ml-2")}
+        >
+          <SearchIcon className="size-6" />
+        </button>
+      </YouTubeTip>
+      {open && (
+        <input
+          ref={input}
+          type="text"
+          value={text}
+          maxLength={SEARCH_MAX}
+          onChange={(event) => setText(event.target.value)}
+          onBlur={() => !text.trim() && !search && setOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setText("");
+              if (search) onSearch("");
+              else setOpen(false);
+            }
+          }}
+          placeholder={t("search")}
+          aria-label={t("search")}
+          className="h-8 w-48 border-b border-yt-text bg-transparent text-sm text-yt-text outline-none placeholder:text-yt-placeholder sm:w-60"
+        />
+      )}
+    </form>
   );
 }
 

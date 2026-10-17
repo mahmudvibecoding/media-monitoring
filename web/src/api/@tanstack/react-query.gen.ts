@@ -269,7 +269,8 @@ export const youtubeChannelVideosQueryKey = (options: Options<YoutubeChannelVide
  * Youtube Channel Videos
  *
  * A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their
- * views, likes and comments (a channel that isn't monitored has none). How many there are of each kind is in the
+ * views, likes and comments (a channel that isn't monitored has none); with a search, only those whose title has it
+ * in them, whatever the case of its letters, and apostrophes aside. How many there are of each kind is in the
  * channel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel.
  */
 export const youtubeChannelVideosOptions = (options: Options<YoutubeChannelVideosData>) => queryOptions<YoutubeChannelVideosResponse, YoutubeChannelVideosError, YoutubeChannelVideosResponse, ReturnType<typeof youtubeChannelVideosQueryKey>>({
@@ -291,7 +292,8 @@ export const youtubeChannelVideosInfiniteQueryKey = (options: Options<YoutubeCha
  * Youtube Channel Videos
  *
  * A channel's collected videos, newest first (or the most viewed, or the oldest), a page at a time, with their
- * views, likes and comments (a channel that isn't monitored has none). How many there are of each kind is in the
+ * views, likes and comments (a channel that isn't monitored has none); with a search, only those whose title has it
+ * in them, whatever the case of its letters, and apostrophes aside. How many there are of each kind is in the
  * channel's details: counted again for every page, they'd take 50 ms of each page of the biggest channel.
  */
 export const youtubeChannelVideosInfiniteOptions = (options: Options<YoutubeChannelVideosData>) => {

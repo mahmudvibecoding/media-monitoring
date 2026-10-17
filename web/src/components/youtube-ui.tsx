@@ -335,6 +335,28 @@ export function ShortCard({ video, sort }: { video: YouTubeVideo; sort?: string 
   );
 }
 
+// A video found by a channel's search, as YouTube lists results: its cover beside its title, in bigger type, and its
+// views and how long ago; a Short opens on its Shorts page
+export function ResultCard({ video }: { video: YouTubeVideo }) {
+  const { playing, ...hover } = usePreview();
+  return (
+    <li className="group relative isolate flex gap-4 font-roboto" {...hover}>
+      <Tint />
+      <Cover video={video} playing={playing} className="w-[min(360px,45%)] shrink-0" />
+      <div className="min-w-0 flex-1 pt-0.5">
+        <YouTubeLink
+          href={`/youtube/${video.kind === "short" ? "shorts" : "videos"}/${video.id}`}
+          prefetch={false}
+          className="line-clamp-2 text-lg leading-[26px] break-words text-yt-text after:absolute after:inset-0"
+        >
+          {video.title?.trim() || video.id}
+        </YouTubeLink>
+        <VideoMeta video={video} className="mt-1 text-xs leading-[18px]" />
+      </div>
+    </li>
+  );
+}
+
 // A video beside another's page, as YouTube lists the next ones: its cover (which plays the video while the mouse stays
 // on the card) beside its title in up to three lines, its channel, its views and how long ago. On a phone's width
 // (of the page, which is a container), the cover takes the whole width and the rest goes under it, as in YouTube's

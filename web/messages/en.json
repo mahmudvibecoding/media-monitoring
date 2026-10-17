@@ -74,7 +74,8 @@
     "moreAbout": "More about this channel",
     "about": "About",
     "description": "Description",
-    "details": "Channel details"
+    "details": "Channel details",
+    "noResults": "No results found"
   },
   "youtubeVideo": {
     "unavailable": "Unavailable",

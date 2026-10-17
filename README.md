@@ -90,10 +90,10 @@ whose name or handle has it in them, whatever the case of its letters and apostr
 has the column and the indexes it reads them by. `/api/youtube/channels/{id}` gives a channel's details, with how many
 of its videos have been collected, of each kind, and `/api/youtube/channels/{id}/videos` its videos, newest first (or
 the most viewed, `sort=popular`, or the oldest, `sort=oldest`), 50 to a page, all of them or only videos (`kind=video`)
-or only Shorts (`kind=short`), with their views, likes and comments. `/api/youtube/videos/{id}` gives a video's details,
-with its channel's picture and subscribers and how many of its comments have been collected, and
-`/api/youtube/videos/{id}/comments` its comments, newest first, 50 to a page, each with when it was written, as
-precisely as YouTube said it.
+or only Shorts (`kind=short`), or those whose titles have a `search` in them, with their views, likes and comments.
+`/api/youtube/videos/{id}` gives a video's details, with its channel's picture and subscribers and how many of its
+comments have been collected, and `/api/youtube/videos/{id}/comments` its comments, newest first, 50 to a page, each
+with when it was written, as precisely as YouTube said it.
 
 `/api/telegram/channels` lists the monitored Telegram channels that have a message saved in the same way, 50 to a page,
 the biggest first or the latest to post first (`sort=latest`), searched by name or @username;
@@ -129,13 +129,13 @@ list like Telegram's chats, also in the order of their latest posts; and at the 
 its steps and every run started by hand, newest first, with their numbers, and a page for each run with all its numbers.
 YouTube's pages are under YouTube's top bar, whose search box suggests channels as one types. A YouTube channel's page
 is laid out like the channel on YouTube, with its About box, its videos and Shorts in grids, newest, most viewed or
-oldest first, that load more as they're scrolled, each playing silently while the mouse stays on it; a video's, like
-YouTube's watch page, with YouTube's player, which starts as the page opens and takes YouTube's keys, its description,
-its comments, a Share box and more from its channel; a Short's, like YouTube's Shorts, upright, with the comments and
-the description in panels beside it and the channel's other Shorts on ↑ and ↓; a Telegram channel's, like the channel in
-Telegram, its messages as bubbles, the newest at the bottom, with its info beside them. Anything in a list opens
-wherever it's clicked. Customers, for now, see a greeting. The menu's foot has the user's name, the language and signing
-out.
+oldest first, that load more as they're scrolled, each playing silently while the mouse stays on it, and its search by
+title; a video's, like YouTube's watch page, with YouTube's player, which starts as the page opens and takes YouTube's
+keys, its description, its comments, a Share box and more from its channel; a Short's, like YouTube's Shorts, upright,
+with the comments and the description in panels beside it and the channel's other Shorts on ↑ and ↓; a Telegram
+channel's, like the channel in Telegram, its messages as bubbles, the newest at the bottom, with its info beside them.
+Anything in a list opens wherever it's clicked. Customers, for now, see a greeting. The menu's foot has the user's name,
+the language and signing out.
 
 A visitor sees Russian until they choose another language, in the menu's foot (or the sign-in page's header); the choice
 is kept in a cookie for a year, and, once they're signed in, in their account, which the site switches to when they sign

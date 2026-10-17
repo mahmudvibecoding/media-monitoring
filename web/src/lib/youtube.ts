@@ -29,8 +29,11 @@ export const SORTS: Sort[] = ["newest", "popular", "oldest"];
 export const firstKind = (counts?: VideoCounts): Kind => (counts && !counts.video && counts.short ? "short" : "video");
 
 // A channel's videos: its videos or its Shorts (?kind=…, when it isn't the tab the page opens on), newest first or
-// in another order (?sort=popular, ?sort=oldest); more of them load as the list is scrolled, so no page
+// in another order (?sort=popular, ?sort=oldest); or, with a search (?search=…), all those whose titles have it, newest
+// first. More of them load as the list is scrolled, so no page.
 export function videosQuery(params: URLSearchParams, first: Kind = "video"): VideosQuery {
+  const search = searchOf(params);
+  if (search) return { search };
   const kind = params.get("kind");
   const sort = params.get("sort");
   const query: VideosQuery = { kind: kind === "video" || kind === "short" ? kind : first };
@@ -39,6 +42,7 @@ export function videosQuery(params: URLSearchParams, first: Kind = "video"): Vid
 }
 
 export function videosAddress(query: VideosQuery, first: Kind = "video"): string {
+  if (query.search) return addressOf({ search: query.search });
   return addressOf({ kind: query.kind === first ? undefined : (query.kind ?? undefined), sort: query.sort });
 }
 
