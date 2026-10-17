@@ -299,6 +299,10 @@ export type TelegramChannel = {
      * Last Message At
      */
     last_message_at: string | null;
+    /**
+     * Photo Url
+     */
+    photo_url: string | null;
 };
 
 /**
@@ -325,6 +329,10 @@ export type TelegramChannelDetails = {
      * Last Message At
      */
     last_message_at: string | null;
+    /**
+     * Photo Url
+     */
+    photo_url: string | null;
     /**
      * Description
      */

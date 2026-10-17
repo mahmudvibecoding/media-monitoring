@@ -184,7 +184,7 @@ function Counts({
           <TableBody>
             {counts.map(([key, value]) => (
               <TableRow key={key}>
-                <TableCell className="pl-4">{names[key] ?? key}</TableCell>
+                <TableCell className="pl-4 whitespace-normal">{names[key] ?? key}</TableCell>
                 <TableCell className="pr-4 text-right tabular-nums">{formatCount(value, locale)}</TableCell>
               </TableRow>
             ))}

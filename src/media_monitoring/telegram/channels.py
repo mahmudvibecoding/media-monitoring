@@ -1,6 +1,6 @@
-"""Refresh every channel's details in telegram_channels (title, description, subscriber_count) from its public page,
-as fast as the proxies answer: one page per channel. Only channels whose details changed are written. Telegram rounds
-subscriber counts of 1,000 and more on these pages, to three digits (1.14M).
+"""Refresh every channel's details in telegram_channels (title, description, subscriber_count, photo_url) from its
+public page, as fast as the proxies answer: one page per channel. Only channels whose details changed are written.
+Telegram rounds subscriber counts of 1,000 and more on these pages, to three digits (1.14M).
 
 The page also shows the channel's newest messages: a channel without a last message yet gets its newest one
 (last_message_id, last_message_at), so reading its messages can start there; one that has it keeps it, and while the
@@ -10,6 +10,7 @@ whose messages belong to another channel means the username now belongs to that 
 Run it after "uv run proxies": the pool tests the proxies by itself (see pool.py). A page Telegram hides from a
 proxy's address goes out again through another one, up to ATTEMPTS times in all; the proxy keeps working.
 """
+import html
 import re
 from functools import partial
 
@@ -20,36 +21,42 @@ TITLE = re.compile(r'<div class="tgme_channel_info_header_title"[^>]*>(.*?)</div
 DESCRIPTION = re.compile(r'<div class="tgme_channel_info_description"[^>]*>(.*?)</div>', re.S)
 ATTEMPTS = 10  # requests per channel at most: Telegram hides many pages from busy proxies
 SUBSCRIBERS = re.compile(r'<span class="counter_value">([^<]+)</span>\s*<span class="counter_type">subscribers?<')
+# The channel's photo, 160 × 160, on Telegram's image server (cdn1.telesco.pe, ...). A channel without one has only its
+# initials there, and no image.
+PHOTO = re.compile(r'<i class="tgme_page_photo_image[^"]*"[^>]*><img src="(https://[^"]+)"')
 CHANNELS = """CREATE TEMP TABLE channels (channel_id bigint, title text, description text, subscriber_count bigint,
-              last_message_id integer, last_message_at timestamptz) ON COMMIT DELETE ROWS"""
+              photo_url text, last_message_id integer, last_message_at timestamptz) ON COMMIT DELETE ROWS"""
 # Only rows whose details changed are written. A page without a subscriber count keeps the one we have. The last
 # message is only set where there's none, as reading the channel's messages moves it on from there; but while the page's
 # newest message is the one we have, its time is the page's: the first version read the first time in a message, which
 # in a notice like "Live stream scheduled for Oct 18 at 16:00" is the stream's, not the notice's
 SAVE = """UPDATE telegram_channels AS c
           SET title = n.title, description = n.description,
-              subscriber_count = coalesce(n.subscriber_count, c.subscriber_count),
+              subscriber_count = coalesce(n.subscriber_count, c.subscriber_count), photo_url = n.photo_url,
               last_message_id = coalesce(c.last_message_id, n.last_message_id),
               last_message_at = CASE WHEN c.last_message_id IS NULL OR c.last_message_id = n.last_message_id
                                      THEN n.last_message_at ELSE c.last_message_at END
           FROM channels AS n
           WHERE c.channel_id = n.channel_id
-            AND ((c.title, c.description, c.subscriber_count)
-                 IS DISTINCT FROM (n.title, n.description, coalesce(n.subscriber_count, c.subscriber_count))
+            AND ((c.title, c.description, c.subscriber_count, c.photo_url)
+                 IS DISTINCT FROM (n.title, n.description, coalesce(n.subscriber_count, c.subscriber_count),
+                                   n.photo_url)
                  OR c.last_message_id IS NULL AND n.last_message_id IS NOT NULL
                  OR c.last_message_id = n.last_message_id AND c.last_message_at IS DISTINCT FROM n.last_message_at)"""
 
 
 def parse(page):
-    """(channel ID, title, description, subscriber_count, last message ID, when it was published) from a channel's
-    page, or None if it isn't one. The channel ID and the last message are None when the page shows no messages."""
+    """(channel ID, title, description, subscriber_count, photo_url, last message ID, when it was published) from a
+    channel's page, or None if it isn't one. The channel ID and the last message are None when the page shows no
+    messages."""
     title = TITLE.search(page)
     if not title:
         return None
-    description, subscribers = DESCRIPTION.search(page), SUBSCRIBERS.search(page)
+    description, subscribers, photo = DESCRIPTION.search(page), SUBSCRIBERS.search(page), PHOTO.search(page)
     newest = newest_message(page) or (None, None)
     return (channel_id(page), text(title.group(1)), (text(description.group(1)) or None) if description else None,
-            count(subscribers.group(1)) if subscribers else None, *newest)
+            count(subscribers.group(1)) if subscribers else None, html.unescape(photo.group(1)) if photo else None,
+            *newest)
 
 
 async def fetch(session, username, proxy):

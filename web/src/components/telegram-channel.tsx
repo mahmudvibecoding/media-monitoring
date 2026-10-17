@@ -11,7 +11,7 @@ import type { TelegramMessage } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { FoldedText } from "@/components/folded-text";
 import { Pages } from "@/components/pages";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { go } from "@/lib/address";
@@ -37,6 +37,7 @@ export function TelegramChannelDetails({ id }: { id: number }) {
     <section className="space-y-4">
       <div className="flex flex-wrap items-center gap-4">
         <Avatar className="size-16">
+          {data.photo_url && <AvatarImage src={data.photo_url} alt="" referrerPolicy="no-referrer" />}
           <AvatarFallback className="text-2xl">{initialOf(name)}</AvatarFallback>
         </Avatar>
         {/* At least 15rem wide beside the picture: on a phone, the Telegram button goes to the next line instead */}

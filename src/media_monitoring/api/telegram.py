@@ -26,6 +26,7 @@ class TelegramChannel(BaseModel):
     title: str | None
     subscribers: int | None  # exact below 1,000; Telegram's page rounds bigger counts to three digits (1.14M)
     last_message_at: datetime | None  # when its latest message came out
+    photo_url: str | None  # its photo, 160 × 160, on Telegram's image server; None without one
 
 
 class TelegramChannels(BaseModel):
@@ -52,7 +53,7 @@ class TelegramMessages(BaseModel):
 
 # As for YouTube's channels: the page's channels are picked from the order's index alone, and only those are read
 CHANNELS = sql.SQL("""
-    SELECT c.channel_id AS id, c.username, c.title, c.subscriber_count AS subscribers, c.last_message_at
+    SELECT c.channel_id AS id, c.username, c.title, c.subscriber_count AS subscribers, c.last_message_at, c.photo_url
     FROM (SELECT channel_id FROM telegram_channels {where} ORDER BY {order} LIMIT %(limit)s OFFSET %(offset)s) AS page
     JOIN telegram_channels AS c USING (channel_id)
     ORDER BY {order}
@@ -115,7 +116,7 @@ async def telegram_channels(
 
 
 CHANNEL = """
-    SELECT channel_id AS id, username, title, description, subscriber_count AS subscribers, last_message_at
+    SELECT channel_id AS id, username, title, description, subscriber_count AS subscribers, last_message_at, photo_url
     FROM telegram_channels WHERE channel_id = %(channel)s
 """
 MESSAGE_COUNT = "SELECT count(*) FROM telegram_messages WHERE channel_id = %(channel)s"

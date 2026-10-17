@@ -85,8 +85,10 @@ CREATE TABLE IF NOT EXISTS telegram_channels (
     -- it, and checks channels that haven't posted for a while less often. Set from the channel's page while it's
     -- NULL ("uv run telegram channels"); after that, saved with its messages, in one transaction
     last_message_id   integer,
-    last_message_at   timestamptz
+    last_message_at   timestamptz,
+    photo_url         text                  -- its photo (160 × 160) on Telegram's image server; NULL without one
 );
+ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS photo_url text;  -- for databases made before it
 
 -- Messages of the Telegram channels that have text: the message's own text, or the caption of its photo, video or
 -- album. Messages without text aren't kept. Telegram counts each item of an album as a message of its own; here an

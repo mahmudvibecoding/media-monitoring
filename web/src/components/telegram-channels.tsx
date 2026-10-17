@@ -13,7 +13,7 @@ import { ApiError } from "@/components/api-error";
 import { ListSkeleton } from "@/components/list-skeleton";
 import { Pages } from "@/components/pages";
 import { SearchBox } from "@/components/search-box";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { go } from "@/lib/address";
@@ -137,6 +137,7 @@ function ChannelRow({ channel }: { channel: TelegramChannel }) {
             className="flex min-w-0 items-center gap-3 hover:underline"
           >
             <Avatar>
+              {channel.photo_url && <AvatarImage src={channel.photo_url} alt="" referrerPolicy="no-referrer" />}
               <AvatarFallback>{initialOf(name)}</AvatarFallback>
             </Avatar>
             <span className="min-w-0">

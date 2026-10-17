@@ -118,7 +118,8 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   names; one without a text shows as it is. The activity's first page, the overview's runs, and any page with a run
   going are asked for again every 5 s. How long a run has been going is counted to its last update, not to the
   browser's clock, so the server's page and the browser's agree.
-- Channel pictures come from YouTube's image server at 88 px (8 KB each), not at the 900 px saved (114 KB).
+- Channel pictures come from YouTube's image server at 88 px (8 KB each), not at the 900 px saved (114 KB), and
+  Telegram's from its own, at the one size its pages give, 160 px (10 KB).
 - Video covers come from YouTube's image server at 320 × 180 (15 KB), loaded as they scroll into view: Next's image
   optimizer would fetch them through the site's server, which can't reach the internet.
 - Dates and times are Tashkent's (UTC+5, the same all year), written by the site's own function (`src/lib/format.ts`),

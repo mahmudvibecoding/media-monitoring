@@ -172,13 +172,17 @@ asked again at the end.
 
 ### Channel details
 
-`uv run telegram channels`, run by hand rather than in the rounds, refreshes each channel's title, description and
-subscriber count from its public page.
+`uv run telegram channels`, run by hand rather than in the rounds, refreshes each channel's title, description, photo
+and subscriber count from its public page.
 
 - **One page per channel.** The page shows the channel's title, description and counters, and its 20 or so newest
   messages. It rounds subscriber counts of 1,000 and more to three digits (1.14M). Only the channel's plain page,
   `t.me/<username>`, has the exact count, but Telegram answers about 10 of those a second per address, against
   hundreds of public pages.
+- **The photo's address, not the photo.** The page shows the channel's photo, 160 × 160 (about 10 KB), on Telegram's
+  image server (cdn1.telesco.pe, ...); the website loads it from there. The address is the same from one request to
+  the next, and the step saves whatever address the page shows, so a new photo replaces the old. A channel without a
+  photo has Telegram's stand-in there, its initials, which isn't kept.
 - **The newest message, once.** A channel without a last message yet gets the newest one on its page (for an album,
   its last item), so reading its messages can start there. While the page's newest message is still that one, its time
   is taken from the page again: a time is the message's date link's, and one read wrong, like a scheduled stream's
@@ -190,10 +194,10 @@ subscriber count from its public page.
 
 ### What's kept
 
-- **`telegram_channels`:** each channel's username, title, description, subscriber count, and its last message
-  read (ID and time).
+- **`telegram_channels`:** each channel's username, title, description, subscriber count, photo's address, and its
+  last message read (ID and time).
 - **`telegram_messages`:** each message with text: its ID (an album's first item), when it was published (to the
   second), the text, and when we first saw it.
 
-Not collected: photos, videos and other media; views and reactions; where a forwarded message came from; replies and
-edits; and comments, which Telegram doesn't show without an account.
+Not collected: messages' photos, videos and other media; views and reactions; where a forwarded message came from;
+replies and edits; and comments, which Telegram doesn't show without an account.
