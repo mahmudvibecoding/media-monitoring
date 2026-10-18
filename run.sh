@@ -10,8 +10,9 @@
 #
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
 # packages, and Node.js and pnpm for the website), creates the database, its tables, the web API's user, which can
-# only read them, and the website's user, and loads the channels to monitor from channels.txt (any file with channel
-# IDs in it, like a CSV export; new IDs are added at every start). Run it as root or as a user with sudo. It
+# only read them, and the website's user, and loads the channels to monitor: YouTube's from youtube_channels.txt (any
+# file with channel IDs in it, like a CSV export), Telegram's from telegram_channels.txt (a channel's ID and username
+# on each line); new ones are added at every start. Run it as root or as a user with sudo. It
 # (re)starts sing-box in the background with "uv run proxies" and stops it when the round ends, or on Ctrl+C or kill.
 # Downloaded and generated files (proxy lists, sing-box configs and logs) go in data/. The website and its API are
 # deployed with deploy.sh.
@@ -163,16 +164,24 @@ setup() {
         until pg_isready -q; do sleep 1; done
     fi
 
-    # The channels to monitor: the IDs in channels.txt (ones already in the database are skipped)
-    if [ -f channels.txt ]; then
-        grep -o 'UC[A-Za-z0-9_-]\{22\}' channels.txt | sort -u |
+    # The YouTube channels to monitor: the IDs in youtube_channels.txt (ones already in the database are skipped)
+    if [ -f youtube_channels.txt ]; then
+        grep -o 'UC[A-Za-z0-9_-]\{22\}' youtube_channels.txt | sort -u |
             psql -q -v ON_ERROR_STOP=1 -d "$DATABASE" -c "CREATE TEMP TABLE listed (channel_id text)" \
                 -c "\copy listed from pstdin" \
                 -c "INSERT INTO youtube_channels (channel_id) SELECT channel_id FROM listed ON CONFLICT DO NOTHING"
     fi
+    # The Telegram channels to monitor: telegram_channels.txt, a channel's ID and username on each line (ones already
+    # in the database are skipped)
+    if [ -f telegram_channels.txt ]; then
+        psql -q -v ON_ERROR_STOP=1 -d "$DATABASE" -c "CREATE TEMP TABLE listed (channel_id bigint, username text)" \
+            -c "\copy listed from pstdin with (delimiter ' ')" \
+            -c "INSERT INTO telegram_channels (channel_id, username) SELECT * FROM listed ON CONFLICT DO NOTHING" \
+            < telegram_channels.txt
+    fi
     channels=$(psql -d "$DATABASE" -Atc "SELECT count(*) FROM youtube_channels")
     if [ "$channels" -eq 0 ]; then
-        echo "setup: no channels to monitor yet: put their IDs in channels.txt (one per line, or any CSV export)"
+        echo "setup: no channels to monitor yet: put their IDs in youtube_channels.txt (one per line, or any CSV export)"
         exit 1
     fi
 

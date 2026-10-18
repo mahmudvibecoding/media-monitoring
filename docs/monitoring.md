@@ -1,9 +1,9 @@
 # How monitoring works
 
-The system follows the YouTube channels in `channels.txt` and keeps four things up to date in PostgreSQL:
+The system follows the YouTube channels in `youtube_channels.txt` and keeps four things up to date in PostgreSQL:
 the channels' details, every video they publish, the views and likes of recent videos, and the comments on
-them. It also collects the text messages of public Telegram channels, and keeps their details up to date (see
-[Telegram](#telegram)). The [README](../README.md) shows how to run it; [proxies.md](proxies.md) explains the proxies
+them. It also collects the text messages of the public Telegram channels in `telegram_channels.txt`, and keeps their
+details up to date (see [Telegram](#telegram)). The [README](../README.md) shows how to run it; [proxies.md](proxies.md) explains the proxies
 every request goes through.
 
 ## The size of the job
@@ -135,8 +135,9 @@ half minutes, and reading every video's comments the first time took hours.
 
 ## Telegram
 
-`telegram_channels` holds 310,431 public Uzbek Telegram channels, from a list of channels found through their public
-pages (September 2026), keyed by Telegram's ID for the channel. Everything comes from those public pages,
+`telegram_channels` holds the 298,149 public Uzbek Telegram channels in `telegram_channels.txt` (a channel's ID and
+username on each line), keyed by Telegram's ID for the channel: a list of channels found through their public pages
+(September 2026), without the 12,282 [deleted](#channels-deleted). Everything comes from those public pages,
 `t.me/s/<username>`, which anyone can read without an account. They only work by username, so a channel that changes
 its username can't be followed any more.
 
@@ -235,21 +236,17 @@ CLD2 calls the South Azerbaijani of Iran's channels; NULL without text. It needs
 of channel IDs and read their messages in the messages table's key order. On the channels labelled by hand, CLD2
 named a message's language right 97.5% of the time from its first 50 letters in Uzbek, and 98% from 100 in Russian.
 
-### Channels taken out
+### Channels deleted
 
-On October 18, 2026, 12,282 channels went out of monitoring, with their 529,597 messages, into
-`telegram_channels_archive` and `telegram_messages_archive`, which keep them as they were, with when and why
-(`reason`):
+On October 18, 2026, 12,282 channels were deleted, with their 529,597 messages:
 
-- **`gemma unrelated`** (1,288) and **`gemma unsure`** (6,236): of the 41,999 channels not in Uzbek, those a model
-  found unrelated to Uzbekistan, or couldn't tell about. Gemma 4 (26B-A4B, 8-bit) read each one's username, title,
-  description and its messages up to 2,000 letters, on the A40 server, in 68 minutes, and answered with one letter.
-- **`no messages`** (4,758 more): channels without a saved message, whatever their language: pages Telegram never
+- **Unrelated or unsure** (1,288 and 6,236): of the 41,999 channels not in Uzbek, those a model found unrelated to
+  Uzbekistan, or couldn't tell about. Gemma 4 (26B-A4B, 8-bit) read each one's username, title, description and its
+  messages up to 2,000 letters, on the A40 server, in 68 minutes, and answered with one letter.
+- **Without messages** (4,758 more): channels without a saved message, whatever their language: pages Telegram never
   showed a post on (channels gone, or names now someone else's) and channels whose posts have no text.
 
-The steps read only `telegram_channels`, so they don't read these. A channel put back goes into `telegram_channels`
-without its letters, then its messages into `telegram_messages`, whose triggers count its letters and list it on the
-website again.
+`telegram_channels.txt` doesn't have them, so they don't come back.
 
 ### What's kept
 
@@ -258,7 +255,6 @@ website again.
   main language.
 - **`telegram_messages`:** each message with text: its ID (an album's first item), when it was published (to the
   second), the text, and when we first saw it.
-- **`telegram_channels_archive`, `telegram_messages_archive`:** the channels taken out, and their messages.
 
 Not collected: messages' photos, videos and other media; views and reactions; where a forwarded message came from;
 replies and edits; and comments, which Telegram doesn't show without an account.

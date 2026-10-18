@@ -1,9 +1,10 @@
 # Media monitoring
 
-Monitors the YouTube channels listed in `channels.txt`: finds their new videos, fetches the videos' details, keeps
-their views and likes up to date, and collects their comments, all into PostgreSQL. Requests go through thousands of
-free VPN configs and plain proxies, so it works as fast as the server allows. It also collects the text messages of
-public Telegram channels, and keeps their details up to date, from their public pages.
+Monitors the YouTube channels listed in `youtube_channels.txt`: finds their new videos, fetches the videos' details,
+keeps their views and likes up to date, and collects their comments, all into PostgreSQL. Requests go through
+thousands of free VPN configs and plain proxies, so it works as fast as the server allows. It also collects the text
+messages of the public Telegram channels in `telegram_channels.txt`, and keeps their details up to date, from their
+public pages.
 
 ## Running it
 
@@ -14,7 +15,8 @@ On a Debian or Ubuntu machine, as root or as a user with sudo:
 ```
 
 It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, Node.js and pnpm for the
-website, Caddy, the database and its tables, and the channels from `channels.txt`. Then it runs one round: fresh VPN
+website, Caddy, the database and its tables, and the channels from `youtube_channels.txt` and
+`telegram_channels.txt`. Then it runs one round: fresh VPN
 proxies, then each of YouTube's steps in turn, then Telegram's new messages.
 
 ```bash
@@ -198,7 +200,8 @@ address. More in [docs/website.md](docs/website.md).
 ```
 run.sh                  sets the machine up and runs a round
 deploy.sh               deploys the website and the API; deploy/ has their services and Caddy's setup
-channels.txt            the channels to monitor, one ID per line
+youtube_channels.txt    the YouTube channels to monitor, one ID per line
+telegram_channels.txt   the Telegram channels to monitor, a channel's ID and username on each line
 schema.sql              the database tables
 app.sql                 the website's own tables (accounts), in the schema app, and its indexes on the collected data
 openapi.json            the web API's description: uv run api openapi

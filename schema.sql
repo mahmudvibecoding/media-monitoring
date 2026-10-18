@@ -1,5 +1,6 @@
 -- Tables for the monitored channels, their videos, the videos' latest views and likes, and their comments.
--- Safe to run again: it only adds what's missing. (run.sh runs it, and loads the channels from channels.txt.)
+-- Safe to run again: it only adds what's missing. (run.sh runs it, and loads the channels from youtube_channels.txt
+-- and telegram_channels.txt.)
 SET client_min_messages = warning;  -- don't list everything that already exists
 
 CREATE TABLE IF NOT EXISTS youtube_channels (
@@ -131,32 +132,6 @@ END
 $$;
 CREATE OR REPLACE TRIGGER count_letters AFTER INSERT ON telegram_messages
     REFERENCING NEW TABLE AS saved FOR EACH STATEMENT EXECUTE FUNCTION count_letters();
-
--- Telegram channels taken out of monitoring, with their messages, kept so that they can be put back (see
--- docs/monitoring.md): the steps don't read them, and a channel list loaded by hand should leave them out
-CREATE TABLE IF NOT EXISTS telegram_channels_archive (
-    channel_id        bigint PRIMARY KEY,
-    username          text NOT NULL,
-    title             text,
-    description       text,
-    subscriber_count  bigint,
-    last_message_id   integer,
-    last_message_at   timestamptz,
-    photo_url         text,
-    history_from      integer,
-    letters           bigint NOT NULL,
-    language          text,
-    archived_at       timestamptz NOT NULL DEFAULT now(),
-    reason            text NOT NULL         -- 'gemma unrelated', 'gemma unsure' or 'no messages'
-);
-CREATE TABLE IF NOT EXISTS telegram_messages_archive (
-    channel_id        bigint NOT NULL REFERENCES telegram_channels_archive,
-    message_id        integer NOT NULL,
-    published_at      timestamptz NOT NULL,
-    text              text NOT NULL,
-    first_seen_at     timestamptz NOT NULL,
-    PRIMARY KEY (channel_id, message_id)
-);
 
 -- Every run: each round of run.sh, each "uv run proxies", and each run of a step ("uv run youtube comments 90", ...).
 -- A run writes its row as it starts, its numbers every few seconds while it goes (updated_at says it's still going),
