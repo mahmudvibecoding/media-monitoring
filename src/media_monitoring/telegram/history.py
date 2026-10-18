@@ -166,6 +166,8 @@ async def read_back(pool, session, channel_id, username, start, floor, need):
 
 class History(Collector):
     attempts = ATTEMPTS
+    give_up = False  # it can run for hours: when every proxy rests, wait for one to come back or for refreshed lists
+    follow_lists = True
     item_name = "channels"
     saved_name = "messages saved"
     argument = f"a number of letters ({LETTERS:,} by default)"

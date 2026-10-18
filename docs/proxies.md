@@ -76,10 +76,10 @@ proxies of a collector process fall to a quarter of the most it had (or all of t
 them all and has room for more tests, the process brings in its share of the plain proxies: many more addresses.
 They're tested after the VPN ones, and the VPN ones that come back from their rest carry work again next to them.
 
-The comments step can run for hours (`youtube comments all`), so it also takes in refreshed lists while it runs:
-sing-box's proxies are tested again when it restarts with new configs, and new plain proxies join when `uv run
-proxies` runs again (or replace the reserve, if it isn't in use yet). When every proxy rests at once, it waits
-for them instead of stopping.
+The comments step can run for hours (`youtube comments all`), and so can Telegram's history (`telegram history`), so
+they also take in refreshed lists while they run: sing-box's proxies are tested again when it restarts with new
+configs, and new plain proxies join when `uv run proxies` runs again (or replace the reserve, if it isn't in use
+yet). When every proxy rests at once, they wait for them instead of stopping.
 
 ## Telegram
 
