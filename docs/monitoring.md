@@ -221,6 +221,11 @@ letters first, as far as each needs:
   skipped, and the channel's last message doesn't move. Hidden pages and moved usernames are handled as in
   `telegram messages`, failed channels asked again at the end.
 
+Its first runs, on October 18, 2026, went to 1,000 letters (101,107 channels in 389 seconds), then part of the way
+to 100,000, then to 10,000 letters and 100 messages: 251,375 channels in 765 seconds, at about 4,900 pages a second,
+saving 23.3 million messages. Then 184,941 channels had both, 118,038 had less but were read back to their first
+message, and the 36.5 million saved messages took 15 GB.
+
 ### What's kept
 
 - **`telegram_channels`:** each channel's username, title, description, subscriber count, photo's address, its
