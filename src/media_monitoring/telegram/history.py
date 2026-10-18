@@ -1,8 +1,9 @@
 """Read back the history of the Telegram channels, the channels with the fewest letters first: for each channel in
 telegram_channels, ask for the messages before the oldest one read (the request a channel's page makes as you scroll
-up), page by page, until its saved messages hold LETTERS letters (links left out, see letters), its first message is
-reached, or the messages HISTORY before its last one are; "uv run telegram history 1000" reads up to 1,000 letters
-instead. A channel with more to read keeps WINDOW pages asked for at once (see read_back). The messages with text are
+up), page by page, until its saved messages hold at least LETTERS letters (links left out, see letters) and at least
+MESSAGES messages, its first message is reached, or the messages HISTORY before its last one are; "uv run telegram
+history 1000" reads up to 1,000 letters instead. A channel with more to read keeps WINDOW pages asked for at once
+(see read_back). The messages with text are
 kept as the messages step keeps them (see messages.py), those already saved skipped; the channel's last message doesn't
 move. How far back each channel is read (history_from) is saved with its messages, in one transaction, so a run that
 stops or crashes loses nothing, and the next one goes on from there.
@@ -25,7 +26,8 @@ from media_monitoring.telegram import BEFORE, TEST_CHANNEL, light
 from media_monitoring.telegram.messages import (ATTEMPTS, FAILED, NEW_MESSAGES, PAGE, RETRY_AFTER, SAVE_MESSAGES,
                                                 WINDOW, Moved)
 
-LETTERS = 100_000  # by default, read a channel back until its saved messages hold LETTERS letters
+LETTERS = 10_000  # by default, read a channel back until its saved messages hold LETTERS letters
+MESSAGES = 100  # and MESSAGES messages
 # A channel is read back at most HISTORY message IDs before its last message: one posting photos without captions for
 # years would bring few letters for many pages
 HISTORY = 10_000
@@ -36,20 +38,19 @@ NEW_HISTORY = """CREATE TEMP TABLE new_history (channel_id bigint, history_from 
 SAVE_HISTORY = """UPDATE telegram_channels AS c SET history_from = n.history_from
                   FROM new_history AS n
                   WHERE c.channel_id = n.channel_id AND (c.history_from IS NULL OR n.history_from < c.history_from)"""
-# The channels with fewer letters than the target, the fewest first, whose history isn't read to its first message
-# or as far back as HISTORY: each with where its read starts (before the oldest message read; the first time, before
-# the oldest saved, or after its last message if none is), the ID at or below which no page is asked for, and how
-# many letters it lacks
-LOAD = """SELECT channel_id, username, start, last_message_id - %(history)s AS floor, %(target)s - letters AS need
-          FROM (SELECT c.channel_id, c.username, c.letters, c.last_message_id,
-                       coalesce(c.history_from,
-                                (SELECT min(m.message_id) FROM telegram_messages AS m
-                                 WHERE m.channel_id = c.channel_id),
-                                c.last_message_id + 1) AS start
+# The channels with fewer letters or messages than the targets, the fewest letters first, whose history isn't read to
+# its first message or as far back as HISTORY: each with where its read starts (before the oldest message read; the
+# first time, before the oldest saved, or after its last message if none is), the ID at or below which no page is
+# asked for, and how many letters and messages it lacks
+LOAD = """SELECT channel_id, username, start, last_message_id - %(history)s AS floor,
+                 greatest(%(letters)s - letters, 0) AS need, greatest(%(messages)s - saved, 0) AS want
+          FROM (SELECT c.channel_id, c.username, c.letters, c.last_message_id, coalesce(s.saved, 0) AS saved,
+                       coalesce(c.history_from, s.oldest, c.last_message_id + 1) AS start
                 FROM telegram_channels AS c
-                WHERE c.last_message_id IS NOT NULL AND c.letters < %(target)s
-                  AND c.history_from IS DISTINCT FROM 0) AS c
-          WHERE start > last_message_id - %(history)s
+                LEFT JOIN (SELECT channel_id, count(*) AS saved, min(message_id) AS oldest
+                           FROM telegram_messages GROUP BY channel_id) AS s USING (channel_id)
+                WHERE c.last_message_id IS NOT NULL AND c.history_from IS DISTINCT FROM 0) AS c
+          WHERE (letters < %(letters)s OR saved < %(messages)s) AND start > last_message_id - %(history)s
           ORDER BY letters, channel_id"""
 
 
@@ -63,14 +64,14 @@ async def fetch_before(session, username, before, proxy):
     return await light(session, proxy, BEFORE.format(username, before))
 
 
-async def read_back(pool, session, channel_id, username, start, floor, need):
+async def read_back(pool, session, channel_id, username, start, floor, need, want):
     """Read one channel's history back from before start (everything from start on is read), until the messages with
-    text read hold need letters, its first message is reached, or floor: no page is asked for before an ID at or below
-    it. Returns (outcome, texts, read_to, found, pages): outcome is "enough letters", "first message", "limit" (floor
-    reached), "other channel" (the username belongs to another channel now: nothing it brought counts) or "failed" (a
-    page failed every try: the next run goes on from the last page read without a gap); texts are the messages with
-    text read, oldest first; read_to how far back the history is read without a gap (0 once nothing older is left,
-    start if nothing was read); found the letters in texts; pages how many answers brought messages.
+    text read hold need letters and number want, its first message is reached, or floor: no page is asked for before
+    an ID at or below it. Returns (outcome, texts, read_to, found, pages): outcome is "enough", "first message",
+    "limit" (floor reached), "other channel" (the username belongs to another channel now: nothing it brought counts)
+    or "failed" (a page failed every try: the next run goes on from the last page read without a gap); texts are the
+    messages with text read, oldest first; read_to how far back the history is read without a gap (0 once nothing
+    older is left, start if nothing was read); found the letters in texts; pages how many answers brought messages.
 
     Each page needs the oldest message of the one before it, so a long read would go one page at a time. But a
     channel's message IDs are consecutive: after two pages one after another, a channel with more to read keeps WINDOW
@@ -100,11 +101,14 @@ async def read_back(pool, session, channel_id, username, start, floor, need):
             return outcome, [], start, 0, pages
         return outcome, sorted(texts.values()), read_to, found, pages
 
+    def enough():
+        return found >= need and len(texts) >= want
+
     before = start
     try:
         for _ in range(2):  # many channels lack a page or two at most: one after another
-            if found >= need:
-                return result("enough letters", before)
+            if enough():
+                return result("enough", before)
             if before <= floor:
                 return result("limit", before)
             outcome, answer = await pool.run(partial(fetch_before, session, username, before))
@@ -115,15 +119,20 @@ async def read_back(pool, session, channel_id, username, start, floor, need):
                 return result("first message", 0)
             before = oldest
         # Then up to WINDOW pages at a time: page n starts before base - n * PAGE, and as soon as one comes back, the
-        # next one goes out, until one comes back empty (the first message) or fails, the letters are found, or the
-        # next page would start at or below floor. No more pages are out at once than the letters still lacking need,
-        # at the rate the pages read so far brought them: a channel a page or two short isn't asked for ten
+        # next one goes out, until one comes back empty (the first message) or fails, there are enough letters and
+        # messages, or the next page would start at or below floor. No more pages are out at once than the letters and
+        # messages still lacking need, at the rate the pages read so far brought them: a channel a page or two short
+        # isn't asked for ten
         base, asked, answered, stop = before, {}, {}, None
 
+        def pages_for(lacking, brought):
+            """The pages still needed for what's lacking, at the rate brought so far in pages: WINDOW without one."""
+            return 0 if lacking <= 0 else math.ceil(lacking / (brought / pages)) if brought else WINDOW
+
         def room():
-            if stop is not None or found >= need:
+            if stop is not None or enough():
                 return 0
-            pages_needed = math.ceil((need - found) / (found / pages)) if found else WINDOW
+            pages_needed = max(pages_for(need - found, found), pages_for(want - len(texts), len(texts)))
             return min(WINDOW, pages_needed) - len(asked)
 
         def ask(n):
@@ -157,8 +166,8 @@ async def read_back(pool, session, channel_id, username, start, floor, need):
             n += 1
         if n in answered and answered[n] is None:
             return result("first message", 0)
-        if found >= need:
-            return result("enough letters", before)
+        if enough():
+            return result("enough", before)
         return result("failed" if answered.get(n) is FAILED else "limit", before)
     except Moved:
         return result("other channel", start)
@@ -174,10 +183,12 @@ class History(Collector):
     number = True
 
     def load(self, conn, argument):
-        return conn.execute(LOAD, {"target": int(argument or LETTERS), "history": HISTORY}).fetchall()
+        targets = {"letters": int(argument or LETTERS), "messages": MESSAGES, "history": HISTORY}
+        return conn.execute(LOAD, targets).fetchall()
 
     def describe(self, argument):
-        return f"Telegram channels to read back, the fewest letters first, up to {int(argument or LETTERS):,} letters"
+        return (f"Telegram channels to read back, the fewest letters first, until they have "
+                f"{int(argument or LETTERS):,} letters and {MESSAGES} messages")
 
     async def prepare(self, conn, channels):
         self.pending = []  # (channel_id, its messages with text, how far back it's read now)
@@ -196,15 +207,16 @@ class History(Collector):
 
     async def read(self, pool, session, channel):
         """Read one channel back, and keep what it brought for the next save. Returns its outcome (see read_back), and
-        the channel as it stands after it: where its next read starts, and the letters it still lacks."""
-        channel_id, username, start, floor, need = channel
-        outcome, texts, read_to, found, pages = await read_back(pool, session, channel_id, username, start, floor, need)
+        the channel as it stands after it: where its next read starts, and the letters and messages it still lacks."""
+        channel_id, username, start, floor, need, want = channel
+        outcome, texts, read_to, found, pages = await read_back(pool, session, channel_id, username, start, floor, need,
+                                                                want)
         if texts or read_to != start:
             self.pending.append((channel_id, texts, read_to))
         self.results["pages"] += pages
         self.results["messages with text"] += len(texts)
         self.results["letters"] += found
-        return outcome, (channel_id, username, read_to, floor, need - found)
+        return outcome, (channel_id, username, read_to, floor, need - found, want - len(texts))
 
     async def finish(self, pool, session):
         """Ask the channels whose read failed once more, from where it stopped (see RETRY_AFTER). Those it reads no
@@ -249,8 +261,8 @@ class History(Collector):
         return added
 
     def summary(self, results, saved):
-        return (f"{results['enough letters']} channels with enough letters now, {results['first message']} read back "
-                f"to their first message, {results['limit']} to {HISTORY:,} messages before their last one, "
+        return (f"{results['enough']} channels with enough letters and messages now, {results['first message']} read "
+                f"back to their first message, {results['limit']} to {HISTORY:,} messages before their last one, "
                 f"{results['other channel']} whose username now belongs to another channel (left as they were), "
                 f"{results['failed']} failed even when asked again at the end (they go on from there next run; "
                 f"{results['read when asked again']} more were read then): {results['pages']} pages, "

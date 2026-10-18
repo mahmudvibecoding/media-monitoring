@@ -14,8 +14,8 @@ TELEGRAM = {
     "channels": "refresh every channel's title, description and subscriber count, and save the messages its public "
                 "page shows ([unread])",
     "messages": "read every channel's new messages, and keep those with text",
-    "history": "read back every channel's older messages, the fewest letters first, until it has 100,000 letters "
-               "([letters])",
+    "history": "read back every channel's older messages, the fewest letters first, until it has 10,000 letters and "
+               "100 messages ([letters])",
 }
 
 

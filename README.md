@@ -47,7 +47,7 @@ telegram` alone lists the steps.
 | `uv run youtube comments [days\|all\|unread]` | collects new comments (videos from the last 365 days by default) |
 | `uv run telegram channels [unread]` | refreshes every Telegram channel's title, description, photo and subscriber count from its public page, saves the messages with text that page shows (its 20 or so newest), and notes its newest message the first time (`unread`: only the channels without a saved message) |
 | `uv run telegram messages` | reads every Telegram channel's new messages, and keeps those with text |
-| `uv run telegram history [letters]` | reads back every Telegram channel's older messages, the channels with the fewest letters first, until its saved messages hold 100,000 letters (or the number given), its first message, or 10,000 messages before its last one |
+| `uv run telegram history [letters]` | reads back every Telegram channel's older messages, the channels with the fewest letters first, until its saved messages hold 10,000 letters (or the number given) and 100 messages, its first message, or 10,000 messages before its last one |
 | `uv run proxies` | downloads VPN configs and plain proxies, and restarts sing-box with them in the background |
 | `uv run proxies stop` | stops sing-box |
 | `uv run proxies check [vpn\|plain]` | reports how many proxies work, by protocol or type and by list (optional) |
