@@ -2,7 +2,7 @@ import type { TelegramChannelsData } from "@/api/types.gen";
 
 export type TelegramChannelsQuery = NonNullable<TelegramChannelsData["query"]>;
 export type TelegramSort = NonNullable<TelegramChannelsQuery["sort"]>;
-// For a while: folders of the channels a model found unrelated to Uzbekistan, or couldn't tell, the biggest first
+// For a while: folders of the channels a model found related to Uzbekistan, unrelated, or unsure, the biggest first
 export type TelegramLabel = NonNullable<TelegramChannelsQuery["label"]>;
 export type TelegramFolder = TelegramSort | TelegramLabel;
 

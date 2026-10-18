@@ -1079,6 +1079,7 @@
               "anyOf": [
                 {
                   "enum": [
+                    "related",
                     "unrelated",
                     "unsure"
                   ],
@@ -1088,10 +1089,10 @@
                   "type": "null"
                 }
               ],
-              "description": "For a while: only the channels a model found unrelated to Uzbekistan, or couldn't tell",
+              "description": "For a while: only the channels a model found related to Uzbekistan, unrelated, or unsure",
               "title": "Label"
             },
-            "description": "For a while: only the channels a model found unrelated to Uzbekistan, or couldn't tell"
+            "description": "For a while: only the channels a model found related to Uzbekistan, unrelated, or unsure"
           }
         ],
         "responses": {

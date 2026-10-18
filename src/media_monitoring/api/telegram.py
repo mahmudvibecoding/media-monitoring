@@ -104,8 +104,8 @@ async def telegram_channels(
     ] = "subscribers",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} channels to a page")] = 1,
     label: Annotated[
-        Literal["unrelated", "unsure"] | None,
-        Query(description="For a while: only the channels a model found unrelated to Uzbekistan, or couldn't tell"),
+        Literal["related", "unrelated", "unsure"] | None,
+        Query(description="For a while: only the channels a model found related to Uzbekistan, unrelated, or unsure"),
     ] = None,
 ) -> TelegramChannels:
     """The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post

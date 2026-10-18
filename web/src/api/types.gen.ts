@@ -1309,9 +1309,9 @@ export type TelegramChannelsData = {
         /**
          * Label
          *
-         * For a while: only the channels a model found unrelated to Uzbekistan, or couldn't tell
+         * For a while: only the channels a model found related to Uzbekistan, unrelated, or unsure
          */
-        label?: 'unrelated' | 'unsure' | null;
+        label?: 'related' | 'unrelated' | 'unsure' | null;
     };
     url: '/api/telegram/channels';
 };

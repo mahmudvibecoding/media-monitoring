@@ -21,16 +21,22 @@ import { useLoadMore } from "@/lib/use-load-more";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
-const FOLDERS = ["subscribers", "latest", "unrelated", "unsure"] as const satisfies readonly TelegramFolder[];
+const FOLDERS = [
+  "subscribers",
+  "latest",
+  "related",
+  "unrelated",
+  "unsure",
+] as const satisfies readonly TelegramFolder[];
 const SEARCH_WAIT = 300; // milliseconds after the last key before the list is searched
 
 // Telegram's chat list, in its floating panel at the left: Telegram's ☰ (which opens the site's menu) and search field
 // at the top, then the monitored channels as Telegram lists chats, more loading as they're scrolled. Two folders in
-// Telegram's floating tabs order them: the biggest first, and the latest to post first; for a while, two more list the
-// channels a model found unrelated to Uzbekistan, or couldn't tell, the biggest first. Focusing the search turns ☰
-// into ← and the folders away, as in Telegram; the list is searched a moment after the last key, the last results
-// staying meanwhile. The chat open beside is the blue row. The list is the layout's, so it stays as chats open and
-// close, scrolled where it was.
+// Telegram's floating tabs order them: the biggest first, and the latest to post first; for a while, three more list
+// the channels a model found related to Uzbekistan, unrelated, or unsure, the biggest first. Focusing the search
+// turns ☰ into ← and the folders away, as in Telegram; the list is searched a moment after the last key, the last
+// results staying meanwhile. The chat open beside is the blue row. The list is the layout's, so it stays as chats open
+// and close, scrolled where it was.
 export function TelegramList() {
   const t = useTranslations("telegramChannels");
   const nav = useTranslations("nav");
@@ -204,7 +210,13 @@ function Folders({ sort, choose }: { sort: TelegramFolder; choose: (sort: Telegr
     observer.observe(element);
     return () => observer.disconnect();
   }, [sort, locale]);
-  const labels = { subscribers: t("biggest"), latest: t("latest"), unrelated: t("unrelated"), unsure: t("unsure") };
+  const labels = {
+    subscribers: t("biggest"),
+    latest: t("latest"),
+    related: t("related"),
+    unrelated: t("unrelated"),
+    unsure: t("unsure"),
+  };
   const tab = "shrink-0 rounded-[20px] px-4 py-1.5 text-base leading-6 font-medium whitespace-nowrap";
   return (
     <div className="absolute inset-x-2 top-1 z-10">
