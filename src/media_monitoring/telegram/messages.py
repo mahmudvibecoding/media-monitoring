@@ -1,7 +1,7 @@
 """Read the new messages of the Telegram channels: for each channel in telegram_channels that has a last message, ask
 for the messages after it (the request a channel's page makes as you scroll down), page by page until an empty
 answer, as fast as the proxies answer; a busy channel WINDOW pages at a time (see read_channel). The ones with text
-are kept (see telegram.messages), and the channel's last message moves to the newest one read, text or not. The
+are kept (see telegram.page_messages), and the channel's last message moves to the newest one read, text or not. The
 channels that posted most recently go first: they're the likeliest to need several pages.
 
 A page Telegram hides from a proxy's address goes out again through another one, up to ATTEMPTS times in all; one that
@@ -13,13 +13,12 @@ nothing and saves nothing twice: what wasn't saved is read again. Run it after "
 proxies by itself (see pool.py).
 """
 import asyncio
-import json
 import time
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
 from media_monitoring.pool import NoProxiesLeft
-from media_monitoring.telegram import AFTER, TEST_CHANNEL, call, messages
+from media_monitoring.telegram import AFTER, TEST_CHANNEL, light
 
 ATTEMPTS = 10  # requests per page at most: Telegram hides many pages from busy proxies
 WINDOW = 10  # pages a busy channel's read keeps asked for at once (see read_channel)
@@ -48,15 +47,8 @@ SAVE_LAST = """UPDATE telegram_channels AS c
 
 
 async def fetch_page(session, username, after, proxy):
-    """Ask for the messages after one, through one proxy. Returns (outcome, messages): "ok" with the messages in the
-    answer, oldest first (none when there are none), else a problem from telegram.call()."""
-    problem, response = await call(session, proxy, AFTER.format(username, after), light=True)
-    if problem:
-        return problem, None
-    try:
-        return "ok", messages(json.loads(response.text))
-    except (ValueError, TypeError, AttributeError):
-        return "broken", None  # not a JSON string: the proxy mangled the answer
+    """Ask for the messages after one, through one proxy. Returns (outcome, messages): see telegram.light()."""
+    return await light(session, proxy, AFTER.format(username, after))
 
 
 class Moved(Exception):

@@ -201,10 +201,30 @@ saved 3,232,704 messages, while Telegram hid the pages of 49,014 channels throug
 right after it, of 34 and 28 seconds, saved 509,936 more; then 298,169 channels had saved messages, and about 5,000
 channels' pages stayed hidden through every proxy, as in earlier runs.
 
+### History
+
+`uv run telegram history`, run by hand, reads back the channels' older messages, the channels with the fewest
+letters first, as far as each needs:
+
+- **Up to 100,000 letters.** A channel is read back until its saved messages hold 100,000 letters (`telegram history
+  1000`: 1,000), its first message is reached, or 10,000 messages before its last one are: a channel posting photos
+  without captions for years would bring few letters for many pages. Letters are counted without links, as
+  `letters()` in `schema.sql` does; each channel keeps the count of its saved messages, which a trigger adds to
+  whichever step saves them.
+- **The messages before the oldest one read.** That's the request a channel's page makes as you scroll up: 20
+  messages before a given one, or an empty answer before the first. After two pages one after another, a channel
+  keeps up to 10 pages asked for at once, starting 20 IDs apart, but no more than the letters it still lacks need at
+  the rate its pages brought them so far.
+- **It goes on where it stopped.** How far back each channel is read (`history_from`; 0 once its first message is
+  reached) is saved with its messages, in one transaction, and only as far as the pages read without a gap; the
+  next run starts there. The messages with text are kept as `telegram messages` keeps them, those already saved
+  skipped, and the channel's last message doesn't move. Hidden pages and moved usernames are handled as in
+  `telegram messages`, failed channels asked again at the end.
+
 ### What's kept
 
-- **`telegram_channels`:** each channel's username, title, description, subscriber count, photo's address, and its
-  last message read (ID and time).
+- **`telegram_channels`:** each channel's username, title, description, subscriber count, photo's address, its
+  last message read (ID and time), how far back its history is read, and the letters in its saved messages.
 - **`telegram_messages`:** each message with text: its ID (an album's first item), when it was published (to the
   second), the text, and when we first saw it.
 

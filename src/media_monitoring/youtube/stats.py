@@ -61,7 +61,7 @@ class Stats(Collector):
     saved_name = "refreshed"
     argument = f"a number of days ({DAYS} by default) or all"
     words = ("all",)
-    days = True
+    number = True
 
     def load(self, conn, argument):
         days = argument or str(DAYS)

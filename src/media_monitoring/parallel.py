@@ -75,7 +75,7 @@ class Collector:
     saved_name = "saved"
     argument = None  # what the command line's argument may be, for its help; None if it takes none
     words = ()  # the words the argument may be
-    days = False  # whether the argument may also be a number of days
+    number = False  # whether the argument may also be a number (of days, of letters, ...)
 
     def load(self, conn, argument):
         """In the main process: the items to work on. argument is the command line's, or None."""
@@ -353,7 +353,7 @@ def run(collector_class):
     if collector.argument:
         parser.add_argument("argument", nargs="?", help=collector.argument)
     argument = getattr(parser.parse_args(), "argument", None)
-    if argument is not None and argument not in collector.words and not (collector.days and argument.isdigit()):
+    if argument is not None and argument not in collector.words and not (collector.number and argument.isdigit()):
         parser.error(f"the argument should be {collector.argument}, not {argument!r}")
     step = collector_class.__module__.removeprefix("media_monitoring.").replace(".", " ")  # e.g. "youtube comments"
     with runs.Run(step, argument) as record:

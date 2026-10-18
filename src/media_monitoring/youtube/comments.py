@@ -244,7 +244,7 @@ class Comments(Collector):
     saved_name = "new comments"
     argument = f"a number of days ({DAYS} by default), all, or unread"
     words = ("all", "unread")
-    days = True
+    number = True
 
     def load(self, conn, argument):
         days = argument or str(DAYS)

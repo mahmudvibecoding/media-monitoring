@@ -86,9 +86,14 @@ CREATE TABLE IF NOT EXISTS telegram_channels (
     -- NULL ("uv run telegram channels"); after that, saved with its messages, in one transaction
     last_message_id   integer,
     last_message_at   timestamptz,
-    photo_url         text                  -- its photo (160 × 160) on Telegram's image server; NULL without one
+    photo_url         text,                 -- its photo (160 × 160) on Telegram's image server; NULL without one
+    -- How far back its history is read ("uv run telegram history"): the oldest message read, text or not (an album's
+    -- first item), or 0 once nothing older is left; NULL until it's read back
+    history_from      integer,
+    letters           bigint NOT NULL DEFAULT 0  -- the letters in its saved messages (see letters() below)
 );
 ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS photo_url text;  -- for databases made before it
+ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS history_from integer;
 
 -- Messages of the Telegram channels that have text: the message's own text, or the caption of its photo, video or
 -- album. Messages without text aren't kept. Telegram counts each item of an album as a message of its own; here an
@@ -101,6 +106,27 @@ CREATE TABLE IF NOT EXISTS telegram_messages (
     first_seen_at     timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (channel_id, message_id)    -- a channel's messages sit together, so they load quickly
 );
+
+-- The letters in a text, its links left out: how much a channel has written, which "uv run telegram history" reads
+-- its history back up to
+CREATE OR REPLACE FUNCTION letters(value text) RETURNS integer LANGUAGE sql IMMUTABLE PARALLEL SAFE
+    RETURN length(regexp_replace(regexp_replace(value, 'https?://\S+', '', 'g'), '[^[:alpha:]]', '', 'g'));
+-- Each channel's letters: in a database made before the column, counted from its saved messages while no channel has
+-- any yet (the website reads the table meanwhile), then added to as messages are saved, whichever step saves them
+ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS letters bigint NOT NULL DEFAULT 0;
+UPDATE telegram_channels AS c SET letters = m.letters
+FROM (SELECT channel_id, sum(letters(text)) AS letters FROM telegram_messages GROUP BY channel_id) AS m
+WHERE c.channel_id = m.channel_id AND m.letters > 0 AND NOT EXISTS (SELECT FROM telegram_channels WHERE letters > 0);
+CREATE OR REPLACE FUNCTION count_letters() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE telegram_channels AS c SET letters = c.letters + s.letters
+    FROM (SELECT channel_id, sum(letters(text)) AS letters FROM saved GROUP BY channel_id) AS s
+    WHERE c.channel_id = s.channel_id AND s.letters > 0;
+    RETURN NULL;
+END
+$$;
+CREATE OR REPLACE TRIGGER count_letters AFTER INSERT ON telegram_messages
+    REFERENCING NEW TABLE AS saved FOR EACH STATEMENT EXECUTE FUNCTION count_letters();
 
 -- Every run: each round of run.sh, each "uv run proxies", and each run of a step ("uv run youtube comments 90", ...).
 -- A run writes its row as it starts, its numbers every few seconds while it goes (updated_at says it's still going),

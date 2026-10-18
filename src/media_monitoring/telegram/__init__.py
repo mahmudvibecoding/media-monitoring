@@ -17,6 +17,7 @@ from typing import NamedTuple
 
 PAGE = "https://t.me/s/{}"
 AFTER = "https://t.me/s/{}?after={}"  # the messages after one: what a channel's page asks for as you scroll down
+BEFORE = "https://t.me/s/{}?before={}"  # the messages before one: what it asks for as you scroll up
 TIMEOUT = 10  # seconds; a proxy that hasn't brought the page by then has failed
 TEST_CHANNEL = "telegram"  # what proxies are tested with (see Pool): Telegram's own channel, up for years
 MESSAGE = '<div class="tgme_widget_message_wrap'  # where each message on a page starts
@@ -70,6 +71,18 @@ async def call(session, proxy, url, light=False):
     return None, response
 
 
+async def light(session, proxy, url):
+    """The messages after or before one (see AFTER and BEFORE), through one proxy. Returns (outcome, messages): "ok"
+    with the messages in the answer, oldest first (none when there are none), else a problem from call()."""
+    problem, response = await call(session, proxy, url, light=True)
+    if problem:
+        return problem, None
+    try:
+        return "ok", page_messages(json.loads(response.text))
+    except (ValueError, TypeError, AttributeError):
+        return "broken", None  # not a JSON string: the proxy mangled the answer
+
+
 def text(fragment):
     """A piece of a page as plain text: line breaks kept, links as the text they show (the address itself, or the
     @username), emoji as characters, and no NUL characters (PostgreSQL can't store them)."""
@@ -103,9 +116,9 @@ def channel_id(page):
     return ids.most_common(1)[0][0] if ids else None
 
 
-def messages(page):
-    """The messages on a channel's page, or in the answer to a request for the messages after one, oldest first (see
-    Message)."""
+def page_messages(page):
+    """The messages on a channel's page, or in the answer to a request for the messages after or before one, oldest
+    first (see Message). (Not called messages: importing the step messages.py puts that module under that name here.)"""
     found = []
     for block in page.split(MESSAGE)[1:]:
         first, published = MESSAGE_ID.search(block), PUBLISHED.search(block)
@@ -155,9 +168,9 @@ def bare(url):
 
 
 def newest_message(found):
-    """The newest of a page's messages (see messages): (its ID, when it was published), or None if there are none. For
-    an album, the ID is its last item's (see Message), so asking for the messages after it doesn't bring the album
-    back."""
+    """The newest of a page's messages (see page_messages): (its ID, when it was published), or None if there are
+    none. For an album, the ID is its last item's (see Message), so asking for the messages after it doesn't bring the
+    album back."""
     if not found:
         return None
     newest = max(found, key=lambda message: message.last)

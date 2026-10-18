@@ -19,7 +19,8 @@ import re
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
-from media_monitoring.telegram import PAGE, TEST_CHANNEL, call, channel_id, count, messages, newest_message, text
+from media_monitoring.telegram import (PAGE, TEST_CHANNEL, call, channel_id, count, newest_message, page_messages,
+                                       text)
 from media_monitoring.telegram.messages import NEW_MESSAGES, SAVE_MESSAGES
 
 TITLE = re.compile(r'<div class="tgme_channel_info_header_title"[^>]*>(.*?)</div>', re.S)
@@ -58,7 +59,7 @@ def parse(page):
     if not title:
         return None
     description, subscribers, photo = DESCRIPTION.search(page), SUBSCRIBERS.search(page), PHOTO.search(page)
-    found = messages(page)
+    found = page_messages(page)
     newest = newest_message(found) or (None, None)
     return (channel_id(page), text(title.group(1)), (text(description.group(1)) or None) if description else None,
             count(subscribers.group(1)) if subscribers else None, html.unescape(photo.group(1)) if photo else None,

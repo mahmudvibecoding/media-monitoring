@@ -11,8 +11,11 @@ YOUTUBE = {
     "comments": "collect new comments ([days|all|unread], the last 365 days by default)",
 }
 TELEGRAM = {
-    "channels": "refresh every channel's title, description and subscriber count, from its public page",
+    "channels": "refresh every channel's title, description and subscriber count, and save the messages its public "
+                "page shows ([unread])",
     "messages": "read every channel's new messages, and keep those with text",
+    "history": "read back every channel's older messages, the fewest letters first, until it has 100,000 letters "
+               "([letters])",
 }
 
 
