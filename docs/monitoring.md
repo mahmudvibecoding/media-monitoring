@@ -135,7 +135,7 @@ half minutes, and reading every video's comments the first time took hours.
 
 ## Telegram
 
-`telegram_channels` holds 310,433 public Uzbek Telegram channels, from a list of channels found through their public
+`telegram_channels` holds 310,431 public Uzbek Telegram channels, from a list of channels found through their public
 pages (September 2026), keyed by Telegram's ID for the channel. Everything comes from those public pages,
 `t.me/s/<username>`, which anyone can read without an account. They only work by username, so a channel that changes
 its username can't be followed any more.
@@ -173,12 +173,15 @@ asked again at the end.
 ### Channel details
 
 `uv run telegram channels`, run by hand rather than in the rounds, refreshes each channel's title, description, photo
-and subscriber count from its public page.
+and subscriber count from its public page, and saves the messages that page shows.
 
 - **One page per channel.** The page shows the channel's title, description and counters, and its 20 or so newest
   messages. It rounds subscriber counts of 1,000 and more to three digits (1.14M). Only the channel's plain page,
   `t.me/<username>`, has the exact count, but Telegram answers about 10 of those a second per address, against
   hundreds of public pages.
+- **The page's messages.** Those with text are kept as `telegram messages` keeps them; those already saved are
+  skipped. They don't move the channel's last message on, so `telegram messages` still reads everything after it, and
+  nothing between it and them is missed.
 - **The photo's address, not the photo.** The page shows the channel's photo, 160 × 160 (about 10 KB), on Telegram's
   image server (cdn1.telesco.pe, ...); the website loads it from there. The address is the same from one request to
   the next, and the step saves whatever address the page shows, so a new photo replaces the old. A channel without a

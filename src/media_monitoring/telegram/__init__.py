@@ -154,10 +154,10 @@ def bare(url):
     return url.rstrip("/")
 
 
-def newest_message(page):
-    """The newest message on a page: (its ID, when it was published), or None if the page shows none. For an album,
-    the ID is its last item's (see Message), so asking for the messages after it doesn't bring the album back."""
-    found = messages(page)
+def newest_message(found):
+    """The newest of a page's messages (see messages): (its ID, when it was published), or None if there are none. For
+    an album, the ID is its last item's (see Message), so asking for the messages after it doesn't bring the album
+    back."""
     if not found:
         return None
     newest = max(found, key=lambda message: message.last)
