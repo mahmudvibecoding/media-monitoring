@@ -1306,12 +1306,6 @@ export type TelegramChannelsData = {
          * 50 channels to a page
          */
         page?: number;
-        /**
-         * Label
-         *
-         * For a while: only the channels a model found related to Uzbekistan, unrelated, or unsure
-         */
-        label?: 'related' | 'unrelated' | 'unsure' | null;
     };
     url: '/api/telegram/channels';
 };

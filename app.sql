@@ -127,14 +127,6 @@ DROP INDEX IF EXISTS telegram_channels_search;
 DROP INDEX IF EXISTS telegram_channels_subscribers;
 DROP INDEX IF EXISTS telegram_channels_latest;
 
--- For a while, to review them: the Telegram channels not in Uzbek as a model (Gemma 4) labelled them, related to
--- Uzbekistan, unrelated, or unsure, which the channels page lists in folders of their own. Loaded by hand.
-CREATE TABLE IF NOT EXISTS app.telegram_relevance (
-    channel_id  bigint PRIMARY KEY,
-    label       text NOT NULL CHECK (label IN ('related', 'unrelated', 'unsure')),
-    confidence  real  -- the model's probability for its answer
-);
-
 -- The API's user (run.sh setup makes it) may read and change every table here, and create none
 GRANT USAGE ON SCHEMA app TO media_monitoring_api;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO media_monitoring_api;

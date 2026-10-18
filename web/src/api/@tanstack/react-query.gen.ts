@@ -403,7 +403,7 @@ export const telegramChannelsQueryKey = (options?: Options<TelegramChannelsData>
  *
  * The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
  * first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
- * apostrophes aside. With a label, only the channels the model gave it, with messages or not, searched as well.
+ * apostrophes aside.
  */
 export const telegramChannelsOptions = (options?: Options<TelegramChannelsData>) => queryOptions<TelegramChannelsResponse, TelegramChannelsError, TelegramChannelsResponse, ReturnType<typeof telegramChannelsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -425,7 +425,7 @@ export const telegramChannelsInfiniteQueryKey = (options?: Options<TelegramChann
  *
  * The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
  * first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
- * apostrophes aside. With a label, only the channels the model gave it, with messages or not, searched as well.
+ * apostrophes aside.
  */
 export const telegramChannelsInfiniteOptions = (options?: Options<TelegramChannelsData>) => {
     const opts = infiniteQueryOptions<TelegramChannelsResponse, TelegramChannelsError, InfiniteData<TelegramChannelsResponse>, QueryKey<Options<TelegramChannelsData>>, number | Pick<QueryKey<Options<TelegramChannelsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
