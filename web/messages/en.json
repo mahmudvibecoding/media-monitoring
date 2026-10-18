@@ -109,6 +109,8 @@
     "folders": "Folders",
     "biggest": "Biggest",
     "latest": "Latest",
+    "unrelated": "Unrelated",
+    "unsure": "Unsure",
     "found": "Found: {formatted}",
     "none": "No channels yet.",
     "noResults": "No results",

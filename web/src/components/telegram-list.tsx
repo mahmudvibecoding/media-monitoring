@@ -16,17 +16,18 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatChatDate, formatCompact, formatCount, formatDateTime, pluralOf } from "@/lib/format";
 import { FIRST_PAGE, nextPage } from "@/lib/pages";
-import { channelsQuery, chatIdOf, chatPath, type TelegramSort } from "@/lib/telegram";
+import { channelsQuery, chatIdOf, chatPath, type TelegramFolder } from "@/lib/telegram";
 import { useLoadMore } from "@/lib/use-load-more";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
-const FOLDERS = ["subscribers", "latest"] as const satisfies readonly TelegramSort[];
+const FOLDERS = ["subscribers", "latest", "unrelated", "unsure"] as const satisfies readonly TelegramFolder[];
 const SEARCH_WAIT = 300; // milliseconds after the last key before the list is searched
 
 // Telegram's chat list, in its floating panel at the left: Telegram's ☰ (which opens the site's menu) and search field
 // at the top, then the monitored channels as Telegram lists chats, more loading as they're scrolled. Two folders in
-// Telegram's floating tabs order them: the biggest first, and the latest to post first. Focusing the search turns ☰
+// Telegram's floating tabs order them: the biggest first, and the latest to post first; for a while, two more list the
+// channels a model found unrelated to Uzbekistan, or couldn't tell, the biggest first. Focusing the search turns ☰
 // into ← and the folders away, as in Telegram; the list is searched a moment after the last key, the last results
 // staying meanwhile. The chat open beside is the blue row. The list is the layout's, so it stays as chats open and
 // close, scrolled where it was.
@@ -36,7 +37,7 @@ export function TelegramList() {
   const locale = useLocale();
   const openId = chatIdOf(usePathname());
   const { toggleSidebar } = useSidebar();
-  const [sort, setSort] = useState<TelegramSort>("subscribers");
+  const [sort, setSort] = useState<TelegramFolder>("subscribers");
   const [searching, setSearching] = useState(false);
   const [typed, setTyped] = useState("");
   const [asked, setAsked] = useState(""); // the search the list shows, a moment after the last key
@@ -173,7 +174,7 @@ export function TelegramList() {
 // Telegram's folders: tabs on a floating white bar, the chosen one blue on light blue. The blue copy of the tabs lies
 // over the grey ones, cut to the chosen tab's shape (clip-path), so that as another is chosen, the cut slides there and
 // each letter turns blue as it passes under it, as in Telegram.
-function Folders({ sort, choose }: { sort: TelegramSort; choose: (sort: TelegramSort) => void }) {
+function Folders({ sort, choose }: { sort: TelegramFolder; choose: (sort: TelegramFolder) => void }) {
   const t = useTranslations("telegramChannels");
   const locale = useLocale(); // the tabs' widths change with their words
   const bar = useRef<HTMLDivElement>(null);
@@ -203,7 +204,7 @@ function Folders({ sort, choose }: { sort: TelegramSort; choose: (sort: Telegram
     observer.observe(element);
     return () => observer.disconnect();
   }, [sort, locale]);
-  const labels = { subscribers: t("biggest"), latest: t("latest") };
+  const labels = { subscribers: t("biggest"), latest: t("latest"), unrelated: t("unrelated"), unsure: t("unsure") };
   const tab = "shrink-0 rounded-[20px] px-4 py-1.5 text-base leading-6 font-medium whitespace-nowrap";
   return (
     <div className="absolute inset-x-2 top-1 z-10">

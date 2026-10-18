@@ -109,6 +109,8 @@
     "folders": "Jildlar",
     "biggest": "Yiriklar",
     "latest": "Soʻnggi",
+    "unrelated": "Aloqasiz",
+    "unsure": "Noaniq",
     "found": "Topildi: {formatted} ta",
     "none": "Hozircha kanallar yoʻq.",
     "noResults": "Natija yoʻq",

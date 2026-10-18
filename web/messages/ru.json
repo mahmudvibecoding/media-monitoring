@@ -109,6 +109,8 @@
     "folders": "Папки",
     "biggest": "Крупные",
     "latest": "Свежие",
+    "unrelated": "Не связанные",
+    "unsure": "Неясные",
     "found": "Найдено: {formatted}",
     "none": "Каналов пока нет.",
     "noResults": "Нет результатов",

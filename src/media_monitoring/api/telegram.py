@@ -76,6 +76,8 @@ COUNT = sql.SQL("SELECT count(*) FROM telegram_channels {where}")
 # Only the channels with a saved message (app.sql), and with a search, those it matches: lowercase, apostrophes left out
 LISTED = sql.SQL("WHERE has_messages")
 SEARCHED = sql.SQL("WHERE has_messages AND search_text LIKE app.searchable(%(pattern)s)")
+# For a while, to review them: the channels a model gave a label (app.telegram_relevance), with messages or not
+LABELLED = sql.SQL("WHERE channel_id IN (SELECT channel_id FROM app.telegram_relevance WHERE label = %(label)s)")
 # Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
 ORDERS = {
     "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
@@ -101,13 +103,20 @@ async def telegram_channels(
         Literal["subscribers", "latest"], Query(description="The biggest first, or the latest to post")
     ] = "subscribers",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} channels to a page")] = 1,
+    label: Annotated[
+        Literal["unrelated", "unsure"] | None,
+        Query(description="For a while: only the channels a model found unrelated to Uzbekistan, or couldn't tell"),
+    ] = None,
 ) -> TelegramChannels:
     """The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
     first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
-    apostrophes aside."""
+    apostrophes aside. With a label, only the channels the model gave it, with messages or not, searched as well."""
     search = " ".join(search.split())
-    where = SEARCHED if search else LISTED
-    values = {"pattern": anywhere(search), "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
+    if label:
+        where = LABELLED + sql.SQL(" AND search_text LIKE app.searchable(%(pattern)s)") if search else LABELLED
+    else:
+        where = SEARCHED if search else LISTED
+    values = {"pattern": anywhere(search), "label": label, "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
 
     # Planned for the search they're given (prepare=False), as for YouTube's channels
     async def channels() -> list[TelegramChannel]:
