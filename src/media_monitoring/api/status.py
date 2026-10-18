@@ -23,7 +23,7 @@ COUNTS = """
     WHERE s.schemaname = 'public'
 """
 # The channels the lists show (app.sql): with a video, with a saved message, counted from their indexes, which hold only
-# those: 46 ms for YouTube's 55,600 and 20 ms for Telegram's 30,272
+# those: 46 ms for YouTube's 55,600 and 40 ms for Telegram's 298,169
 LISTED = {
     "youtube": "SELECT count(*) FROM youtube_channels WHERE has_videos",
     "telegram": "SELECT count(*) FROM telegram_channels WHERE has_messages",

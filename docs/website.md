@@ -21,7 +21,7 @@ to keep it fresh.
 - The counts of videos, comments and messages are PostgreSQL's own running count of each table's rows: reading it takes
   a millisecond, while counting the rows takes 0.15 s for Telegram messages and minutes for the 194 million comments.
   The channels counted are those the lists show, with something collected (see below), counted from their indexes: 46 ms
-  for YouTube's and 20 ms for Telegram's, at the same time.
+  for YouTube's and 40 ms for Telegram's, at the same time.
 - Every failure is the same JSON, `{"error": code, "message", "request_id"}`, with codes like `database_unavailable`
   (503), `database_timeout` (504) and `internal` (500); a crash's details only go to the log.
 - A request waits at most 5 s for a database connection, and a query runs at most 5 s.
@@ -85,18 +85,20 @@ it comes.
 ### Which channels are listed
 
 Both lists show only the channels with something collected, and count only those: a YouTube channel with a video, a
-Telegram channel with a saved message (55,600 of 55,859, and 30,272 of 310,431, on October 17, 2026). Each channel keeps
-whether it has in a column of its own, `has_videos` or `has_messages`, which a trigger sets as the collectors save
-videos and messages; the lists' indexes hold only those channels. Looked up in the videos' and messages' tables on each
-request, counting them took 0.9 s and 0.3 s. A channel's page can still be opened by its address.
+Telegram channel with a saved message (55,600 of 55,859 on October 17, 2026, and 298,169 of 310,431 on October 18).
+Each channel keeps whether it has in a column of its own, `has_videos` or `has_messages`, which a trigger sets as the
+collectors save videos and messages; the lists' indexes hold only those channels. Looked up in the videos' and
+messages' tables on each request, counting them took 0.9 s and 0.3 s (Telegram's 30,272 then). A channel's page can
+still be opened by its address.
 
 ### Telegram
 
 `/api/telegram/channels` lists the Telegram channels the way YouTube's are listed: a search column and its trigram
 index, an index for each order holding the search column, the page picked from the index alone, all in `app.sql`. Its
 orders are the biggest first and the latest to post first, 50 to a page, each channel with the first 200 characters of
-its latest saved message, which the messages table's key gives at once (10 ms for a page). Counting the 30,272 channels
-with a saved message takes 20 ms. `/api/telegram/channels/{id}` is a channel's details, with how many of its messages
+its latest saved message, which the messages table's key gives at once (10 ms for a page). Counting the 298,169
+channels with a saved message takes 40 ms, from an index of their own that holds nothing else (2 MB); through an
+order's index, it took 180 ms. `/api/telegram/channels/{id}` is a channel's details, with how many of its messages
 have been saved, and `/api/telegram/channels/{id}/messages` a page of its messages, newest first, by the messages
 table's key: a few milliseconds, even for the channel with the most; with a search, those whose text has it in them
 (lowercase, apostrophes aside, as the lists' searches), which reads all the channel's messages: 50 ms for the one with

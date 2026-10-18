@@ -56,10 +56,10 @@ CREATE OR REPLACE FUNCTION app.searchable(value text) RETURNS text
     RETURN lower(regexp_replace(value, '[''ʻʼ‘’`´]', '', 'g'));
 
 -- The channel lists show only the channels with something collected, and count only those: a YouTube channel with a
--- video, a Telegram channel with a saved message (55,600 of 55,859, and 30,272 of 310,431, on October 17, 2026). Each
--- channel keeps whether it has, set by a trigger as its videos or messages are saved: looked up in their tables
--- instead, counting the listed channels took 0.9 s (YouTube) and 0.3 s (Telegram). Videos and messages aren't deleted,
--- so it doesn't go back.
+-- video, a Telegram channel with a saved message (55,600 of 55,859 on October 17, 2026, and 298,169 of 310,431 on
+-- October 18). Each channel keeps whether it has, set by a trigger as its videos or messages are saved: looked up in
+-- their tables instead, counting the listed channels took 0.9 s (YouTube) and 0.3 s (Telegram, with 30,272). Videos
+-- and messages aren't deleted, so it doesn't go back.
 ALTER TABLE youtube_channels ADD COLUMN IF NOT EXISTS has_videos boolean NOT NULL DEFAULT false;
 ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS has_messages boolean NOT NULL DEFAULT false;
 
@@ -111,6 +111,10 @@ CREATE INDEX IF NOT EXISTS telegram_channels_listed
     ON telegram_channels (subscriber_count DESC NULLS LAST, channel_id) INCLUDE (search_text) WHERE has_messages;
 CREATE INDEX IF NOT EXISTS telegram_channels_listed_latest
     ON telegram_channels (last_message_at DESC NULLS LAST, channel_id) INCLUDE (search_text) WHERE has_messages;
+-- Counting the listed channels, without a search, reads an index of its own: one entry per listed channel, all alike,
+-- which PostgreSQL keeps together, a few bytes each. For 298,169 channels it's 2 MB, counted in 40 ms, against 180 ms
+-- through an order's index, whose entries hold the search column too
+CREATE INDEX IF NOT EXISTS telegram_channels_listed_count ON telegram_channels (has_messages) WHERE has_messages;
 
 -- Indexes the lists no longer read: by name (no list is ordered so any more, nor sorted with app.names), and over
 -- every channel, listed or not
