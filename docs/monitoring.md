@@ -196,6 +196,11 @@ and subscriber count from its public page, and saves the messages that page show
   server's own address alone, Telegram hid about half the pages at 500 a second; at about 30,000 requests a second,
   it also kept hiding those channels for about 12 minutes afterwards, from other visitors too.
 
+The first run that saved the pages' messages, on October 18, 2026, took 81 seconds: it read 260,801 channels and
+saved 3,232,704 messages, while Telegram hid the pages of 49,014 channels through all ten tries. Two `unread` runs
+right after it, of 34 and 28 seconds, saved 509,936 more; then 298,169 channels had saved messages, and about 5,000
+channels' pages stayed hidden through every proxy, as in earlier runs.
+
 ### What's kept
 
 - **`telegram_channels`:** each channel's username, title, description, subscriber count, photo's address, and its
