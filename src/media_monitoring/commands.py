@@ -16,6 +16,7 @@ TELEGRAM = {
     "messages": "read every channel's new messages, and keep those with text",
     "history": "read back every channel's older messages, the fewest letters first, until it has 10,000 letters and "
                "100 messages ([letters])",
+    "languages": "find every channel's main language from its title, description and messages (CLD2)",
 }
 
 

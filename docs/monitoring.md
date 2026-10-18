@@ -226,10 +226,20 @@ to 100,000, then to 10,000 letters and 100 messages: 251,375 channels in 765 sec
 saving 23.3 million messages. Then 184,941 channels had both, 118,038 had less but were read back to their first
 message, and the 36.5 million saved messages took 15 GB.
 
+### Languages
+
+`uv run telegram languages`, run by hand, finds each channel's main language with CLD2 (Google's Compact Language
+Detector 2), from its title, description and saved messages joined up, and saves its code in
+`telegram_channels.language`: `uz`, `ru`, `en` and so on; `uz-Arab` for Uzbek in Arabic script, which is also what
+CLD2 calls the South Azerbaijani of Iran's channels; NULL without text. It needs no network: 48 processes take ranges
+of channel IDs and read their messages in the messages table's key order. On the channels labelled by hand, CLD2
+named a message's language right 97.5% of the time from its first 50 letters in Uzbek, and 98% from 100 in Russian.
+
 ### What's kept
 
 - **`telegram_channels`:** each channel's username, title, description, subscriber count, photo's address, its
-  last message read (ID and time), how far back its history is read, and the letters in its saved messages.
+  last message read (ID and time), how far back its history is read, the letters in its saved messages, and its
+  main language.
 - **`telegram_messages`:** each message with text: its ID (an album's first item), when it was published (to the
   second), the text, and when we first saw it.
 

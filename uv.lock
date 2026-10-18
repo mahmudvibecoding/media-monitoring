@@ -230,6 +230,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "httptools" },
     { name = "psycopg", extra = ["binary", "pool"] },
+    { name = "pycld2" },
     { name = "pydantic-settings" },
     { name = "uvicorn" },
     { name = "uvloop" },
@@ -247,6 +248,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.143.2" },
     { name = "httptools", specifier = ">=0.9.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.3.6" },
+    { name = "pycld2", specifier = ">=0.42" },
     { name = "pydantic-settings", specifier = ">=2.16.0" },
     { name = "uvicorn", specifier = ">=0.54.0" },
     { name = "uvloop", specifier = ">=0.23.0" },
@@ -316,6 +318,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/74/5e/c0664b968b102ff68
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5d/b4/452c6607a0f479465cd8a9b0d9956919fcb150050c1f83f9f11e6b8ee8dc/psycopg_pool-3.3.3-py3-none-any.whl", hash = "sha256:9b9cd6a4fcec47a410f7e82d408540e7f77b478509e91b44c1a5457a13e5ff37", size = 40304, upload-time = "2026-09-22T15:53:23.712Z" },
 ]
+
+[[package]]
+name = "pycld2"
+version = "0.42"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/81/d4d348e224ac0994234992c6d5fb3a78cc9b660337d5bd17c67fac1baf6a/pycld2-0.42.tar.gz", hash = "sha256:5188084c97f99e896cf464057c64f6b0f91f68d111182dceb5bcfe487d7f4c0f", size = 41372203, upload-time = "2025-03-28T06:47:10.803Z" }
 
 [[package]]
 name = "pycparser"

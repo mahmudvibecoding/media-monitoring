@@ -90,10 +90,14 @@ CREATE TABLE IF NOT EXISTS telegram_channels (
     -- How far back its history is read ("uv run telegram history"): the oldest message read, text or not (an album's
     -- first item), or 0 once nothing older is left; NULL until it's read back
     history_from      integer,
-    letters           bigint NOT NULL DEFAULT 0  -- the letters in its saved messages (see letters() below)
+    letters           bigint NOT NULL DEFAULT 0, -- the letters in its saved messages (see letters() below)
+    -- Its main language, as CLD2 finds it in its title, description and saved messages ("uv run telegram
+    -- languages"): a code like uz, ru or en, uz-Arab for Uzbek in Arabic script; NULL when CLD2 can't tell
+    language          text
 );
 ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS photo_url text;  -- for databases made before it
 ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS history_from integer;
+ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS language text;
 
 -- Messages of the Telegram channels that have text: the message's own text, or the caption of its photo, video or
 -- album. Messages without text aren't kept. Telegram counts each item of an album as a message of its own; here an
