@@ -181,7 +181,8 @@ and subscriber count from its public page, and saves the messages that page show
   hundreds of public pages.
 - **The page's messages.** Those with text are kept as `telegram messages` keeps them; those already saved are
   skipped. They don't move the channel's last message on, so `telegram messages` still reads everything after it, and
-  nothing between it and them is missed.
+  nothing between it and them is missed. `telegram channels unread` reads only the channels without a saved message:
+  those whose page was hidden through every proxy tried, or new in the list.
 - **The photo's address, not the photo.** The page shows the channel's photo, 160 × 160 (about 10 KB), on Telegram's
   image server (cdn1.telesco.pe, ...); the website loads it from there. The address is the same from one request to
   the next, and the step saves whatever address the page shows, so a new photo replaces the old. A channel without a

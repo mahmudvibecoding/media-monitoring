@@ -82,12 +82,17 @@ class Channels(Collector):
     report_every = 2
     item_name = "channels"
     saved_name = "changed"
+    argument = "unread (only the channels without a saved message)"
+    words = ("unread",)
 
     def load(self, conn, argument):
-        return conn.execute("SELECT username, channel_id FROM telegram_channels").fetchall()
+        # "unread": e.g. those whose page was hidden through every proxy tried last time, or new in the list
+        where = ("WHERE NOT EXISTS (SELECT 1 FROM telegram_messages AS m WHERE m.channel_id = c.channel_id)"
+                 if argument == "unread" else "")
+        return conn.execute(f"SELECT username, channel_id FROM telegram_channels AS c {where}").fetchall()
 
     def describe(self, argument):
-        return "Telegram channels to refresh"
+        return f"Telegram channels{' without a saved message' if argument == 'unread' else ''} to refresh"
 
     async def prepare(self, conn, channels):
         self.pending = []  # the channels' details, for the next save
