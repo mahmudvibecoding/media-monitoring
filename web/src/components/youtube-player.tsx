@@ -63,6 +63,7 @@ type State = {
   volume: number; // 0 to 100
   rate: number;
   started: boolean;
+  failed: boolean; // YouTube's player can't play the video here: its own screen shows, saying why
 };
 
 // YouTube's sign that comes and fades in the middle (or for a jump, at the side) as one plays, pauses, jumps or changes
@@ -80,7 +81,9 @@ type Bezel = { kind: "play" | "pause" | "mute" | "volume" | "back" | "forward"; 
 // picture shows until it has started. YouTube's own controls are off and it takes no clicks; it's 60 px taller than its
 // frame at each end, so that its title and logo fall outside it (its ⏸ still shows a moment as a video starts: see
 // youtube-embed). It's loaded only as its page shows and unloaded as it goes (Next keeps a page one has left alive,
-// hidden), and loaded again on coming back, from the second it had got to.
+// hidden), and loaded again on coming back, from the second it had got to. A video the player can't play here (removed,
+// private, kept from the country it's watched in, not to be played on other sites) shows the player's own screen,
+// which says why, as YouTube's watch page does, without the picture and the controls.
 export function Player({ id, title, next }: { id: string; title: string; next?: { id: string; title: string } }) {
   const t = useTranslations("youtube");
   const [go, going] = useGo();
@@ -94,6 +97,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
     volume: 100,
     rate: 1,
     started: false,
+    failed: false,
   });
   const last = useRef(state); // the same, for the handlers
   useEffect(() => {
@@ -122,6 +126,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         volume: typeof info.volume === "number" ? info.volume : now.volume,
         rate: typeof info.playbackRate === "number" ? info.playbackRate : now.rate,
         started: now.started || info.playerState === PLAYING,
+        failed: now.failed || info.error !== undefined,
       }));
     },
   );
@@ -224,7 +229,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
   useEffect(() => {
     function key(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
-      if (event.metaKey || event.ctrlKey || event.altKey || target.isContentEditable) return;
+      if (last.current.failed || event.metaKey || event.ctrlKey || event.altKey || target.isContentEditable) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
       const focused = !!box.current?.contains(document.activeElement);
       const length = last.current.duration;
@@ -295,7 +300,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
       )}
     >
       {going && <PageLoadingLine color="youtube" />}
-      {!state.started && (
+      {!state.started && !state.failed && (
         <CoverImage
           sources={[`https://i.ytimg.com/vi_webp/${id}/maxresdefault.webp`, bigThumbnail(id), thumbnail(id, "hq")]}
           className="absolute inset-0 size-full object-cover"
@@ -309,27 +314,31 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         tabIndex={-1}
         style={cropped(CROP)}
         className={cn(
-          "pointer-events-none absolute transition-opacity duration-300",
-          state.started ? "opacity-100" : "opacity-0",
+          "absolute transition-opacity duration-300",
+          !state.failed && "pointer-events-none",
+          state.started || state.failed ? "opacity-100" : "opacity-0",
         )}
       />
       {/* The video's face: a click plays and pauses it (or closes the menu), a double click fills the screen */}
-      <div
-        className="absolute inset-0"
-        onClick={() => {
-          box.current?.focus({ preventScroll: true });
-          if (menu) setMenu(false);
-          else toggle();
-        }}
-        onDoubleClick={fullscreen}
-      />
+      {!state.failed && (
+        <div
+          className="absolute inset-0"
+          onClick={() => {
+            box.current?.focus({ preventScroll: true });
+            if (menu) setMenu(false);
+            else toggle();
+          }}
+          onDoubleClick={fullscreen}
+        />
+      )}
       {state.state === BUFFERING && state.started && <Spinner />}
-      {blocked && !state.started && <BigPlay label={t("play")} onClick={play} />}
+      {blocked && !state.started && !state.failed && <BigPlay label={t("play")} onClick={play} />}
       {bezel && <BezelSign key={bezel.at} bezel={bezel} />}
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 transition-opacity duration-200",
           shown ? "opacity-100" : "pointer-events-none opacity-0",
+          state.failed && "hidden",
         )}
       >
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-black/70 via-black/25 to-transparent" />

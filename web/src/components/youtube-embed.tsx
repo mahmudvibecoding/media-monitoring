@@ -15,7 +15,8 @@ export const PAUSED = 2;
 export const BUFFERING = 3;
 
 // What a player tells the page listening to it: its state, where it's at, the video's length, its sound, how much of the
-// video is loaded, and its speed
+// video is loaded, and its speed; or that it can't play the video here (removed, private, kept from the country it's
+// watched in, not to be played on other sites: error, YouTube's code for it), when its own screen says which
 export type PlayerInfo = {
   playerState?: number;
   currentTime?: number;
@@ -24,6 +25,7 @@ export type PlayerInfo = {
   volume?: number;
   videoLoadedFraction?: number;
   playbackRate?: number;
+  error?: number;
 };
 
 // A player's address: the video, playing at once (unless not), from a second, with or without sound, without YouTube's
@@ -58,7 +60,9 @@ export function listen(frame: HTMLIFrameElement) {
 export function infoOf(event: MessageEvent, frame: HTMLIFrameElement | null): PlayerInfo | null {
   if (!frame || event.source !== frame.contentWindow || typeof event.data !== "string") return null;
   try {
-    const info = JSON.parse(event.data)?.info;
+    const said = JSON.parse(event.data);
+    if (said?.event === "onError") return { error: Number(said.info) };
+    const info = said?.info;
     return info && typeof info === "object" ? (info as PlayerInfo) : null;
   } catch {
     return null; // not the player's
