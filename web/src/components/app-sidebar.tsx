@@ -25,13 +25,17 @@ import { cn } from "@/lib/utils";
 // On a wide screen, the menu is a narrow strip, as YouTube's narrow menu: each item its icon with its name under it
 // (shadcn's sidebar, folded to its icons, the whole time: the layout keeps it so)
 const STRIP_ITEM = cn(
-  "group-data-[collapsible=icon]:size-auto! group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1.5",
+  "group-data-[collapsible=icon]:size-auto! group-data-[collapsible=icon]:w-full! group-data-[collapsible=icon]:flex-col",
+  "group-data-[collapsible=icon]:gap-1.5",
   "group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:px-0.5! group-data-[collapsible=icon]:pt-3.5!",
   "group-data-[collapsible=icon]:pb-3! group-data-[collapsible=icon]:text-center group-data-[collapsible=icon]:text-[11px]",
   "group-data-[collapsible=icon]:leading-3.5 group-data-[collapsible=icon]:[&_svg]:size-6",
   "group-data-[collapsible=icon]:[&>span]:line-clamp-2 group-data-[collapsible=icon]:[&>span]:whitespace-normal!",
+  // Under the mouse, a lighter gray than the current page's, so that the two don't look both chosen
+  "group-data-[collapsible=icon]:hover:not-data-active:bg-sidebar-accent/50",
 );
 const STRIP_SIDES = "group-data-[collapsible=icon]:px-1"; // so that its items are 64 px wide, as YouTube's
+const STRIP_GAPS = "group-data-[collapsible=icon]:gap-1"; // and apart, each a tile of its own
 
 // The admins' menu, at the side: the overview, YouTube and Telegram, then, apart at the bottom, the activity, and at
 // its foot who's signed in, with the language and signing out. On a wide screen it's a strip 72 px wide, as YouTube's
@@ -61,7 +65,7 @@ export function AppSidebar({ user }: { user: Me }) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup className={STRIP_SIDES}>
-          <SidebarMenu>
+          <SidebarMenu className={STRIP_GAPS}>
             <Item href="/" icon={LayoutDashboardIcon} label={t("nav.overview")} {...item} />
             <Item href="/youtube/channels" also="/youtube" icon={YouTubeIcon} label="YouTube" {...item} />
             <Item href="/telegram/channels" also="/telegram" icon={SendIcon} label="Telegram" {...item} />
