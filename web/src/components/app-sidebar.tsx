@@ -1,6 +1,6 @@
 "use client";
 
-import { ActivityIcon, LayoutDashboardIcon, RadarIcon, SendIcon } from "lucide-react";
+import { LayoutDashboardIcon, RadarIcon, SendIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ComponentType, useState } from "react";
@@ -37,8 +37,8 @@ const STRIP_ITEM = cn(
 const STRIP_SIDES = "group-data-[collapsible=icon]:px-1"; // so that its items are 64 px wide, as YouTube's
 const STRIP_GAPS = "group-data-[collapsible=icon]:gap-1"; // and apart, each a tile of its own
 
-// The admins' menu, at the side: the overview, YouTube and Telegram, then, apart at the bottom, the activity, and at
-// its foot who's signed in, with the language and signing out. On a wide screen it's a strip 72 px wide, as YouTube's
+// The admins' menu, at the side: the overview (with the activity, a run's page too), YouTube and Telegram, and at its
+// foot who's signed in, with the language and signing out. On a wide screen it's a strip 72 px wide, as YouTube's
 // narrow menu, always there; on a phone it slides in over the page, with the site's name at its top, and goes away
 // once a page is chosen. The item clicked shows as the current one at once, while its page is on its way.
 export function AppSidebar({ user }: { user: Me }) {
@@ -66,14 +66,9 @@ export function AppSidebar({ user }: { user: Me }) {
       <SidebarContent>
         <SidebarGroup className={STRIP_SIDES}>
           <SidebarMenu className={STRIP_GAPS}>
-            <Item href="/" icon={LayoutDashboardIcon} label={t("nav.overview")} {...item} />
+            <Item href="/" also="/activity" icon={LayoutDashboardIcon} label={t("nav.overview")} {...item} />
             <Item href="/youtube/channels" also="/youtube" icon={YouTubeIcon} label="YouTube" {...item} />
             <Item href="/telegram/channels" also="/telegram" icon={SendIcon} label="Telegram" {...item} />
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup className={cn("mt-auto", STRIP_SIDES)}>
-          <SidebarMenu>
-            <Item href="/activity" icon={ActivityIcon} label={t("nav.activity")} {...item} />
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
@@ -84,8 +79,8 @@ export function AppSidebar({ user }: { user: Me }) {
   );
 }
 
-// A page of the menu, which shows itself as the current one on its own pages and below also (a channel, a video),
-// or, once an item is clicked, while its page is on its way (chosen)
+// A page of the menu, which shows itself as the current one on its own pages and on those under also (a YouTube
+// video, a run's page), or, once an item is clicked, while its page is on its way (chosen)
 function Item({
   href,
   also,
@@ -102,7 +97,7 @@ function Item({
   choose: (href: string) => void;
 }) {
   const pathname = usePathname();
-  const here = href === "/" ? pathname === "/" : [href, also].some((path) => path && pathname.startsWith(path));
+  const here = (href === "/" ? pathname === "/" : pathname.startsWith(href)) || (!!also && pathname.startsWith(also));
   return (
     <SidebarMenuItem>
       <SidebarMenuButton

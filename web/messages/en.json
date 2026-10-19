@@ -26,7 +26,6 @@
   },
   "nav": {
     "overview": "Overview",
-    "activity": "Activity",
     "toggle": "Show or hide the menu"
   },
   "youtube": {
@@ -287,15 +286,7 @@
     "found": "Found",
     "new": "New",
     "skipped": "Skipped",
-    "downloadFailed": "Failed to download: {error}",
-    "overview": {
-      "title": "Activity",
-      "all": "All activity",
-      "lastRound": "Last round",
-      "noRounds": "No rounds yet.",
-      "runningNow": "Running now",
-      "nothingRunning": "Nothing runs now."
-    }
+    "downloadFailed": "Failed to download: {error}"
   },
   "common": {
     "loading": "Loading…",

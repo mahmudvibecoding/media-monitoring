@@ -46,7 +46,7 @@ export default async function RunPage({ params }: PageProps<"/activity/[id]">) {
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <PageLink
-        href="/activity"
+        href="/#activity"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ChevronLeftIcon className="size-4" />

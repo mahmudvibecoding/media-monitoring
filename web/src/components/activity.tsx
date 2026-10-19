@@ -20,8 +20,8 @@ import { cn } from "@/lib/utils";
 
 export const LIVE_EVERY = 5_000; // milliseconds between looks at runs that may change
 
-// Every run, newest first, as the address asks for (?step=youtube+comments&page=2): each round with its steps, and the
-// runs started by hand; or one step's runs alone. The first page, and any page while something on it runs, is asked
+// The overview's activity: every run, newest first, as the address asks for (?step=youtube+comments&page=2), each
+// round with its steps, and the runs started by hand; or one step's runs alone. The first page, and any page while something on it runs, is asked
 // for again every few seconds, so new runs and their numbers show up.
 export function Activity() {
   const t = useTranslations("activity");
@@ -56,9 +56,11 @@ export function Activity() {
     if (pastTheEnd) go(runsAddress({ step: query.step, page: pages > 1 ? pages : undefined }), "replace");
   }, [pastTheEnd, query.step, pages]);
 
+  // Another page shows from its first run: the activity's top, under the overview's numbers, if it's gone up out of view
   function turn(to: number) {
     go(runsAddress({ step: query.step, page: to > 1 ? to : undefined }), "push");
-    window.scrollTo({ top: 0 });
+    const top = document.getElementById("activity");
+    if (top && top.getBoundingClientRect().top < 0) top.scrollIntoView();
   }
 
   let list;
