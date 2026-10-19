@@ -1,11 +1,11 @@
 "use client";
 
 import { Dialog } from "@base-ui/react/dialog";
-import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GlobeIcon, type LucideIcon, SearchIcon, SquarePlayIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { youtubeChannelOptions, youtubeChannelVideosInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannelDetails } from "@/api/types.gen";
@@ -23,7 +23,7 @@ import {
 } from "@/components/youtube-ui";
 import { go, SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatCompact, formatCount, pluralOf } from "@/lib/format";
-import { FIRST_PAGE, nextPage } from "@/lib/pages";
+import { DIMMED, FIRST_PAGE, nextPage } from "@/lib/pages";
 import { useLoadMore } from "@/lib/use-load-more";
 import { cn } from "@/lib/utils";
 import { firstKind, handleOnYouTube, type Kind, SORTS, videosAddress, videosQuery } from "@/lib/youtube";
@@ -164,7 +164,9 @@ function Fact({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode 
 // The channel's videos in YouTube's tabs (its Videos and its Shorts, each only when it has some; the address says
 // which: ?kind=…), YouTube's chips for the order (newest, most viewed, oldest: ?sort=…) and its grid of covers, upright
 // for Shorts; or, searched with the tabs' magnifier (?search=…), YouTube's list of results. More load as the grid is
-// scrolled down, as on YouTube; while another tab or order loads, the grid that was there stays, dimmed.
+// scrolled down, as on YouTube. Another tab's or order's videos are asked for once the pointer comes over it (the
+// other tab's too once the page is there), so that it shows them at once; until they come, the grid that was there
+// stays, dimmed, in its own layout.
 export function ChannelVideos({ id }: { id: string }) {
   const t = useTranslations("youtubeChannel");
   const counts = useQuery(youtubeChannelOptions({ path: { channel_id: id } })).data?.videos;
@@ -182,7 +184,26 @@ export function ChannelVideos({ id }: { id: string }) {
     });
   const marker = useLoadMore({ more: !!hasNextPage, loading: isFetchingNextPage, load: fetchNextPage });
   const videos = data?.pages.flatMap((page) => page.videos) ?? [];
+  // While another tab loads, the videos still shown are the last tab's: their own covers, wide or upright
+  const shownKind: Kind = isPlaceholderData && videos[0] ? (videos[0].kind === "short" ? "short" : "video") : kind;
   const tabs = KINDS.filter((option) => option === kind || !counts || counts[option] > 0);
+
+  const queryClient = useQueryClient();
+  const ahead = (next: typeof query) =>
+    void queryClient.prefetchInfiniteQuery({
+      ...youtubeChannelVideosInfiniteOptions({ path: { channel_id: id }, query: next }),
+      ...FIRST_PAGE,
+    });
+  const other: Kind = kind === "short" ? "video" : "short";
+  const loaded = !!data && !isPlaceholderData;
+  const hasOther = !!counts && counts[other] > 0;
+  useEffect(() => {
+    if (!loaded || !hasOther) return;
+    void queryClient.prefetchInfiniteQuery({
+      ...youtubeChannelVideosInfiniteOptions({ path: { channel_id: id }, query: { kind: other } }),
+      ...FIRST_PAGE,
+    });
+  }, [loaded, hasOther, other, id, queryClient]);
   const labels: Record<Kind, string> = { video: t("videos"), short: t("shorts") };
 
   let list;
@@ -193,7 +214,7 @@ export function ChannelVideos({ id }: { id: string }) {
   } else if (search) {
     list = (
       <>
-        <ul className={cn("mt-6 max-w-[1096px] space-y-4 transition-opacity", isPlaceholderData && "opacity-60")}>
+        <ul className={cn("mt-6 max-w-[1096px] space-y-4 transition-opacity", isPlaceholderData && DIMMED)}>
           {videos.map((video) => (
             <ResultCard key={video.id} video={video} />
           ))}
@@ -208,14 +229,14 @@ export function ChannelVideos({ id }: { id: string }) {
         <ul
           className={cn(
             "grid transition-opacity",
-            isPlaceholderData && "opacity-60",
-            kind === "short"
+            isPlaceholderData && DIMMED,
+            shownKind === "short"
               ? "grid-cols-2 gap-x-1 gap-y-6 @min-[600px]:grid-cols-3 @min-[800px]:grid-cols-4 @min-[1000px]:grid-cols-5 @min-[1200px]:grid-cols-6"
               : "grid-cols-1 gap-x-4 gap-y-8 @min-[500px]:grid-cols-2 @min-[860px]:grid-cols-3 @min-[1200px]:grid-cols-4",
           )}
         >
           {videos.map((video) =>
-            kind === "short" ? (
+            shownKind === "short" ? (
               <ShortCard key={video.id} video={video} sort={query.sort} />
             ) : (
               <VideoCard key={video.id} video={video} />
@@ -237,6 +258,8 @@ export function ChannelVideos({ id }: { id: string }) {
             type="button"
             aria-current={!search && option === kind ? "page" : undefined}
             onClick={() => (search || option !== kind) && go(videosAddress({ kind: option }, first), "push")}
+            onPointerEnter={() => ahead({ kind: option })}
+            onFocus={() => ahead({ kind: option })}
             className={cn(
               "relative mr-6 flex h-12 items-center text-base leading-[22px] font-medium",
               !search && option === kind
@@ -262,6 +285,8 @@ export function ChannelVideos({ id }: { id: string }) {
               option !== sort &&
               go(videosAddress({ kind, sort: option === "newest" ? undefined : option }, first), "push")
             }
+            onPointerEnter={() => ahead({ kind, sort: option === "newest" ? undefined : option })}
+            onFocus={() => ahead({ kind, sort: option === "newest" ? undefined : option })}
             className={cn(
               "h-8 rounded-lg px-3 text-sm leading-5 font-medium",
               option === sort ? "bg-yt-text text-white" : "bg-yt-chip text-yt-text hover:bg-yt-chip-hover",

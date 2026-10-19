@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ChannelPicture, Tint, YouTubeLink } from "@/components/youtube-ui";
 import { go } from "@/lib/address";
 import { formatCompact, formatCount, pluralOf } from "@/lib/format";
+import { DIMMED } from "@/lib/pages";
 import { cn } from "@/lib/utils";
 import { channelsAddress, channelsQuery } from "@/lib/youtube";
 
@@ -40,6 +41,18 @@ export function YouTubeChannels() {
   const pages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
   const { search } = query;
 
+  // The pages either side, asked for once this one is shown, so that turning to them shows them at once
+  const queryClient = useQueryClient();
+  const shown = !!data && !isPlaceholderData;
+  useEffect(() => {
+    if (!shown || size === undefined) return;
+    for (const to of [page + 1, page - 1].filter((to) => to >= 1 && to <= pages)) {
+      void queryClient.prefetchQuery(
+        youtubeChannelsOptions({ query: { search, page: to > 1 ? to : undefined, size } }),
+      );
+    }
+  }, [shown, size, page, pages, search, queryClient]);
+
   // Past the last page (an old link, a smaller window, or fewer channels since): the last page instead
   const pastTheEnd = !!data && !isPlaceholderData && data.total > 0 && data.channels.length === 0 && page > 1;
   useEffect(() => {
@@ -54,7 +67,7 @@ export function YouTubeChannels() {
   } else {
     list = (
       <ul
-        className={cn("grid gap-4 transition-opacity", isPlaceholderData && "opacity-60")}
+        className={cn("grid gap-4 transition-opacity", isPlaceholderData && DIMMED)}
         style={{ gridTemplateColumns: `repeat(${fit.columns}, minmax(0, 1fr))` }}
       >
         {data.channels.map((channel) => (

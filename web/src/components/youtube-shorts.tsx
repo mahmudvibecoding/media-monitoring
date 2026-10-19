@@ -1,6 +1,6 @@
 "use client";
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDownIcon,
   ArrowUpIcon,
@@ -19,6 +19,7 @@ import { type ReactNode, type RefObject, useEffect, useRef, useState } from "rea
 import {
   youtubeChannelOptions,
   youtubeChannelVideosInfiniteOptions,
+  youtubeVideoCommentsInfiniteOptions,
   youtubeVideoOptions,
 } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannelDetails, YouTubeVideo } from "@/api/types.gen";
@@ -438,8 +439,9 @@ function Progress({ state, seek }: { state: State; seek: (seconds: number) => vo
 }
 
 // YouTube's round buttons beside a Short, each with its label under it: the likes (which only show here), the
-// comments, which open their panel (and close it again), and Share. On a phone they're over the Short's right side,
-// white, as in YouTube's app.
+// comments, which open their panel (and close it again; they're asked for once the pointer comes over the button, so
+// that the panel has them at once), and Share. On a phone they're over the Short's right side, white, as in YouTube's
+// app.
 function Actions({
   video,
   panel,
@@ -453,6 +455,12 @@ function Actions({
   const videoTexts = useTranslations("youtubeVideo");
   const locale = useLocale();
   const round = "flex size-12 items-center justify-center rounded-full bg-yt-chip max-sm:bg-black/30 max-sm:text-white";
+  const queryClient = useQueryClient();
+  const ahead = () =>
+    void queryClient.prefetchInfiniteQuery({
+      ...youtubeVideoCommentsInfiniteOptions({ path: { video_id: video.id } }),
+      ...FIRST_PAGE,
+    });
   return (
     <div className="flex shrink-0 flex-col items-center gap-4 max-sm:absolute max-sm:right-2 max-sm:bottom-24">
       <Labeled label={video.likes === null ? videoTexts("like") : formatCompact(video.likes, locale, true)}>
@@ -467,6 +475,8 @@ function Actions({
         <button
           type="button"
           onClick={() => open("comments")}
+          onPointerEnter={ahead}
+          onFocus={ahead}
           aria-label={t("comments")}
           aria-pressed={panel === "comments"}
           className={cn(round, "hover:bg-yt-chip-hover max-sm:hover:bg-black/40")}

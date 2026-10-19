@@ -23,7 +23,7 @@ import { BubblesGhost, ChatGhost } from "@/components/telegram-ghosts";
 import { ChannelPhoto, InfoRow, Ripples, RoundButton, ShareIcon, TelegramText } from "@/components/telegram-ui";
 import { SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatClock, formatCompact, formatCount, formatDateTime, formatDay, pluralOf, sameDay } from "@/lib/format";
-import { FIRST_PAGE, nextPage } from "@/lib/pages";
+import { DIMMED, FIRST_PAGE, nextPage } from "@/lib/pages";
 import { messageOnTelegram } from "@/lib/telegram";
 import { useLoadMore } from "@/lib/use-load-more";
 import { useNow } from "@/lib/use-now";
@@ -341,7 +341,7 @@ function Messages({
         <div
           className={cn(
             "mx-auto flex w-full max-w-[760px] flex-col-reverse px-4 pt-20 pb-4 transition-opacity max-[600px]:px-2 max-[600px]:pt-16",
-            isPlaceholderData && "opacity-60",
+            isPlaceholderData && DIMMED,
           )}
         >
           {content}

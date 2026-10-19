@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect } from "react";
@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { anyRunning, runsAddress, runsQuery, STEPS } from "@/lib/activity";
 import { go } from "@/lib/address";
 import { formatCount } from "@/lib/format";
+import { DIMMED } from "@/lib/pages";
 import { cn } from "@/lib/utils";
 
 export const LIVE_EVERY = 5_000; // milliseconds between looks at runs that may change
@@ -36,6 +37,19 @@ export function Activity() {
   });
   const pages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
 
+  // The pages either side, asked for once this one is shown, and a step's runs once the pointer or the keys come to it
+  // in the list of steps, so that turning to them shows them at once
+  const queryClient = useQueryClient();
+  const shown = !!data && !isPlaceholderData;
+  useEffect(() => {
+    if (!shown) return;
+    for (const to of [page + 1, page - 1].filter((to) => to >= 1 && to <= pages)) {
+      void queryClient.prefetchQuery(runsOptions({ query: { step: query.step, page: to > 1 ? to : undefined } }));
+    }
+  }, [shown, page, pages, query.step, queryClient]);
+  const ahead = (value: string) =>
+    void queryClient.prefetchQuery(runsOptions({ query: { step: STEPS.find((name) => name === value) } }));
+
   // Past the last page (an old link): the last page instead
   const pastTheEnd = !!data && !isPlaceholderData && data.total > 0 && data.runs.length === 0 && page > 1;
   useEffect(() => {
@@ -55,7 +69,7 @@ export function Activity() {
   } else {
     list = (
       <>
-        <div className={cn("space-y-3 transition-opacity", isPlaceholderData && "opacity-60")}>
+        <div className={cn("space-y-3 transition-opacity", isPlaceholderData && DIMMED)}>
           {data.runs.map((run) =>
             run.step === "round" ? (
               <Round key={run.id} run={run} />
@@ -88,7 +102,12 @@ export function Activity() {
           </SelectTrigger>
           <SelectContent>
             {options.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem
+                key={option.value}
+                value={option.value}
+                onPointerEnter={() => ahead(option.value)}
+                onFocus={() => ahead(option.value)}
+              >
                 {option.label}
               </SelectItem>
             ))}

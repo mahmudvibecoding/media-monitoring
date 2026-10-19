@@ -1,6 +1,6 @@
 "use client";
 
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { SearchIcon, XIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/components/ui/sidebar";
 import { SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatChatDate, formatCompact, formatCount, formatDateTime, pluralOf } from "@/lib/format";
-import { FIRST_PAGE, nextPage } from "@/lib/pages";
+import { DIMMED, FIRST_PAGE, nextPage } from "@/lib/pages";
 import { channelsQuery, chatIdOf, chatPath, type TelegramSort } from "@/lib/telegram";
 import { useLoadMore } from "@/lib/use-load-more";
 import { useNow } from "@/lib/use-now";
@@ -57,6 +57,24 @@ export function TelegramList() {
       placeholderData: keepPreviousData,
     });
   const marker = useLoadMore({ more: !!hasNextPage, loading: isFetchingNextPage, load: fetchNextPage, root: scroller });
+
+  // The other folder's chats, asked for once the list is there, and a folder's once the pointer comes over it, so that
+  // it shows them at once
+  const queryClient = useQueryClient();
+  const ahead = (folder: TelegramSort) =>
+    void queryClient.prefetchInfiniteQuery({
+      ...telegramChannelsInfiniteOptions({ query: channelsQuery(folder, "") }),
+      ...FIRST_PAGE,
+    });
+  const other: TelegramSort = sort === "latest" ? "subscribers" : "latest";
+  const ready = !!data;
+  useEffect(() => {
+    if (!ready) return;
+    void queryClient.prefetchInfiniteQuery({
+      ...telegramChannelsInfiniteOptions({ query: channelsQuery(other, "") }),
+      ...FIRST_PAGE,
+    });
+  }, [ready, other, queryClient]);
 
   // Another folder or search shows its list from the top
   useEffect(() => {
@@ -106,7 +124,7 @@ export function TelegramList() {
             {t("found", { formatted: formatCount(total, locale) })}
           </h3>
         )}
-        <ul className={cn("transition-opacity", isPlaceholderData && "opacity-60")}>
+        <ul className={cn("transition-opacity", isPlaceholderData && DIMMED)}>
           {channels.map((channel) => (
             <ChatRow
               key={channel.id}
@@ -162,7 +180,7 @@ export function TelegramList() {
       <div className="relative min-h-0 flex-1">
         {!searching && (
           <>
-            <Folders sort={sort} choose={setSort} />
+            <Folders sort={sort} choose={setSort} ahead={ahead} />
             <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] h-[70px] bg-linear-to-b from-white from-40% to-transparent" />
           </>
         )}
@@ -183,7 +201,15 @@ export function TelegramList() {
 // Telegram's folders: tabs on a floating white bar, the chosen one blue on light blue. The blue copy of the tabs lies
 // over the grey ones, cut to the chosen tab's shape (clip-path), so that as another is chosen, the cut slides there and
 // each letter turns blue as it passes under it, as in Telegram.
-function Folders({ sort, choose }: { sort: TelegramSort; choose: (sort: TelegramSort) => void }) {
+function Folders({
+  sort,
+  choose,
+  ahead,
+}: {
+  sort: TelegramSort;
+  choose: (sort: TelegramSort) => void;
+  ahead: (sort: TelegramSort) => void;
+}) {
   const t = useTranslations("telegramChannels");
   const locale = useLocale(); // the tabs' widths change with their words
   const bar = useRef<HTMLDivElement>(null);
@@ -231,6 +257,8 @@ function Folders({ sort, choose }: { sort: TelegramSort; choose: (sort: Telegram
             aria-selected={sort === folder}
             data-folder={folder}
             onClick={() => choose(folder)}
+            onPointerEnter={() => ahead(folder)}
+            onFocus={() => ahead(folder)}
             className={cn(tab, "hover:opacity-85")}
           >
             {labels[folder]}

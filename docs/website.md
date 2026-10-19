@@ -213,6 +213,14 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   them every click turned the page grey for a third of a second. Without them, on the site run locally, a page
   replaced the one before 40 to 75 ms after the click (300 to 370 ms with them); a channel's page that took the API
   390 ms came after the red line, the channel list still there. Back and Forward bring a page back as it was, at once.
+- Buttons and tabs inside a page (a channel's tabs and orders, the pages of the channel list and of the activity, the
+  activity's steps, Telegram's folders, a Short's comments) don't load the page again, and what each is likely to show
+  is asked for ahead, so it's there when it's clicked: the other tab or folder and the pages either side once the page
+  is there, an order, a step or a Short's comments once the pointer comes over its button (on a touch screen, as the
+  finger touches it). What isn't there yet comes as soon as it is, the list before it staying as it was meanwhile,
+  dimmed only from 150 ms on, so one that comes sooner doesn't flash. On the site run locally, with 100 ms added to
+  every request, a click showed what it asked for 14 to 31 ms later (116 to 143 ms without asking ahead), and a Short's
+  comments, the pointer 250 ms on their button, came with their panel instead of 125 ms after it.
 - A channel's videos, a video's comments, Telegram's chat list and a channel's messages load more as they're scrolled,
   as on YouTube and in Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest
   message, at the bottom, and loads older ones above as it's scrolled up.
