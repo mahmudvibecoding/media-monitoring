@@ -77,7 +77,7 @@ class Stats(Collector):
         days = argument or str(DAYS)
         return "videos to refresh (" + ("every video" if days == "all" else f"published in the last {days} days") + ")"
 
-    async def prepare(self, conn, video_ids):
+    async def prepare(self, conn):
         self.pending = []
         await conn.execute(STATS)
 

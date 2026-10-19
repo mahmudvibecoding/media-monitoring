@@ -1,8 +1,10 @@
-"""Run a collector across processes, as fast as the proxies answer. Each worker process takes an equal share of the
-items and of the proxies to test, works through its items `concurrency` at a time, and saves what it collects every
-SAVE_EVERY seconds. Each process tells the others which of its proxies work, and one that runs short uses theirs too
-(see relay and Pool.borrow). A collector (YouTube's channels, videos, details, stats and
-comments, Telegram's channels) only describes its own part: see Collector.
+"""Run a collector across processes, as fast as the proxies answer. The items go out in batches: each worker process
+takes the next one whenever few of its last one's items are left to start (see dispatch), so a process that works
+faster takes more, and none sits idle while another still has many left. Each process works through its items
+`concurrency` at a time, through an equal share of the proxies to test, and saves what it collects every SAVE_EVERY
+seconds. Each process tells the others which of its proxies work, and one that runs short uses theirs too (see relay
+and Pool.borrow). A collector (YouTube's channels, videos, details, stats and comments, Telegram's channels, messages
+and history) only describes its own part: see Collector.
 
 Every collector goes through the VPN proxies run by sing-box. Each process also holds its share of the plain proxies
 in reserve, and brings them in once its VPN proxies stop working, or once it has tested them all and has room for more
@@ -19,7 +21,7 @@ import signal
 import sys
 import threading
 import time
-from collections import Counter
+from collections import Counter, deque
 from concurrent.futures import ProcessPoolExecutor, wait
 from concurrent.futures.process import BrokenProcessPool
 from functools import partial
@@ -42,30 +44,37 @@ REGULATE_EVERY = 0.5
 RELAY_EVERY = 0.2  # seconds between the main process's looks for news about working proxies (see relay)
 IDLE_LOW, IDLE_HIGH = 0.10, 0.20
 OWN_FREE, OWN_BUSY = 0.6, 0.9
+# Items in a batch (see dispatch): at most BATCH, and fewer in a smaller run, so that each process still takes about
+# BATCHES_EACH of them; at least BATCH_MIN, as each batch costs a look at what's already saved for its items
+BATCH, BATCH_MIN, BATCHES_EACH = 1000, 50, 20
+DISPATCH_EVERY = 0.02  # seconds between the main process's looks for processes that want another batch
+DELIVERY_WAIT = 0.2  # seconds a worker process waits for its batch at a time, between looks at whether to stop
 
 # Shared by all processes: whether the run is stopping early (set by the main process on Ctrl+C or kill, see run),
 # how many proxy tests each process may run at a time (set by the main process, see regulate_tests), then PER_SHARE
-# counters for each share of the items, from SHARES on, each written only by the process working on that share: items
-# finished, items saved, whether it's ready (what's already saved is loaded), whether it brought in the plain proxies,
-# and its successful requests. Without a lock, a process ended halfway through (killed, or out of memory) can't leave
-# one held.
+# counters for each worker process (its share of the proxies), from SHARES on, each written only by that process: items
+# finished, items saved, whether it's ready (its first batch is loaded, or none came), whether it brought in the plain
+# proxies, its successful requests, and how many batches it has asked for (see dispatch). Without a lock, a process
+# ended halfway through (killed, or out of memory) can't leave one held.
 progress = None
 STOPPING, TESTS, SHARES = 0, 1, 2
-PER_SHARE = 5
-FINISHED, SAVED, READY, RESERVE, SUCCEEDED = range(PER_SHARE)
+PER_SHARE = 6
+FINISHED, SAVED, READY, RESERVE, SUCCEEDED, WANTED = range(PER_SHARE)
 SUCCESSFUL = ("ok", "gone")  # requests the site answered with what was asked: every speed shown counts these
 parent = None  # in each worker process: the main process, which it stops for if it's gone
-# News about working proxies (see relay): one queue to the main process and one back for each share of the items, so
-# each queue has one process writing and one reading, and none can leave a lock held that another process needs
-outboxes = inboxes = None
-busy = False  # in each worker process: whether it's working on a share (see run_share)
+# News about working proxies (see relay), and batches of items (see dispatch): one queue to the main process and one
+# back for each worker process, so each queue has one process writing and one reading, and none can leave a lock held
+# that another process needs
+outboxes = inboxes = deliveries = None
+busy = False  # in each worker process: whether it's working (see run_share)
 killed = False  # in each worker process: whether kill asked this process alone to stop (see start)
 
 
 class Collector:
-    """One collector's own part; run() does the rest. In each worker process one instance works through that
-    process's share of the items: prepare() once, then handle() for each item, while save() writes what has been
-    collected every SAVE_EVERY seconds. self.results counts the items' outcomes; handle() may add counts of its own."""
+    """One collector's own part; run() does the rest. In each worker process one instance works through the batches
+    of items that process takes: prepare() once, take() for each batch, then handle() for each item, while save()
+    writes what has been collected every SAVE_EVERY seconds. self.results counts the items' outcomes; handle() may add
+    counts of its own."""
     concurrency = 500  # items in progress at a time, per process
     attempts = ATTEMPTS  # requests per item at most, each through another proxy (see Pool.run)
     give_up = True  # end the run when every proxy rests at once (see Pool)
@@ -85,8 +94,11 @@ class Collector:
         """In the main process: what the items are, for the first line."""
         return self.item_name
 
-    async def prepare(self, conn, items):
-        """In each worker process, before the work: e.g. temporary tables, or what's already saved."""
+    async def prepare(self, conn):
+        """In each worker process, before the work: e.g. temporary tables."""
+
+    async def take(self, conn, items):
+        """In each worker process, for each batch of items before they start: e.g. what's already saved for them."""
 
     async def test(self, session, proxy):
         """One test of a proxy (see Pool): the collector's own kind of request, on an item that has been up for years.
@@ -102,8 +114,9 @@ class Collector:
         return 0
 
     async def finish(self, pool, session):
-        """In each worker process, once every item of its share has had its turn, with the proxies still at hand:
-        e.g. try again the items that failed. Saves go on meanwhile; Ctrl+C or kill stops it like the work."""
+        """In each worker process, once no batches are left and every item it took has had its turn, with the proxies
+        still at hand: e.g. try again the items that failed. Saves go on meanwhile; Ctrl+C or kill stops it like the
+        work."""
 
     def summary(self, results, saved):
         """The last line, from all processes' outcomes and the number saved."""
@@ -118,14 +131,34 @@ def modified(path):
         return None
 
 
-async def work(collector, items, share, shares):
-    """One worker process: its share of the items, through its share of the VPN proxies, with its share of the plain
-    ones in reserve, and through the other processes' working proxies once it runs short (see Pool.borrow)."""
+def next_batch(share, closed):
+    """In a thread of a worker process: asks the main process for the next batch of items (see dispatch) and waits for
+    it. None once none are left, or once this process should take no more: the run is stopping, or its work has ended
+    (closed)."""
+
+    def stopping():
+        return progress[STOPPING] or ending() or closed.is_set()
+
+    if stopping():
+        return None
+    progress[SHARES + PER_SHARE * share + WANTED] += 1
+    while not stopping():
+        try:
+            return deliveries[share].get(timeout=DELIVERY_WAIT)
+        except queue.Empty:
+            pass
+    return None
+
+
+async def work(collector, share, shares, expected):
+    """One worker process: the batches of items it takes (see feeder), through its share of the VPN proxies, with its
+    share of the plain ones in reserve, and through the other processes' working proxies once it runs short (see
+    Pool.borrow). expected is about how many items each process gets, for how many to work on at a time."""
     raise_open_files_limit()
     outbox, inbox = outboxes[share], inboxes[share]
     outbox.cancel_join_thread()  # ending, it doesn't wait for news nobody may read any more
     seen = {path: modified(path) for path in (PROXY_FILE, PLAIN_PROXY_FILE)}
-    mine = SHARES + PER_SHARE * share  # where this share's counters are in progress
+    mine = SHARES + PER_SHARE * share  # where this process's counters are in progress
 
     def reserve_brought():
         progress[mine + RESERVE] = 1
@@ -136,17 +169,55 @@ async def work(collector, items, share, shares):
     collector.results = results = Counter()
     finished = 0
     async with await db.connect() as conn:
-        await collector.prepare(conn, items)
-        progress[mine + READY] = 1  # what's already saved is loaded, and the work starts
+        await collector.prepare(conn)
         # verify=False: no certificate checks through proxies (all the data is public)
         async with AsyncSession(impersonate="chrome", verify=False,
                                 max_clients=collector.concurrency * collector.attempts + TESTS_MAX) as session:
             pool.start_testing(partial(collector.test, session))
-            remaining, stop, halted = iter(items), asyncio.Event(), False
+            stop, halted = asyncio.Event(), False
+            database = asyncio.Lock()  # the saver and the feeder take turns on the connection
+            workers = max(1, min(collector.concurrency, expected))
+            low = max(1, workers // 4)  # once no more items than this wait, the next batch is asked for
+            waiting = deque()  # the items taken that no worker has started yet
+            hungry, more = asyncio.Event(), asyncio.Event()  # few items wait (see feeder); some came (see worker)
+            closed = threading.Event()  # the workers are done, or the work stopped: no more batches
+            exhausted = False  # no more batches will come
+
+            async def feeder():
+                """Takes batches while there are any: once no more than low items wait, asks the main process for the
+                next one (see next_batch), loads what's already saved for its items (Collector.take) and adds them
+                to those waiting. Nothing cancels it, so a load is never cut off halfway."""
+                nonlocal exhausted
+                loop = asyncio.get_running_loop()
+                try:
+                    while True:
+                        while len(waiting) > low and not closed.is_set():
+                            hungry.clear()
+                            await hungry.wait()
+                        batch = await loop.run_in_executor(None, next_batch, share, closed)
+                        if batch is None:
+                            return
+                        async with database:
+                            await collector.take(conn, batch)
+                        progress[mine + READY] = 1  # the work starts
+                        waiting.extend(batch)
+                        more.set()
+                finally:
+                    exhausted = True
+                    progress[mine + READY] = 1
+                    more.set()
 
             async def worker():
                 nonlocal finished
-                for item in remaining:  # all workers share one iterator
+                while waiting or not exhausted:
+                    if not waiting:
+                        more.clear()
+                        hungry.set()
+                        await more.wait()
+                        continue
+                    item = waiting.popleft()
+                    if len(waiting) <= low:
+                        hungry.set()
                     try:
                         results[await collector.handle(pool, session, item)] += 1
                     except NoProxiesLeft:
@@ -155,9 +226,10 @@ async def work(collector, items, share, shares):
                 pool.draining = True  # no new items left: idle capacity goes to the slowest requests
 
             async def saver():
-                """Saves every SAVE_EVERY seconds until stopped, then once more. Only this touches the database, so
-                a save is never interrupted halfway. When the run is stopping early (Ctrl+C or kill), or the main
-                process is gone, it ends the work: the last save keeps what was collected."""
+                """Saves every SAVE_EVERY seconds until stopped, then once more. Saves and the feeder's loads take
+                turns on the database, and neither is cancelled, so a save is never interrupted halfway. When the run
+                is stopping early (Ctrl+C or kill), or the main process is gone, it ends the work: the last save keeps
+                what was collected."""
                 nonlocal halted
                 counted = 0
                 while True:
@@ -169,7 +241,8 @@ async def work(collector, items, share, shares):
                         halted = True
                         working.cancel()
                     stopped, done = stop.is_set(), finished  # items finished during this save count in the next
-                    saved = await collector.save(conn)
+                    async with database:
+                        saved = await collector.save(conn)
                     progress[mine + FINISHED] += done - counted
                     progress[mine + SAVED] += saved
                     counted = done
@@ -224,12 +297,18 @@ async def work(collector, items, share, shares):
                         own = min(TESTS_MAX, own * 2)
                     pool.allow_tests(min(progress[TESTS], own))
 
+            def close():
+                """No more batches: the feeder ends."""
+                closed.set()
+                hungry.set()
+
             async def everything():
-                await asyncio.gather(*(worker() for _ in range(min(collector.concurrency, len(items)))))
+                await asyncio.gather(*(worker() for _ in range(workers)))
+                close()
                 await collector.finish(pool, session)
 
             working = asyncio.ensure_future(everything())
-            tasks = [asyncio.create_task(saver()), asyncio.create_task(regulator())]
+            tasks = [asyncio.create_task(feeder()), asyncio.create_task(saver()), asyncio.create_task(regulator())]
             if collector.follow_lists:
                 tasks.append(asyncio.create_task(follower()))
             try:
@@ -238,18 +317,20 @@ async def work(collector, items, share, shares):
                 if not halted:
                     raise  # not the saver's doing
             finally:
+                close()  # also when stopping early or on an error
                 await pool.close()
                 stop.set()  # also when stopping early or on an error: save what we have
                 await asyncio.gather(*tasks)
     return results, pool.outcomes, pool.test_outcomes, len(pool.proven)
 
 
-def start(counter, main, news_out, news_in):
+def start(counter, main, news_out, news_in, batches):
     """Runs first in each worker process. main is the main process: not simply this one's parent, which is already
     another one if the main process was killed while this one was starting. news_out and news_in are the queues of
-    news about working proxies, one of each per share (see relay)."""
-    global progress, parent, outboxes, inboxes
-    progress, parent, outboxes, inboxes = counter, main, news_out, news_in
+    news about working proxies, one of each per worker process (see relay), and batches the queues of items, one per
+    worker process (see dispatch)."""
+    global progress, parent, outboxes, inboxes, deliveries
+    progress, parent, outboxes, inboxes, deliveries = counter, main, news_out, news_in, batches
     # Ctrl+C reaches the workers too, but only the main process acts on it, and the workers stop when it asks (see
     # work). kill on a worker makes it save what it has and end, like the main process being gone; the pool then
     # stops the others the same way (it sends them kill when one has ended). A worker interrupted halfway through
@@ -278,8 +359,8 @@ def ending():
 
 
 def watch_parent():
-    """Ends this worker process once it should (see ending) while it has no share to work on. Working on a share, it
-    saves and ends by itself (see work and run_share)."""
+    """Ends this worker process once it should (see ending) while it isn't working. Working, it saves and ends by
+    itself (see work and run_share)."""
     while True:
         time.sleep(1)
         if ending() and not busy:
@@ -312,6 +393,19 @@ def relay(news_out, news_in, done):
                         inbox.put(news)
 
 
+def dispatch(items, size, counter, batches, done):
+    """In the main process, until done is set: every DISPATCH_EVERY seconds, gives each worker process that has asked
+    for another batch (WANTED, see next_batch) the next size items, in their order, through its own queue, or None once
+    none are left."""
+    given, start = [0] * len(batches), 0
+    while not done.wait(DISPATCH_EVERY):
+        for share, batch_queue in enumerate(batches):
+            while given[share] < counter[SHARES + PER_SHARE * share + WANTED]:
+                batch_queue.put(items[start:start + size] or None)
+                start += size
+                given[share] += 1
+
+
 def regulate_tests(counter, processes, done):
     """In the main process, from when every worker process has started its work until done is set: every
     REGULATE_EVERY seconds, how many proxies each worker process may test at a time (counter[TESTS]). Twice as many
@@ -332,11 +426,11 @@ def regulate_tests(counter, processes, done):
             counter[TESTS] = max(TESTS_MIN, counter[TESTS] // 2)
 
 
-def run_share(collector_class, items, share, shares):
+def run_share(collector_class, share, shares, expected):
     """Entry point of each worker process: it runs its own event loop."""
     global busy
     busy = True
-    result = asyncio.run(work(collector_class(), items, share, shares))
+    result = asyncio.run(work(collector_class(), share, shares, expected))
     if ending():
         os._exit(0)  # what was collected is saved
     busy = False
@@ -400,13 +494,15 @@ def collect(collector_class, collector, argument, record):
         return
 
     processes = max(1, min(PROCESSES, (len(vpn) or len(plain)) // 50, math.ceil(len(items) / 1000)))
-    print(f"working with {processes} processes...")
-    record.update(processes=processes)
+    size = max(BATCH_MIN, min(BATCH, math.ceil(len(items) / (processes * BATCHES_EACH))))
+    print(f"working with {processes} processes, which take {size} {collector.item_name} at a time...")
+    record.update(processes=processes, batch=size)
     context = get_context("spawn")
     counter = context.Array("q", SHARES + PER_SHARE * processes, lock=False)  # see progress
     news_out, news_in = [context.Queue() for _ in range(processes)], [context.Queue() for _ in range(processes)]
-    for inbox in news_in:
-        inbox.cancel_join_thread()  # ending, this process doesn't wait for news a finished process won't read
+    batches = [context.Queue() for _ in range(processes)]
+    for inbox in news_in + batches:
+        inbox.cancel_join_thread()  # ending, this process doesn't wait for what a finished process won't read
     counter[STOPPING], counter[TESTS] = bool(asked), TESTS_START
 
     def totals():
@@ -421,19 +517,20 @@ def collect(collector_class, collector, argument, record):
     started = time.monotonic()
     results, outcomes, tests, working = Counter(), Counter(), Counter(), 0
     with ProcessPoolExecutor(processes, mp_context=context, initializer=start,
-                             initargs=(counter, os.getpid(), news_out, news_in)) as executor:
-        futures = [executor.submit(run_share, collector_class, items[i::processes], i, processes)
+                             initargs=(counter, os.getpid(), news_out, news_in, batches)) as executor:
+        futures = [executor.submit(run_share, collector_class, i, processes, math.ceil(len(items) / processes))
                    for i in range(processes)]
-        done = threading.Event()  # the regulator's and the relay's stop
+        done = threading.Event()  # the regulator's, the relay's and the dispatcher's stop
         threading.Thread(target=regulate_tests, args=(counter, processes, done), daemon=True).start()
         threading.Thread(target=relay, args=(news_out, news_in, done), daemon=True).start()
+        threading.Thread(target=dispatch, args=(items, size, counter, batches, done), daemon=True).start()
         signal.pthread_sigmask(signal.SIG_UNBLOCK, handled)
         before, then = 0, started  # successful requests at the last line, and when
         while not all(future.done() for future in futures):
             wait(futures, timeout=collector.report_every)
             now, (finished, saved, ready, reserve, succeeded) = time.monotonic(), totals()
-            # Before its work, each process loads what's already saved for its items (comments' IDs, for example),
-            # which for a big run takes a while: say so, or the line would look stuck at 0
+            # Before its work, each process starts, then loads what's already saved for its first batch (comments'
+            # IDs, for example): say so, or the line would look stuck at 0
             notes = ([f"{processes - ready} of {processes} processes still loading what's already saved"]
                      if ready < processes else [])
             notes += [f"up to {counter[TESTS]} proxy tests at a time per process"] if ready == processes else []

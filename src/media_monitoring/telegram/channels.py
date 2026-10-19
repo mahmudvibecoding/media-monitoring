@@ -85,7 +85,7 @@ class Channels(Collector):
     def describe(self, argument):
         return "Telegram channels to refresh"
 
-    async def prepare(self, conn, channels):
+    async def prepare(self, conn):
         self.pending = []
         await conn.execute(CHANNELS)
 

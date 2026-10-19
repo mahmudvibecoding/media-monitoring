@@ -117,19 +117,21 @@ class Videos(Collector):
 
     def load(self, conn, argument):
         channel_ids = [row[0] for row in conn.execute("SELECT channel_id FROM youtube_channels")]
-        random.shuffle(channel_ids)  # each process gets an equal mix of big and small channels
+        random.shuffle(channel_ids)  # each batch gets an equal mix of big and small channels
         return channel_ids
 
     def describe(self, argument):
         return "channels to check for new videos"
 
-    async def prepare(self, conn, channel_ids):
+    async def prepare(self, conn):
         self.pending, self.known = [], defaultdict(set)
-        async with conn.cursor() as cur:  # the newest saved videos of this process's channels, loaded once
+        await conn.execute(NEW_VIDEOS)
+
+    async def take(self, conn, channel_ids):
+        async with conn.cursor() as cur:  # the newest saved videos of the batch's channels, in one query
             await cur.execute(LOAD_KNOWN, (channel_ids, NEWEST))
             async for channel_id, video_id in cur:
                 self.known[channel_id].add(video_id)
-        await conn.execute(NEW_VIDEOS)
 
     async def test(self, session, proxy):
         return await fetch_page(session, FIRST_PAGE, {"browseId": "VLUU" + TEST_CHANNEL[2:]}, proxy)

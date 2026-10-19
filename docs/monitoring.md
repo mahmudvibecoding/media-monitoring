@@ -3,8 +3,8 @@
 The system follows the YouTube channels in `youtube_channels.txt` and keeps four things up to date in PostgreSQL:
 the channels' details, every video they publish, the views and likes of recent videos, and the comments on
 them. It also collects the text messages of the public Telegram channels in `telegram_channels.txt`, and keeps their
-details up to date (see [Telegram](#telegram)). The [README](../README.md) shows how to run it; [proxies.md](proxies.md) explains the proxies
-every request goes through.
+details up to date (see [Telegram](#telegram)). The [README](../README.md) shows how to run it;
+[proxies.md](proxies.md) explains the proxies every request goes through.
 
 ## The size of the job
 
@@ -45,7 +45,11 @@ everything again, in this order.
 
 Each step loads what it needs from the database, works as fast as the proxies answer, saves as it goes, and
 stops. On the 52-core server the work is split between up to 48 processes (four cores stay free for
-sing-box), each with up to 500 items in progress at a time.
+sing-box), each with up to 500 items in progress at a time. The items go out in batches of up to 1,000 (fewer in a
+small run, so that each process takes about 20): a process asks for the next batch once few of its last one's items
+are left to start, so one whose proxies work faster takes more, and none sits idle while another still has many left.
+With fixed equal shares, the last 57,000 of 8 million videos in a comments run took 2 of its 7 minutes, a few
+processes working alone; with batches, 46 s, 35 of them on a single video.
 
 Every round, every `uv run proxies` and every run of a step, whether in a round or by hand, leaves a row in the
 `runs` table (`src/media_monitoring/runs.py`):

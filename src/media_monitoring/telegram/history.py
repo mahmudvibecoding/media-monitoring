@@ -190,7 +190,7 @@ class History(Collector):
         return (f"Telegram channels to read back, the fewest letters first, until they have "
                 f"{int(argument or LETTERS):,} letters and {MESSAGES} messages")
 
-    async def prepare(self, conn, channels):
+    async def prepare(self, conn):
         self.pending = []  # (channel_id, its messages with text, how far back it's read now)
         self.failed = []  # (the channel as it stands after its failed read, when it failed), to ask again (see finish)
         for table in (NEW_MESSAGES, NEW_HISTORY):

@@ -146,7 +146,7 @@ class Messages(Collector):
     def describe(self, argument):
         return "Telegram channels to read the new messages of"
 
-    async def prepare(self, conn, channels):
+    async def prepare(self, conn):
         self.pending = []  # (channel_id, its new messages with text, its new last message's ID or None, its time)
         self.failed = []  # (channel, when its read failed), to ask again (see finish)
         for table in (NEW_MESSAGES, NEW_LAST):

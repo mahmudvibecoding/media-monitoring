@@ -1,8 +1,8 @@
 """Collect the comments of videos, newest first, top level only (no replies). The first time, a video's whole
 comment list is read; after that, only the new comments, down to the first page that ends with one we already have.
 To recognize those, each video keeps the IDs of its newest comments (youtube_comments_newest): each process loads
-those for its videos in one query, instead of every saved comment. A read that stops partway (a page fails, or the
-run stops) continues next time from where it stopped.
+those for each batch of videos it takes in one query, instead of every saved comment. A read that stops partway (a
+page fails, or the run stops) continues next time from where it stopped.
 
 "uv run youtube comments" covers the videos published in the last DAYS days, "uv run youtube comments 30" the last
 30 days, "uv run youtube comments all" every video, and "uv run youtube comments unread" every video whose whole list
@@ -71,8 +71,7 @@ SAVE_NEWEST = """INSERT INTO youtube_comments_newest (video_id, newest)
                  ON CONFLICT (video_id) DO UPDATE SET newest = excluded.newest"""
 LOAD_KNOWN = "SELECT video_id, comment_id FROM youtube_comments WHERE video_id = ANY(%s)"
 # What each video's read needs: whether its whole list was read, where a read stopped partway, how many comments
-# YouTube showed, and its newest comments. One join for all of a process's videos, which are put in a temporary table
-# first: with enough memory for the join it takes seconds even for a share of every video.
+# YouTube showed, and its newest comments. One join for each batch of videos, which are put in a temporary table first.
 SHARE = "CREATE TEMP TABLE share (video_id text)"
 LOAD_STATE = """SELECT t.video_id, coalesce(s.comments_complete, false), s.comments_resume, s.comments, n.newest
                 FROM share AS t LEFT JOIN youtube_video_stats AS s USING (video_id)
@@ -265,40 +264,40 @@ class Comments(Collector):
             days, f"published in the last {days} days")
         return f"videos to read comments of ({window})"
 
-    async def prepare(self, conn, video_ids):
+    async def prepare(self, conn):
         self.pending, self.counts, self.places = [], [], []
+        self.state, self.known = {}, defaultdict(set)
+        for table in (SHARE, NEW_COMMENTS, VIDEO_COUNTS, VIDEO_PROGRESS):
+            await conn.execute(table)
+
+    async def take(self, conn, video_ids):
         async with conn.cursor() as cur:
-            await cur.execute(SHARE)
+            await cur.execute("TRUNCATE share")
             async with cur.copy("COPY share FROM STDIN") as copy:
                 for video_id in video_ids:
                     await copy.write_row((video_id,))
             await cur.execute("ANALYZE share")
-            await cur.execute("SET work_mem = '256MB'")  # else the join spills to disk and takes several times longer
             await cur.execute(LOAD_STATE)
             rows = await cur.fetchall()
-            await cur.execute("RESET work_mem")
-        self.state = {video_id: (complete, resume, newest) for video_id, complete, resume, _, newest in rows}
+        self.state.update((video_id, (complete, resume, newest)) for video_id, complete, resume, _, newest in rows)
         # A video's newest comments are enough to find where its read stops. A read that stopped partway also needs
         # the ones further down, and a video read before the newest were kept has none: those load every comment
         # saved for them (slow for many videos at once: random reads all over the comments' index), unless YouTube
         # showed it without comments
         whole = [video_id for video_id, complete, resume, count, newest in rows
                  if resume or (complete and newest is None and count != 0)]
-        self.known = defaultdict(set)
         if whole:
             async with conn.cursor() as cur:
                 await cur.execute(LOAD_KNOWN, (whole,))
                 async for video_id, comment_id in cur:
                     self.known[video_id].add(comment_id)
-        for table in (NEW_COMMENTS, VIDEO_COUNTS, VIDEO_PROGRESS):
-            await conn.execute(table)
 
     async def test(self, session, proxy):
         return await fetch_page(session, first_token(TEST_VIDEO), proxy)
 
     async def handle(self, pool, session, video_id):
-        complete, resume, newest = self.state[video_id]
-        known = self.known.get(video_id) or set(newest or ())
+        complete, resume, newest = self.state.pop(video_id)  # each video once: what it needs goes as it starts
+        known = self.known.pop(video_id, None) or set(newest or ())
         return await read_video(pool, session, video_id, known, newest, complete, resume, self.pending,
                                 self.counts, self.places)
 

@@ -106,7 +106,7 @@ class Details(Collector):
     def describe(self, argument):
         return "saved videos without an exact publish time" if argument == "all" else "videos without details"
 
-    async def prepare(self, conn, video_ids):
+    async def prepare(self, conn):
         self.pending, self.unavailable = [], []
         await conn.execute(DETAILS)
 
