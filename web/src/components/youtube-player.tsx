@@ -14,7 +14,6 @@ import {
   Volume2Icon,
   VolumeXIcon,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   type ComponentProps,
@@ -28,6 +27,7 @@ import {
   useState,
 } from "react";
 
+import { PageLoadingLine, useGo } from "@/components/page-link";
 import { BUFFERING, command, cropped, embed, PLAYING, useEmbedded } from "@/components/youtube-embed";
 import { CoverImage } from "@/components/youtube-ui";
 import { formatDuration } from "@/lib/format";
@@ -83,7 +83,7 @@ type Bezel = { kind: "play" | "pause" | "mute" | "volume" | "back" | "forward"; 
 // hidden), and loaded again on coming back, from the second it had got to.
 export function Player({ id, title, next }: { id: string; title: string; next?: { id: string; title: string } }) {
   const t = useTranslations("youtube");
-  const router = useRouter();
+  const [go, going] = useGo();
   const box = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<State>({
     state: -1,
@@ -184,7 +184,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
     setState((now) => ({ ...now, rate }));
     setMenu(false);
   }
-  const goNext = () => next && router.push(`/youtube/videos/${next.id}`);
+  const goNext = () => next && go(`/youtube/videos/${next.id}`);
 
   // A video that hasn't started a moment after the player came is waiting for a click: YouTube's big button shows
   useEffect(() => {
@@ -294,6 +294,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         !shown && "cursor-none",
       )}
     >
+      {going && <PageLoadingLine color="youtube" />}
       {!state.started && (
         <CoverImage
           sources={[`https://i.ytimg.com/vi_webp/${id}/maxresdefault.webp`, bigThumbnail(id), thumbnail(id, "hq")]}

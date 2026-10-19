@@ -8,10 +8,10 @@ import {
   LoaderCircleIcon,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { useLocale, useMessages, useTranslations } from "next-intl";
 
 import type { Run } from "@/api/types.gen";
+import { PageLink } from "@/components/page-link";
 import { Progress } from "@/components/ui/progress";
 import { When } from "@/components/when";
 import { numberOf, secondsOf } from "@/lib/activity";
@@ -108,9 +108,9 @@ export function RunRow({ run, note, className }: { run: Run; note?: string; clas
     <div className={cn("relative space-y-1.5 px-4 py-3 transition-colors hover:bg-muted/60", className)}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {/* Its clickable area covers the whole row */}
-        <Link href={`/activity/${run.id}`} className="font-medium after:absolute after:inset-0">
+        <PageLink href={`/activity/${run.id}`} className="font-medium after:absolute after:inset-0">
           {name(run)}
-        </Link>
+        </PageLink>
         <Outcome outcome={run.outcome} />
         <span className="text-muted-foreground tabular-nums">
           <When iso={run.started_at} /> · {formatSeconds(secondsOf(run), locale)}

@@ -2,13 +2,14 @@
 
 import { keepPreviousData, type QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeftIcon, MenuIcon, SearchIcon, XIcon } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { type FormEvent, type KeyboardEvent, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
 import { youtubeChannelsOptions, youtubeVideoQueryKey } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannel, YouTubeVideoDetails } from "@/api/types.gen";
 import { YouTubeLogo } from "@/components/brand-icons";
+import { PageLoadingLine, useGo } from "@/components/page-link";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ChannelPicture, Dot, YouTubeLink, YouTubeTip, YT_ICON_BUTTON } from "@/components/youtube-ui";
 import { go, SEARCH_MAX, searchOf } from "@/lib/address";
@@ -125,7 +126,7 @@ export function YouTubeMasthead() {
 // to it.
 function Search({ list, autoFocus = false, className }: { list: boolean; autoFocus?: boolean; className?: string }) {
   const t = useTranslations("youtube");
-  const router = useRouter();
+  const [navigate, navigating] = useGo(); // to another page (a channel, or the list's search)
   const search = searchOf(useSearchParams());
   const [text, setText] = useState(list ? search : "");
   const [written, setWritten] = useState(search); // the search this box last put in the address
@@ -192,7 +193,7 @@ function Search({ list, autoFocus = false, className }: { list: boolean; autoFoc
   function open(channel: YouTubeChannel) {
     setFocused(false);
     input.current?.blur();
-    router.push(`${LIST}/${channel.id}`);
+    navigate(`${LIST}/${channel.id}`);
   }
 
   function submit(event: FormEvent) {
@@ -206,7 +207,7 @@ function Search({ list, autoFocus = false, className }: { list: boolean; autoFoc
       setWritten(next);
       go(channelsAddress({ search: next || undefined }), "replace");
     } else {
-      router.push(`${LIST}${channelsAddress({ search: next || undefined })}`);
+      navigate(`${LIST}${channelsAddress({ search: next || undefined })}`);
     }
   }
 
@@ -224,6 +225,7 @@ function Search({ list, autoFocus = false, className }: { list: boolean; autoFoc
 
   return (
     <form role="search" onSubmit={submit} className={cn("group/search relative h-10 w-full", className)}>
+      {navigating && <PageLoadingLine color="youtube" />}
       <div className="flex h-full w-full pl-8 group-focus-within/search:pl-0">
         <div className="relative flex min-w-0 flex-1 items-center rounded-l-full border border-yt-field bg-white pr-1 pl-4 shadow-[inset_0_1px_2px_#eeeeee] group-focus-within/search:border-yt-focus group-focus-within/search:pl-12 group-focus-within/search:shadow-[inset_0_1px_2px_rgba(0,0,0,0.3)]">
           <SearchIcon

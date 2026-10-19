@@ -11,14 +11,13 @@ import {
   SearchIcon,
   XIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
 import { telegramChannelMessagesInfiniteOptions, telegramChannelOptions } from "@/api/@tanstack/react-query.gen";
 import type { TelegramChannelDetails, TelegramMessage } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
+import { PageLink, PageLoadingLine, useGo } from "@/components/page-link";
 import { useTelegram } from "@/components/telegram-frame";
 import { BubblesGhost, ChatGhost } from "@/components/telegram-ghosts";
 import { ChannelPhoto, InfoRow, Ripples, RoundButton, ShareIcon, TelegramText } from "@/components/telegram-ui";
@@ -42,7 +41,7 @@ const SCROLLING_FOR = 1000; // ms after scrolling stops while the date stuck at 
 export function TelegramChat({ id }: { id: number }) {
   const t = useTranslations("telegramChannel");
   const locale = useLocale();
-  const router = useRouter();
+  const [go, going] = useGo();
   const { info, setInfo } = useTelegram();
   const [searching, setSearching] = useState(false);
   const [typed, setTyped] = useState("");
@@ -88,11 +87,11 @@ export function TelegramChat({ id }: { id: number }) {
       if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
       if (searching) stopSearching();
       else if (info) setInfo(false);
-      else router.push("/telegram/channels");
+      else go("/telegram/channels");
     }
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [searching, info, setInfo, router]);
+  }, [searching, info, setInfo, go]);
 
   if (!data) {
     return error ? (
@@ -112,6 +111,7 @@ export function TelegramChat({ id }: { id: number }) {
       : t("subscribers", { count: pluralOf(data.subscribers), formatted: formatCompact(data.subscribers, locale) });
   return (
     <div ref={root} className="absolute inset-0">
+      {going && <PageLoadingLine color="telegram" />}
       {/* The chat's column: with 1,276 px of room or more, the chat moves over to make room for the info beside it, as
           in Telegram; with less, the info lies over the chat */}
       <section
@@ -125,7 +125,8 @@ export function TelegramChat({ id }: { id: number }) {
           <SearchBar field={field} channel={data} name={name} typed={typed} type={type} close={stopSearching} />
         ) : (
           <header className="absolute inset-x-4 top-4 z-20 mx-auto flex h-12 max-w-[728px] items-center rounded-[2rem] bg-white p-1 shadow-tg-pane max-[600px]:inset-x-2 max-[600px]:top-2">
-            <Link
+            <PageLink
+              line="telegram"
               href="/telegram/channels"
               aria-label={t("back")}
               title={t("back")}
@@ -133,7 +134,7 @@ export function TelegramChat({ id }: { id: number }) {
             >
               <ArrowLeftIcon className="size-6" strokeWidth={1.75} />
               <Ripples />
-            </Link>
+            </PageLink>
             <button
               type="button"
               onClick={() => setInfo(!info)}

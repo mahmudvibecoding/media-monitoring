@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { useLocale, useMessages, useTranslations } from "next-intl";
 
 import { runDetailsOptions } from "@/api/@tanstack/react-query.gen";
 import type { RunWithSteps } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { LIVE_EVERY } from "@/components/activity";
+import { PageLink } from "@/components/page-link";
 import { Outcome, RunRow, useRunTexts } from "@/components/runs";
 import { Stat, Stats } from "@/components/stat";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,9 +43,9 @@ export function RunDetails({ id }: { id: number }) {
         </p>
         {data.round_id !== null && (
           <p>
-            <Link href={`/activity/${data.round_id}`} className="underline-offset-4 hover:underline">
+            <PageLink href={`/activity/${data.round_id}`} className="underline-offset-4 hover:underline">
               {t("inRound")}
-            </Link>
+            </PageLink>
           </p>
         )}
         {data.summary && (

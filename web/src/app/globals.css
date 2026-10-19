@@ -65,10 +65,11 @@
   --color-yt-focus: #1c62b9; /* and while typing in it */
   --color-yt-placeholder: #757575;
   --color-yt-tint: rgb(69 110 201 / 0.13); /* the blue that comes round a video under the mouse */
-  /* The red line along the top of the window while the next page loads, as YouTube's: it grows quickly at first, then
-     slower and slower, as long as the page takes */
-  --animate-yt-loading: yt-loading 10s cubic-bezier(0.05, 0.8, 0.2, 1) forwards;
-  @keyframes yt-loading {
+  /* The line along the top of the window while the next page is on its way (YouTube's red on its pages; see
+     page-link.tsx): nothing for the first 120 ms, so a page that's ready at once shows none, then it grows quickly
+     at first, then slower and slower, as long as the page takes, as YouTube's does */
+  --animate-page-loading: page-loading 10s cubic-bezier(0.05, 0.8, 0.2, 1) 0.12s both;
+  @keyframes page-loading {
     from {
       transform: scaleX(0);
     }

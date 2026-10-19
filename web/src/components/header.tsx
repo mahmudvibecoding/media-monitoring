@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 
 import type { Me } from "@/api/types.gen";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { PageLink } from "@/components/page-link";
 import { SignOutButton } from "@/components/sign-out-button";
 
 // The top of the pages without the admins' menu (the sign-in page, customers' pages): the site's name, the language
@@ -12,9 +12,9 @@ export async function Header({ user }: { user?: Me }) {
   return (
     <header className="border-b">
       <div className="mx-auto flex h-12 max-w-7xl items-center justify-between gap-4 px-4 sm:px-8">
-        <Link href="/" className="font-semibold">
+        <PageLink href="/" className="font-semibold">
           {t("header.name")}
-        </Link>
+        </PageLink>
         <div className="flex items-center gap-2">
           <LanguageSwitcher />
           {user && (

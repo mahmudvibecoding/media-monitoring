@@ -1,13 +1,13 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { ChevronLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMessages, getTranslations } from "next-intl/server";
 import { cache } from "react";
 
 import { runDetailsQueryKey } from "@/api/@tanstack/react-query.gen";
 import { runDetails } from "@/api/sdk.gen";
+import { PageLink } from "@/components/page-link";
 import { RunDetails } from "@/components/run-details";
 import { serverClient, signedInUser } from "@/lib/api-server";
 import { getQueryClient } from "@/lib/query-client";
@@ -45,13 +45,13 @@ export default async function RunPage({ params }: PageProps<"/activity/[id]">) {
   if (run) queryClient.setQueryData(runDetailsQueryKey({ path: { run_id: id } }), run);
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <Link
+      <PageLink
         href="/activity"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ChevronLeftIcon className="size-4" />
         {t("back")}
-      </Link>
+      </PageLink>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <RunDetails id={id} />
       </HydrationBoundary>

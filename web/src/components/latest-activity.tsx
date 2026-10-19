@@ -2,12 +2,12 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRightIcon } from "lucide-react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { latestRunsOptions } from "@/api/@tanstack/react-query.gen";
 import { LIVE_EVERY } from "@/components/activity";
+import { PageLink } from "@/components/page-link";
 import { RunRow } from "@/components/runs";
 
 // On the overview: the last round, and every step going now, asked for again every few seconds, so a run that starts
@@ -21,10 +21,10 @@ export function LatestActivity() {
     <section>
       <div className="mb-2 flex items-center justify-between gap-4">
         <h2 className="font-medium text-muted-foreground">{t("title")}</h2>
-        <Link href="/activity" className="inline-flex items-center text-muted-foreground hover:text-foreground">
+        <PageLink href="/activity" className="inline-flex items-center text-muted-foreground hover:text-foreground">
           {t("all")}
           <ChevronRightIcon className="size-4" />
-        </Link>
+        </PageLink>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <Panel title={t("lastRound")}>

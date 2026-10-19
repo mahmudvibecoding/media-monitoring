@@ -2,11 +2,11 @@
 
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 import { PlayIcon, UserIcon } from "lucide-react";
-import Link, { useLinkStatus } from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { type ComponentProps, type ReactElement, type SVGProps, useEffect, useRef, useState } from "react";
 
 import type { YouTubeVideo } from "@/api/types.gen";
+import { PageLink } from "@/components/page-link";
 import { When } from "@/components/when";
 import { cropped, embed, ENDED, PLAYING, useEmbedded } from "@/components/youtube-embed";
 import { useNow } from "@/lib/use-now";
@@ -19,21 +19,9 @@ import { avatarAt, bigThumbnail, thumbnail } from "@/lib/youtube";
 // title, the views by its play sign and how long ago
 
 // A link between YouTube's pages here, which shows YouTube's red line along the top of the window while the page it
-// opens is on its way (unless it's there already)
-export function YouTubeLink({ children, ...props }: ComponentProps<typeof Link>) {
-  return (
-    <Link {...props}>
-      {children}
-      <Loading />
-    </Link>
-  );
-}
-
-function Loading() {
-  const { pending } = useLinkStatus();
-  return pending ? (
-    <span aria-hidden="true" className="fixed inset-x-0 top-0 z-50 h-0.5 origin-left animate-yt-loading bg-yt-red" />
-  ) : null;
+// opens is on its way (see PageLink)
+export function YouTubeLink(props: ComponentProps<typeof PageLink>) {
+  return <PageLink line="youtube" {...props} />;
 }
 
 // YouTube's tooltip: a grey label under what's pointed at, once the mouse has stayed on it a moment

@@ -2,7 +2,6 @@
 
 import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { SearchIcon, XIcon } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -10,6 +9,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { telegramChannelsInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import type { TelegramChannel } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
+import { PageLink } from "@/components/page-link";
 import { ChannelPhoto, oneLine, Ripples, RoundButton } from "@/components/telegram-ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -35,6 +35,9 @@ export function TelegramList() {
   const nav = useTranslations("nav");
   const locale = useLocale();
   const openId = chatIdOf(usePathname());
+  // The row clicked last, and the chat open then: it's the blue row at once, as in Telegram, until its chat opens
+  const [clicked, setClicked] = useState<{ id: number; on: number | null } | null>(null);
+  const shownId = clicked?.on === openId ? clicked.id : openId;
   const { toggleSidebar } = useSidebar();
   const [sort, setSort] = useState<TelegramSort>("subscribers");
   const [searching, setSearching] = useState(false);
@@ -105,7 +108,14 @@ export function TelegramList() {
         )}
         <ul className={cn("transition-opacity", isPlaceholderData && "opacity-60")}>
           {channels.map((channel) => (
-            <ChatRow key={channel.id} channel={channel} open={channel.id === openId} searched={!!search} />
+            <ChatRow
+              key={channel.id}
+              channel={channel}
+              open={channel.id === shownId}
+              current={channel.id === openId}
+              onOpen={() => setClicked({ id: channel.id, on: openId })}
+              searched={!!search}
+            />
           ))}
         </ul>
         <div ref={marker} />
@@ -245,8 +255,21 @@ function Folders({ sort, choose }: { sort: TelegramSort; choose: (sort: Telegram
 // A channel as Telegram lists a chat: its picture, its name with when it last posted at the right (the time today,
 // the weekday this week, the day before), and its latest message on one line below; in a search's results, its
 // @username and subscribers instead, as Telegram's search shows a channel. The whole row opens the channel's chat,
-// which is fetched ahead once the pointer comes over it (not for every row in view: that's dozens of requests).
-function ChatRow({ channel, open, searched }: { channel: TelegramChannel; open: boolean; searched: boolean }) {
+// which is fetched ahead once the pointer comes over it (not for every row in view: that's dozens of requests); it's
+// the blue row (open) from the click, before its chat is there (current).
+function ChatRow({
+  channel,
+  open,
+  current,
+  onOpen,
+  searched,
+}: {
+  channel: TelegramChannel;
+  open: boolean;
+  current: boolean;
+  onOpen: () => void;
+  searched: boolean;
+}) {
   const t = useTranslations("telegramChannel");
   const locale = useLocale();
   const now = useNow();
@@ -265,12 +288,14 @@ function ChatRow({ channel, open, searched }: { channel: TelegramChannel; open: 
   }
   return (
     <li className="[contain-intrinsic-size:auto_72px] [content-visibility:auto]">
-      <Link
+      <PageLink
         href={href}
+        line="telegram"
         prefetch={false}
         onPointerEnter={() => router.prefetch(href)}
         onFocus={() => router.prefetch(href)}
-        aria-current={open ? "page" : undefined}
+        onClick={onOpen}
+        aria-current={current ? "page" : undefined}
         className={cn(
           "relative flex h-[72px] items-center gap-2 tg-item p-[9px]",
           open ? "bg-tg-blue text-white" : "hover:bg-tg-hover",
@@ -301,7 +326,7 @@ function ChatRow({ channel, open, searched }: { channel: TelegramChannel; open: 
           </span>
         </span>
         <Ripples />
-      </Link>
+      </PageLink>
     </li>
   );
 }

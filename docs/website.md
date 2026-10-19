@@ -128,8 +128,8 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   box; its pills, chips, tabs and tooltips; its grids of covers, with the views by its play sign and how long ago the
   short way (▷ 48K • 3d ago, as YouTube's lists write them now), the blue that comes round a card under the mouse, and
   the white "New" on a video out less than a week beside another; its watch page, its Shorts' player, its channel's
-  About box and its Share box; its red line along the top while a page loads, and its pages' shapes in grey while they
-  do. Telegram's look like Telegram Web's (web.telegram.org/a, measured there) as it looks on the visitor's device,
+  About box and its Share box; and its red line along the top while the next page is on its way. Telegram's look like
+  Telegram Web's (web.telegram.org/a, measured there) as it looks on the visitor's device,
   which the browser's name tells: in Roboto, or in the system's font and Apple's sizes on a Mac or an iPhone. Its
   default wallpaper (its four colors blended as Telegram draws them, without its pattern) lies under its floating
   panels, with its corners rounder at the ends where the browser can draw them (squircles): the chat list at the left,
@@ -166,7 +166,7 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   Telegram's pages, so it stays, scrolled where it was, as chats open and close. It arrives with the page (the first
   folder's first 50 channels) and loads more as it's scrolled; a search starts 300 ms after the last key, and Escape or
   ← ends it. A row's chat is fetched ahead once the pointer comes over it (not for every row in view: dozens of
-  requests), and opens at once, its top bar filled from the list while its messages load. With less than 926 px of room,
+  requests); a click turns the row blue at once, and the chat follows as soon as it's there. With less than 926 px of room,
   a chat takes it all and ← goes back to the list; with less than 601, the list takes the whole screen too. A chat's
   search (its magnifier, or Ctrl+F) shows only the messages with what's searched in them, marked, and a hashtag searches
   for itself, as in Telegram; Esc closes the search, then the info, then the chat. A click on the channel's link in its
@@ -205,6 +205,14 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   playing in place, without a step in the history, as YouTube's: Back goes back to where the Shorts were opened from.
   The player is 160 px taller than its frame at each end, so what YouTube puts along them (its title, its logo, a
   Short's like count) falls outside it.
+- Going from one page to another, the page stays as it is until the next one is ready, then gives way to it whole, as on
+  YouTube; while it's on its way, a line runs along the top of the window (YouTube's red on its pages, Telegram's blue
+  on Telegram's, dark grey elsewhere: `src/components/page-link.tsx`), from 120 ms on, so a page that's ready at once
+  shows none, and what was clicked shows it at once (the menu's item, a chat's row). There are no grey shapes in
+  between: React keeps a loading state (`loading.tsx`) up for at least 300 ms, however quickly the page comes, so with
+  them every click turned the page grey for a third of a second. Without them, on the site run locally, a page
+  replaced the one before 40 to 75 ms after the click (300 to 370 ms with them); a channel's page that took the API
+  390 ms came after the red line, the channel list still there. Back and Forward bring a page back as it was, at once.
 - A channel's videos, a video's comments, Telegram's chat list and a channel's messages load more as they're scrolled,
   as on YouTube and in Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest
   message, at the bottom, and loads older ones above as it's scrolled up.
