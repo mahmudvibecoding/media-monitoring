@@ -128,16 +128,17 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   short way (▷ 48K • 3d ago, as YouTube's lists write them now), the blue that comes round a card under the mouse, and
   the white "New" on a video out less than a week beside another; its watch page, its Shorts' player, its channel's
   About box and its Share box; and its red line along the top while the next page is on its way. Telegram's look like
-  Telegram Web's (web.telegram.org/a, measured there) as it looks on the visitor's device,
-  which the browser's name tells: in Roboto, or in the system's font and Apple's sizes on a Mac or an iPhone. Its
-  default wallpaper (its four colors blended as Telegram draws them, without its pattern) lies under its floating
-  panels, with its corners rounder at the ends where the browser can draw them (squircles): the chat list at the left,
-  with its ☰ (the site's menu) and its search field, its folders on a floating bar (the biggest channels, and the latest
-  to post), and its rows, each with its latest message and when, the open chat's blue; a chat's top bar floating over
-  it, its bubbles in groups with their tails, its links as Telegram shows them (one hidden behind words as the words),
-  its dates, which stay at the top while it scrolls and fade once it stops, and its round button back down to the newest
-  messages; and its info panel, beside the chat or over it. A click ripples as in Telegram, and dates are Telegram's
-  words (14:05, Mon, Oct 9 in the list; Today, Yesterday, Thursday, October 9 over the messages).
+  Telegram Web's (web.telegram.org/a, measured there) as it looks on the visitor's device, which the browser's name
+  tells: in Roboto, or in the system's font and Apple's sizes on a Mac or an iPhone. Its default wallpaper (its four
+  colors blended as Telegram draws them, without its pattern) lies under its floating panels, with its corners rounder
+  at the ends where the browser can draw them (squircles): the chat list at the left, with its ☰ (the site's menu) and
+  its search field, its folders on a floating bar (the biggest channels, and the latest to post), and its rows, each
+  with its latest message and when, the open chat's blue; a chat's top bar floating over it, which, as the chat, takes
+  the chat's whole width, as in Telegram's desktop app (Telegram Web's keeps its chat to a column in the middle), its
+  bubbles at its left, in groups with their tails, its links as Telegram shows them (one hidden behind words as the
+  words), its dates, which stay at the top while it scrolls and fade once it stops, and its round button back down to
+  the newest messages; and its info panel, beside the chat or over it. A click ripples as in Telegram, and dates are
+  Telegram's words (14:05, Mon, Oct 9 in the list; Today, Yesterday, Thursday, October 9 over the messages).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from

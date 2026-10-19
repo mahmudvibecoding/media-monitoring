@@ -33,10 +33,11 @@ const GROUP_WITHIN = 10 * 60 * 1000; // ms: a message this soon after the one be
 const DOWN_FROM = 200; // px above the newest messages: higher up, the button back to them shows
 const SCROLLING_FOR = 1000; // ms after scrolling stops while the date stuck at the top still shows
 
-// A channel's chat, as Telegram Web shows one: its top bar floating over the chat (the picture, the name and the
+// A channel's chat, as Telegram shows one: its top bar floating over the chat (the picture, the name and the
 // subscribers, which open the channel's info; the search), and its saved messages as Telegram's bubbles on Telegram's
-// wallpaper, the newest at the bottom, each day under its date. As in Telegram, Ctrl+F (⌘F) opens the search, and Esc
-// closes the search, then the info, then the chat.
+// wallpaper, the newest at the bottom, each day under its date. Both take the chat's whole width, as in Telegram's
+// desktop app, the bubbles at its left. As in Telegram, Ctrl+F (⌘F) opens the search, and Esc closes the search, then
+// the info, then the chat.
 export function TelegramChat({ id }: { id: number }) {
   const t = useTranslations("telegramChannel");
   const locale = useLocale();
@@ -114,7 +115,7 @@ export function TelegramChat({ id }: { id: number }) {
         {searching ? (
           <SearchBar field={field} channel={data} name={name} typed={typed} type={setTyped} close={stopSearching} />
         ) : (
-          <header className="absolute inset-x-4 top-4 z-20 mx-auto flex h-12 max-w-[728px] items-center rounded-[2rem] bg-white p-1 shadow-tg-pane max-[600px]:inset-x-2 max-[600px]:top-2">
+          <header className="absolute inset-x-4 top-4 z-20 flex h-12 items-center rounded-[2rem] bg-white p-1 shadow-tg-pane max-[600px]:inset-x-2 max-[600px]:top-2">
             <PageLink
               line="telegram"
               href="/telegram/channels"
@@ -183,7 +184,7 @@ function SearchBar({
 }) {
   const t = useTranslations("telegramChannel");
   return (
-    <div className="absolute inset-x-4 top-4 z-20 mx-auto flex h-12 max-w-[728px] animate-in items-center rounded-[2rem] bg-white py-1 pr-[13px] pl-1 shadow-tg-island duration-200 fade-in max-[600px]:inset-x-2 max-[600px]:top-2 max-[600px]:pr-2">
+    <div className="absolute inset-x-4 top-4 z-20 flex h-12 animate-in items-center rounded-[2rem] bg-white py-1 pr-[13px] pl-1 shadow-tg-island duration-200 fade-in max-[600px]:inset-x-2 max-[600px]:top-2 max-[600px]:pr-2">
       <ChannelPhoto
         id={channel.id}
         name={name}
@@ -330,7 +331,7 @@ function Messages({
       >
         <div
           className={cn(
-            "mx-auto flex w-full max-w-[760px] flex-col-reverse px-4 pt-20 pb-4 transition-opacity max-[600px]:px-2 max-[600px]:pt-16",
+            "flex w-full flex-col-reverse px-4 pt-20 pb-4 transition-opacity max-[600px]:px-2 max-[600px]:pt-16",
             isPlaceholderData && DIMMED,
           )}
         >
@@ -339,7 +340,7 @@ function Messages({
           {isFetchingNextPage && <BubblesGhost rows={2} />}
         </div>
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 mx-auto flex max-w-[760px] justify-end px-4 max-[600px]:px-2">
+      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-end px-4 max-[600px]:px-2">
         <button
           type="button"
           aria-label={t("toNewest")}
