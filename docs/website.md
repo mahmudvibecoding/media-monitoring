@@ -176,27 +176,29 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,
   shows the player's own screen in its place, which says why, as YouTube's watch page does: the player tells the page
   only that it can't (the same code, 150, for all of them). So does a premiere or a stream that hasn't started, which
-  the player tells as live, its screen saying when it starts ("Premieres in 31 minutes"), whole, until it plays. The
-  player is as wide as its column but no taller than leaves room for the title under it (16:9 of the screen's height
-  less 116 px), as on YouTube, with the next videos beside it from 1,000 px of the page's width, and under the
-  description below that (full-width cards on a phone). Its controls are the page's own, as YouTube's watch page has
-  them: the red line of where it's at (what's loaded lighter, the time under the mouse, a click or a drag takes the
-  video there), play and pause, the next video (the first beside it), the sound and its slider, the time, the speed and
-  the full screen, which hide 3 s after the mouse stops while it plays; a click plays and pauses, a double click fills
-  the screen, and YouTube's signs come and fade in the middle as one plays, pauses, jumps or changes the sound.
-  YouTube's keys work on the page (K or the space bar, J and L, ← and →, ↑ and ↓ while the player has the focus, M, F,
-  Shift+N, 0 to 9), times in the description and the comments take the player there, and Share gives the video's link,
-  from the second it's at if asked. Next keeps a page one has left alive, hidden, for going back to it, so a player is
-  given its address only as its page shows (by an effect, which a hidden page doesn't run), never by a page in the
-  background, is unloaded as its page goes (nothing plays unseen), and is loaded again on going back, from the second it
-  had got to (which the player tells a page that says it's listening); a card's preview is unloaded too. In a channel's
-  grids and beside a video, a video or a Short plays silently in its card once the mouse has stayed on it half a second,
-  as on YouTube, until the mouse leaves; a click still opens its page. Whatever its address asks, YouTube's player puts
-  its own ⏸ in the middle of the video for about 4 s each time a video starts, goes on after a pause, jumps or changes,
-  and a page can't reach into it to hide it (drawn many times as big and shrunk back, the player made it too small to
-  see, but Chrome then flashed and crashed). As a playlist of itself, its way to play a video round again, it would add
-  ⏮ and ⏭ beside it, so the players here are never playlists: the page starts a video again at its end
-  (`src/components/youtube-embed.tsx`).
+  the player tells as live, its screen saying when it starts ("Premieres in 31 minutes"), whole, until it plays. While
+  it's live, "• Premiere" or "• Live" is in the time's place, as on YouTube, its dot red at the live edge and gray once
+  it's gone back (a click goes back to the edge); the player tells a live video's length only as it starts, so the edge
+  is where it last played at it plus the time since. The player is as wide as its column but no taller than leaves room
+  for the title under it (16:9 of the screen's height less 116 px), as on YouTube, with the next videos beside it from
+  1,000 px of the page's width, and under the description below that (full-width cards on a phone). Its controls are the
+  page's own, as YouTube's watch page has them: the red line of where it's at (what's loaded lighter, the time under the
+  mouse, a click or a drag takes the video there), play and pause, the next video (the first beside it), the sound and
+  its slider, the time, the speed and the full screen, which hide 3 s after the mouse stops while it plays; a click
+  plays and pauses, a double click fills the screen, and YouTube's signs come and fade in the middle as one plays,
+  pauses, jumps or changes the sound. YouTube's keys work on the page (K or the space bar, J and L, ← and →, ↑ and ↓
+  while the player has the focus, M, F, Shift+N, 0 to 9), times in the description and the comments take the player
+  there, and Share gives the video's link, from the second it's at if asked. Next keeps a page one has left alive,
+  hidden, for going back to it, so a player is given its address only as its page shows (by an effect, which a hidden
+  page doesn't run), never by a page in the background, is unloaded as its page goes (nothing plays unseen), and is
+  loaded again on going back, from the second it had got to (which the player tells a page that says it's listening); a
+  card's preview is unloaded too. In a channel's grids and beside a video, a video or a Short plays silently in its card
+  once the mouse has stayed on it half a second, as on YouTube, until the mouse leaves; a click still opens its page.
+  Whatever its address asks, YouTube's player puts its own ⏸ in the middle of the video for about 4 s each time a video
+  starts, goes on after a pause, jumps or changes, and a page can't reach into it to hide it (drawn many times as big
+  and shrunk back, the player made it too small to see, but Chrome then flashed and crashed). As a playlist of itself,
+  its way to play a video round again, it would add ⏮ and ⏭ beside it, so the players here are never playlists: the page
+  starts a video again at its end (`src/components/youtube-embed.tsx`).
 - A Short opens on its own page, `/youtube/shorts/{id}`, as YouTube's do: a feed that slides up and down, a Short to a
   screen, each upright, as tall as the screen allows, with the channel and the title over its bottom and YouTube's round
   buttons beside it (the comments open their panel, the title the description's), and the next one's top under it. The

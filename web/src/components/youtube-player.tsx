@@ -28,7 +28,7 @@ import {
 } from "react";
 
 import { PageLoadingLine, useGo } from "@/components/page-link";
-import { BUFFERING, command, cropped, embed, PLAYING, useEmbedded } from "@/components/youtube-embed";
+import { BUFFERING, command, cropped, embed, PAUSED, PLAYING, useEmbedded } from "@/components/youtube-embed";
 import { CoverImage } from "@/components/youtube-ui";
 import { formatDuration } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,7 @@ export const usePlayer = () => useContext(PlayerContext);
 const CROP = 60; // px of the player above and below its frame
 const IDLE = 3000; // ms without the mouse moving after which the controls hide while the video plays, as YouTube's
 const BLOCKED_AFTER = 2500; // ms after which a video that hasn't started is taken as not allowed to start by itself
+const LIVE_EDGE = 15; // s behind the live edge within which a live video counts as at it
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 // What the player last told about itself, and whether the video has started (its picture shows until then)
@@ -65,6 +66,7 @@ type State = {
   started: boolean;
   failed: boolean; // YouTube's player can't play the video here: its own screen shows, saying why
   live: boolean; // a stream or a premiere: until it plays, the player's own screen shows, saying when it starts
+  premiere: boolean;
 };
 
 // YouTube's sign that comes and fades in the middle (or for a jump, at the side) as one plays, pauses, jumps or changes
@@ -85,7 +87,8 @@ type Bezel = { kind: "play" | "pause" | "mute" | "volume" | "back" | "forward"; 
 // hidden), and loaded again on coming back, from the second it had got to. A video the player can't play here (removed,
 // private, kept from the country it's watched in, not to be played on other sites) shows the player's own screen,
 // which says why, as YouTube's watch page does, without the picture and the controls; so does a premiere or a stream
-// that hasn't started, its screen saying when it will, until it plays.
+// that hasn't started, its screen saying when it will, until it plays. While it's live, "• Premiere" or "• Live" is in
+// the time's place, as on YouTube, so that it isn't taken for an ordinary video.
 export function Player({ id, title, next }: { id: string; title: string; next?: { id: string; title: string } }) {
   const t = useTranslations("youtube");
   const [go, going] = useGo();
@@ -101,6 +104,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
     started: false,
     failed: false,
     live: false,
+    premiere: false,
   });
   const last = useRef(state); // the same, for the handlers
   useEffect(() => {
@@ -115,22 +119,39 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
   const controlsRef = usePlayer();
   const playing = state.state === PLAYING || state.state === BUFFERING;
 
+  // A live video's edge, which moves on with the clock: where it played at it, and when. The player tells a live video's
+  // length only as it starts, so the edge is worked out from it: where the video was last at its edge, and the time
+  // since; it's at its edge as long as it keeps up with that.
+  const edge = useRef<{ time: number; at: number } | null>(null);
   const frame = useEmbedded(
     id,
     () => embed(id, { from: last.current.time }), // from the start, or from where it was
     (info) => {
       if (info.playerState === PLAYING) setBlocked(false);
+      const live = info.videoData ? info.videoData.isLive === true : last.current.live;
+      let liveLength: number | undefined;
+      if (live) {
+        const clock = performance.now();
+        const was = edge.current;
+        const time = info.currentTime;
+        const expected = was ? was.time + (clock - was.at) / 1000 : -Infinity;
+        if (typeof time === "number" && info.playerState !== PAUSED && time >= expected - 1) {
+          edge.current = { time, at: clock };
+        }
+        if (edge.current) liveLength = edge.current.time + (clock - edge.current.at) / 1000;
+      }
       setState((now) => ({
         state: typeof info.playerState === "number" ? info.playerState : now.state,
         time: typeof info.currentTime === "number" ? info.currentTime : now.time,
-        duration: typeof info.duration === "number" && info.duration > 0 ? info.duration : now.duration,
+        duration: liveLength ?? (typeof info.duration === "number" && info.duration > 0 ? info.duration : now.duration),
         loaded: typeof info.videoLoadedFraction === "number" ? info.videoLoadedFraction : now.loaded,
         muted: typeof info.muted === "boolean" ? info.muted : now.muted,
         volume: typeof info.volume === "number" ? info.volume : now.volume,
         rate: typeof info.playbackRate === "number" ? info.playbackRate : now.rate,
         started: now.started || info.playerState === PLAYING,
         failed: now.failed || info.error !== undefined,
-        live: info.videoData ? info.videoData.isLive === true : now.live,
+        live,
+        premiere: info.videoData ? info.videoData.isPremiere === true : now.premiere,
       }));
     },
   );
@@ -369,9 +390,18 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
             toggle={toggleMute}
             set={setVolume}
           />
-          <span className="ml-1 text-[13px] whitespace-nowrap tabular-nums [text-shadow:0_0_2px_rgb(0_0_0/0.5)]">
-            {formatDuration(Math.floor(state.time))} / {formatDuration(Math.floor(state.duration))}
-          </span>
+          {state.live ? (
+            <LiveSign
+              label={state.premiere ? t("premiere") : t("live")}
+              edge={state.duration - state.time < LIVE_EDGE}
+              title={t("toLive")}
+              onClick={() => seek(state.duration)}
+            />
+          ) : (
+            <span className="ml-1 text-[13px] whitespace-nowrap tabular-nums [text-shadow:0_0_2px_rgb(0_0_0/0.5)]">
+              {formatDuration(Math.floor(state.time))} / {formatDuration(Math.floor(state.duration))}
+            </span>
+          )}
           <span className="flex-1" />
           <div className="relative">
             <ControlButton label={t("settings")} onClick={() => setMenu(!menu)}>
@@ -400,6 +430,32 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         </div>
       </div>
     </div>
+  );
+}
+
+// In place of the time while a premiere or a stream is live, as on YouTube: "• Premiere" or "• Live", the dot red while
+// it plays at the live edge and gray once it's gone back; a click goes back to the edge
+function LiveSign({
+  label,
+  edge,
+  title,
+  onClick,
+}: {
+  label: string;
+  edge: boolean;
+  title: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={edge ? undefined : title}
+      className="ml-1 flex h-8 items-center gap-1.5 rounded-full bg-black/30 px-3 text-[13px] font-medium whitespace-nowrap hover:bg-black/45"
+    >
+      <span className={cn("size-2 rounded-full", edge ? "bg-[#f00]" : "bg-white/60")} />
+      {label}
+    </button>
   );
 }
 

@@ -27,7 +27,7 @@ export type PlayerInfo = {
   volume?: number;
   videoLoadedFraction?: number;
   playbackRate?: number;
-  videoData?: { isLive?: boolean };
+  videoData?: { isLive?: boolean; isPremiere?: boolean };
   error?: number;
 };
 
