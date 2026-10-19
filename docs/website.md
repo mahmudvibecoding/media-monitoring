@@ -98,7 +98,10 @@ index, an index for each order holding the search column, the page picked from t
 orders are the biggest first and the latest to post first, 50 to a page, each channel with the first 200 characters of
 its latest saved message, which the messages table's key gives at once (10 ms for a page). Counting the 298,169
 channels with a saved message takes 40 ms, from an index of their own that holds nothing else (2 MB); through an
-order's index, it took 180 ms. `/api/telegram/channels/{id}` is a channel's details, with how many of its messages
+order's index, it took 180 ms. For a while, `busy=true` lists only the 72 channels that posted 300 messages a day or
+more over the three days before October 19, 2026 (taxi ads, shops, betting signals), whose IDs are in
+`app.telegram_busy`, loaded by hand: a page of them takes a millisecond. `/api/telegram/channels/{id}` is a channel's
+details, with how many of its messages
 have been saved, and `/api/telegram/channels/{id}/messages` a page of its messages, newest first, by the messages
 table's key: a few milliseconds, even for the channel with the most; with a search, those whose text has it in them
 (lowercase, apostrophes aside, as the lists' searches), which reads all the channel's messages: 50 ms for the one with
@@ -134,7 +137,8 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   default wallpaper (its four colors blended as Telegram draws them, without its pattern) lies under its floating
   panels, with its corners rounder at the ends where the browser can draw them (squircles): the chat list at the left,
   with its ☰ (the site's menu) and its search field, its folders on a floating bar (the biggest channels, and the latest
-  to post), and its rows, each with its latest message and when, the open chat's blue; a chat's top bar floating over
+  to post; for a while, those posting 300 a day or more), and its rows, each with its latest message and when, the
+  open chat's blue; a chat's top bar floating over
   it, its bubbles in groups with their tails, its links as Telegram shows them (one hidden behind words as the words),
   its dates, which stay at the top while it scrolls and fade once it stops, and its round button back down to the newest
   messages; and its info panel, beside the chat or over it. A click ripples as in Telegram, and dates are Telegram's

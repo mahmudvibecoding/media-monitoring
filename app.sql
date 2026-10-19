@@ -127,6 +127,13 @@ DROP INDEX IF EXISTS telegram_channels_search;
 DROP INDEX IF EXISTS telegram_channels_subscribers;
 DROP INDEX IF EXISTS telegram_channels_latest;
 
+-- For a while, to review them: the Telegram channels that post 300 messages a day or more, which the channels page
+-- lists in a folder of its own. Loaded by hand.
+CREATE TABLE IF NOT EXISTS app.telegram_busy (
+    channel_id  bigint PRIMARY KEY,
+    per_day     integer NOT NULL  -- its messages a day, over the three days counted
+);
+
 -- The API's user (run.sh setup makes it) may read and change every table here, and create none
 GRANT USAGE ON SCHEMA app TO media_monitoring_api;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO media_monitoring_api;

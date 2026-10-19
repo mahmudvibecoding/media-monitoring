@@ -1025,7 +1025,7 @@
     "/api/telegram/channels": {
       "get": {
         "summary": "Telegram Channels",
-        "description": "The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post\nfirst. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and\napostrophes aside.",
+        "description": "The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post\nfirst. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and\napostrophes aside. With busy, only the channels that post 300 messages a day or more, searched as well.",
         "operationId": "telegram_channels",
         "parameters": [
           {
@@ -1070,6 +1070,18 @@
               "title": "Page"
             },
             "description": "50 channels to a page"
+          },
+          {
+            "name": "busy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "For a while: only the channels that post 300 messages a day or more",
+              "default": false,
+              "title": "Busy"
+            },
+            "description": "For a while: only the channels that post 300 messages a day or more"
           }
         ],
         "responses": {

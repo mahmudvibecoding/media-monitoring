@@ -1306,6 +1306,12 @@ export type TelegramChannelsData = {
          * 50 channels to a page
          */
         page?: number;
+        /**
+         * Busy
+         *
+         * For a while: only the channels that post 300 messages a day or more
+         */
+        busy?: boolean;
     };
     url: '/api/telegram/channels';
 };
