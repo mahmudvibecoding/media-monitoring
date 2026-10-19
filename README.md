@@ -124,16 +124,16 @@ versions are pinned exactly, and pnpm only installs releases at least a day old.
 
 Every page but `/sign-in` needs someone signed in: a visitor who isn't goes to `/sign-in`, and back afterwards, and an
 account with a temporary password to `/change-password` until it has its own. The site is light and sober, and its
-YouTube and Telegram pages look like YouTube's and Telegram's own. Admins have a menu at the side, which folds down to
-its icons (Ctrl+B) and slides in on a phone: the overview, with how much the database holds (the channels with something
-collected, and every video, comment and message), the last round and what runs now; YouTube's channels with a video
-collected, a grid of their pictures, the biggest first, searched as one types, which fills the screen with as many as
-fit, whose address keeps the search and the page (← and → turn the pages); Telegram's channels with a message saved, as
-Telegram Web's chat list, with their latest messages, in two folders (the biggest, and the latest to post), searched as
-one types; and at the bottom the activity, every round with its steps and every run started by hand, newest first, with
-their numbers, and a page for each run with all its numbers. YouTube's pages are under YouTube's top bar, whose search
-box suggests channels as one types. A YouTube channel's page is laid out like the channel on YouTube, with its About
-box, its videos and Shorts in grids, newest, most viewed or oldest first, that load more as they're scrolled, each
+YouTube and Telegram pages look like YouTube's and Telegram's own. Admins have a menu at the side, a strip of icons with
+their names under them, which slides in on a phone: the overview, with how much the database holds (the channels with
+something collected, and every video, comment and message), the last round and what runs now; YouTube's channels with a
+video collected, a grid of their pictures, the biggest first, searched as one types, which fills the screen with as many
+as fit, whose address keeps the search and the page (← and → turn the pages); Telegram's channels with a message saved,
+as Telegram Web's chat list, with their latest messages, in two folders (the biggest, and the latest to post), searched
+as one types; and at the bottom the activity, every round with its steps and every run started by hand, newest first,
+with their numbers, and a page for each run with all its numbers. YouTube's pages are under YouTube's top bar, whose
+search box suggests channels as one types. A YouTube channel's page is laid out like the channel on YouTube, with its
+About box, its videos and Shorts in grids, newest, most viewed or oldest first, that load more as they're scrolled, each
 playing silently while the mouse stays on it, and its search by title; a video's, like YouTube's watch page, with
 YouTube's player and controls drawn by the page as YouTube's, which starts as the page opens and takes YouTube's keys,
 its description, its comments, a Share box and more from its channel; a Short's, like YouTube's Shorts, a feed that

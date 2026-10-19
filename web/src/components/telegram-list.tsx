@@ -132,10 +132,19 @@ export function TelegramList() {
   return (
     <>
       <div className="flex h-16 shrink-0 items-center px-[13px] py-2">
-        <RoundButton label={searching ? t("back") : nav("toggle")} onClick={searching ? leave : toggleSidebar}>
-          <span className="tg-menu-icon" data-back={searching ? "" : undefined} />
-        </RoundButton>
-        <label className="group ml-2.5 flex h-11 min-w-0 flex-1 items-center rounded-[22px] border-2 border-tg-hover bg-tg-hover pr-[3px] text-[rgb(112_117_121/0.5)] transition-colors duration-150 focus-within:border-tg-blue focus-within:bg-white">
+        {/* Telegram's ☰ opens the site's menu on a phone; on a wide screen the menu is always there, so only the ←
+            of a search shows, coming in beside the field */}
+        <div
+          className={cn(
+            "w-[3.125rem] shrink-0 overflow-hidden transition-[width] duration-200",
+            !searching && "md:invisible md:w-0",
+          )}
+        >
+          <RoundButton label={searching ? t("back") : nav("toggle")} onClick={searching ? leave : toggleSidebar}>
+            <span className="tg-menu-icon" data-back={searching ? "" : undefined} />
+          </RoundButton>
+        </div>
+        <label className="group flex h-11 min-w-0 flex-1 items-center rounded-[22px] border-2 border-tg-hover bg-tg-hover pr-[3px] text-[rgb(112_117_121/0.5)] transition-colors duration-150 focus-within:border-tg-blue focus-within:bg-white">
           <SearchIcon className="ml-3 size-6 shrink-0 group-focus-within:text-tg-blue" strokeWidth={1.75} />
           <input
             ref={input}

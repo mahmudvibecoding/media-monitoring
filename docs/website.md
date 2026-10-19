@@ -147,9 +147,10 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
 - Admins have a menu at the side (shadcn's sidebar) and no bar above the page, which takes the window's whole width
   (each page keeps its own: the overview and the activity 1,280 px at most, a YouTube channel's page 1,284 px as
   YouTube's): the overview, YouTube and Telegram, then apart at the bottom the activity, and at its foot who's signed
-  in, with the language and signing out. It folds down to its icons (its button, a click on its edge, or Ctrl+B), which
-  it remembers in a cookie, and slides in over the page on a phone, where a thin bar opens it (on YouTube's pages, the ☰
-  in YouTube's top bar; on Telegram's, the ☰ over the chat list).
+  in, with the language and signing out. On a wide screen it's a strip 72 px wide, always there, as YouTube's narrow
+  menu: each item its icon (24 px) with its name under it. On a phone it slides in over the page, where a thin bar opens
+  it (on YouTube's pages, the ☰ in YouTube's top bar; on Telegram's, the ☰ over the chat list, which a wide screen
+  doesn't show: there, only a search's ← comes in beside the field).
 - Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
   middle-click opens it in a new tab, as a link does.
 - YouTube's channel list keeps its search, order and page in the address, so Back, Forward and a copied link bring it

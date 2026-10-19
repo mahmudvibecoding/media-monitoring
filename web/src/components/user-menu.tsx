@@ -21,10 +21,10 @@ import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui
 import { setLocale } from "@/i18n/actions";
 import { localeNames, locales } from "@/i18n/config";
 
-// At the foot of the admins' menu: who's signed in, and a menu with the site's language and signing out. Choosing a
-// language brings the page back in it; signing out loads the sign-in page anew, which also drops whatever this tab
-// kept of the account's data.
-export function UserMenu({ name }: { name: string }) {
+// At the foot of the admins' menu: who's signed in (className: how the menu's items look in its strip), and a menu
+// with the site's language and signing out. Choosing a language brings the page back in it; signing out loads the
+// sign-in page anew, which also drops whatever this tab kept of the account's data.
+export function UserMenu({ name, className }: { name: string; className?: string }) {
   const t = useTranslations("header");
   const locale = useLocale();
   const [, startTransition] = useTransition();
@@ -33,10 +33,10 @@ export function UserMenu({ name }: { name: string }) {
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu>
-          <DropdownMenuTrigger render={<SidebarMenuButton aria-label={name} />}>
+          <DropdownMenuTrigger render={<SidebarMenuButton aria-label={name} className={className} />}>
             <CircleUserIcon />
-            <span className="min-w-0 flex-1 truncate">{name}</span>
-            <ChevronsUpDownIcon className="ml-auto text-muted-foreground" />
+            <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:flex-none">{name}</span>
+            <ChevronsUpDownIcon className="ml-auto text-muted-foreground group-data-[collapsible=icon]:hidden" />
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="min-w-52">
             <DropdownMenuGroup>
