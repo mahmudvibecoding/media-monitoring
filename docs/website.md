@@ -156,16 +156,15 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   back. Its grid fills the screen and no more, so its page's buttons are always in view: a page holds as many channels
   as fit (36 on a 2000 × 1200 window, 4 on a phone), so the browser asks for them itself, once it has measured the grid.
   Its pages have a button to the one before and the next, and ← and → turn them. They change the address through the
-  browser's history rather than by loading the page again, and ask the API themselves, through Caddy. A search starts
-  300 ms after the last key, "/" goes to the search box and Escape empties it, and the last list stays, dimmed, while
-  the next one loads. YouTube's search box is in its top bar: on the channels' list it searches them as one types; on
-  its other pages it suggests channels as one types, as YouTube suggests searches (↑ and ↓ go through them, Enter or a
-  click opens one), and Enter searches the list. A channel's tabs end in YouTube's magnifier, which opens a field that
-  searches the channel's videos by their titles (the address keeps it), listed as YouTube lists results.
+  browser's history rather than by loading the page again, and ask the API themselves, through Caddy. "/" goes to the
+  search box and Escape empties it. YouTube's search box is in its top bar: on the channels' list it searches them as
+  one types; on its other pages it suggests channels as one types, as YouTube suggests searches (↑ and ↓ go through
+  them, Enter or a click opens one), and Enter searches the list. A channel's tabs end in YouTube's magnifier, which
+  opens a field that searches the channel's videos by their titles as one types (the address keeps it), listed as
+  YouTube lists results.
 - Telegram's chat list keeps its folder and its search to itself, as Telegram's does: it belongs to the layout of
   Telegram's pages, so it stays, scrolled where it was, as chats open and close. It arrives with the page (the first
-  folder's first 50 channels) and loads more as it's scrolled; a search starts 300 ms after the last key, and Escape or
-  ← ends it. A row's chat is fetched ahead once the pointer comes over it (not for every row in view: dozens of
+  folder's first 50 channels) and loads more as it's scrolled; Escape or ← ends a search. A row's chat is fetched ahead once the pointer comes over it (not for every row in view: dozens of
   requests); a click turns the row blue at once, and the chat follows as soon as it's there. With less than 926 px of room,
   a chat takes it all and ← goes back to the list; with less than 601, the list takes the whole screen too. A chat's
   search (its magnifier, or Ctrl+F) shows only the messages with what's searched in them, marked, and a hashtag searches
@@ -221,6 +220,15 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   dimmed only from 150 ms on, so one that comes sooner doesn't flash. On the site run locally, with 100 ms added to
   every request, a click showed what it asked for 14 to 31 ms later (116 to 143 ms without asking ahead), and a Short's
   comments, the pointer 250 ms on their button, came with their panel instead of 125 ms after it.
+- A search starts at each key, without waiting for the typing to stop. A search a later key has replaced is called off
+  in the browser (the API still finishes it), and the last results stay until the new ones come, dimmed from 150 ms on.
+  On YouTube's pages the address follows each key without a step in the history (a channel's search makes one as it
+  starts and one as it ends). The page has the new address a moment after the key, so a box keeps what it has written
+  until the page has caught up, and the page's address never puts back what was typed before
+  (`src/lib/use-search-box.ts`). On the site run locally, with 100 ms added to every request and keys 120 ms apart,
+  results came 120 to 150 ms after the last key, against about 440 ms when a search waited 300 ms for the typing to
+  stop; a channel's videos, YouTube's suggestions and a chat's messages most often came before the last key, an earlier
+  one having found the same.
 - A channel's videos, a video's comments, Telegram's chat list and a channel's messages load more as they're scrolled,
   as on YouTube and in Telegram, 50 at a time: the page arrives with the first 50. Telegram's chat opens at the newest
   message, at the bottom, and loads older ones above as it's scrolled up.

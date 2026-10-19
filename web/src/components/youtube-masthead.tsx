@@ -14,12 +14,11 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { ChannelPicture, Dot, YouTubeLink, YouTubeTip, YT_ICON_BUTTON } from "@/components/youtube-ui";
 import { go, SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatCompact, pluralOf } from "@/lib/format";
+import { useSearchBox } from "@/lib/use-search-box";
 import { cn } from "@/lib/utils";
 import { channelsAddress } from "@/lib/youtube";
 
 const LIST = "/youtube/channels"; // the channels' list, where the logo goes and the search searches
-const SEARCH_WAIT = 300; // milliseconds after the last key before the list is searched
-const SUGGEST_WAIT = 150; // and before channels are suggested
 const SUGGESTIONS = 8;
 
 // What a page has put in the cache for a query, read without asking for it, and without making the query either: a
@@ -120,27 +119,21 @@ export function YouTubeMasthead() {
 
 // YouTube's search box: a long rounded field and its grey button. While typing in it, the field takes in the button's
 // margin at its left, with the magnifier in it, and is outlined in blue; a cross empties it. On the channels' list
-// (list), it searches the list a moment after the last key, through the address, so that Back and a copied link bring
-// the search back, and it follows the address when that changes some other way. Elsewhere it suggests channels under
-// it as one types (↑ and ↓ go through them, Enter or a click opens one), and Enter searches the list. "/" anywhere goes
-// to it.
+// (list), it searches the list at each key, through the address, so that Back and a copied link bring the search back.
+// Elsewhere it suggests channels under it at each key (↑ and ↓ go through them, Enter or a click opens one), and Enter
+// searches the list. "/" anywhere goes to it.
 function Search({ list, autoFocus = false, className }: { list: boolean; autoFocus?: boolean; className?: string }) {
   const t = useTranslations("youtube");
   const [navigate, navigating] = useGo(); // to another page (a channel, or the list's search)
-  const search = searchOf(useSearchParams());
-  const [text, setText] = useState(list ? search : "");
-  const [written, setWritten] = useState(search); // the search this box last put in the address
-  if (list && search !== written) {
-    setWritten(search);
-    setText(search);
-  }
+  const [text, change] = useSearchBox({
+    search: searchOf(useSearchParams()),
+    follow: list,
+    write: (typed) => go(channelsAddress({ search: typed || undefined }), "replace"),
+  });
   const [focused, setFocused] = useState(false);
-  const [asked, setAsked] = useState(""); // what the suggestions are for, a moment after the last key
   const [active, setActive] = useState(-1); // the suggestion ↑ and ↓ have reached
   const input = useRef<HTMLInputElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const listbox = useId();
-  useEffect(() => () => clearTimeout(timer.current), []);
 
   // "/" goes to the box, unless one's typing somewhere already
   useEffect(() => {
@@ -156,37 +149,24 @@ function Search({ list, autoFocus = false, className }: { list: boolean; autoFoc
     return () => window.removeEventListener("keydown", slash);
   }, []);
 
+  // The channels suggested for what's typed, while the box has the focus, the last ones staying until they come
+  const asked = list ? "" : searchOf(new URLSearchParams({ search: text }));
   const { data } = useQuery({
     ...youtubeChannelsOptions({ query: { search: asked, size: SUGGESTIONS } }),
-    enabled: !list && asked !== "",
+    enabled: focused && asked !== "",
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
-  const suggestions = !list && focused && asked !== "" && text.trim() ? (data?.channels ?? []) : [];
+  const suggestions = focused && asked !== "" ? (data?.channels ?? []) : [];
 
   function type(value: string) {
-    setText(value);
+    change(value);
+    setFocused(true); // the suggestions come back as one types after Escape
     setActive(-1);
-    clearTimeout(timer.current);
-    const next = searchOf(new URLSearchParams({ search: value }));
-    if (list) {
-      timer.current = setTimeout(() => {
-        if (next === written) return; // only spaces changed
-        setWritten(next);
-        go(channelsAddress({ search: next || undefined }), "replace");
-      }, SEARCH_WAIT);
-    } else {
-      timer.current = setTimeout(() => setAsked(next), SUGGEST_WAIT);
-    }
   }
 
   function clear() {
     type("");
-    clearTimeout(timer.current);
-    if (list && written) {
-      setWritten("");
-      go(channelsAddress({}), "replace");
-    }
     input.current?.focus();
   }
 
@@ -200,15 +180,9 @@ function Search({ list, autoFocus = false, className }: { list: boolean; autoFoc
     event.preventDefault();
     const picked = suggestions[active];
     if (picked) return open(picked);
-    const next = searchOf(new URLSearchParams({ search: text }));
-    clearTimeout(timer.current);
     input.current?.blur();
-    if (list) {
-      setWritten(next);
-      go(channelsAddress({ search: next || undefined }), "replace");
-    } else {
-      navigate(`${LIST}${channelsAddress({ search: next || undefined })}`);
-    }
+    if (!list)
+      navigate(`${LIST}${channelsAddress({ search: searchOf(new URLSearchParams({ search: text })) || undefined })}`);
   }
 
   function keys(event: KeyboardEvent<HTMLInputElement>) {

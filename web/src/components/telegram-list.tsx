@@ -22,13 +22,12 @@ import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
 const FOLDERS = ["subscribers", "latest"] as const satisfies readonly TelegramSort[];
-const SEARCH_WAIT = 300; // milliseconds after the last key before the list is searched
 
 // Telegram's chat list, in its floating panel at the left: Telegram's ☰ (which opens the site's menu) and search field
 // at the top, then the monitored channels as Telegram lists chats, more loading as they're scrolled. Two folders in
 // Telegram's floating tabs order them: the biggest first, and the latest to post first. Focusing the search turns ☰
-// into ← and the folders away, as in Telegram; the list is searched a moment after the last key, the last results
-// staying meanwhile. The chat open beside is the blue row. The list is the layout's, so it stays as chats open and
+// into ← and the folders away, as in Telegram; the list is searched at each key, the last results staying until the
+// new ones come. The chat open beside is the blue row. The list is the layout's, so it stays as chats open and
 // close, scrolled where it was.
 export function TelegramList() {
   const t = useTranslations("telegramChannels");
@@ -42,13 +41,10 @@ export function TelegramList() {
   const [sort, setSort] = useState<TelegramSort>("subscribers");
   const [searching, setSearching] = useState(false);
   const [typed, setTyped] = useState("");
-  const [asked, setAsked] = useState(""); // the search the list shows, a moment after the last key
   const input = useRef<HTMLInputElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const scroller = useRef<HTMLDivElement>(null);
-  useEffect(() => () => clearTimeout(timer.current), []);
 
-  const search = searching ? asked : "";
+  const search = searching ? searchOf(new URLSearchParams({ search: typed })) : "";
   const { data, error, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, refetch, isPlaceholderData } =
     useInfiniteQuery({
       ...telegramChannelsInfiniteOptions({ query: channelsQuery(sort, search) }),
@@ -81,18 +77,9 @@ export function TelegramList() {
     scroller.current?.scrollTo({ top: 0 });
   }, [sort, search]);
 
-  function type(value: string) {
-    setTyped(value);
-    clearTimeout(timer.current);
-    const next = searchOf(new URLSearchParams({ search: value }));
-    timer.current = setTimeout(() => setAsked(next), SEARCH_WAIT);
-  }
-
   function leave() {
-    clearTimeout(timer.current);
     setSearching(false);
     setTyped("");
-    setAsked("");
     input.current?.blur();
   }
 
@@ -154,7 +141,7 @@ export function TelegramList() {
             ref={input}
             type="search"
             value={typed}
-            onChange={(event) => type(event.target.value)}
+            onChange={(event) => setTyped(event.target.value)}
             onFocus={() => setSearching(true)}
             onKeyDown={(event) => event.key === "Escape" && leave()}
             placeholder={t("search")}
@@ -167,7 +154,7 @@ export function TelegramList() {
             <RoundButton
               label={t("clear")}
               onClick={() => {
-                type("");
+                setTyped("");
                 input.current?.focus();
               }}
               className="text-tg-muted"

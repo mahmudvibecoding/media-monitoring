@@ -21,10 +21,11 @@ import {
   YouTubeTip,
   YT_ICON_BUTTON,
 } from "@/components/youtube-ui";
-import { go, SEARCH_MAX, searchOf } from "@/lib/address";
+import { go, SEARCH_MAX } from "@/lib/address";
 import { formatCompact, formatCount, pluralOf } from "@/lib/format";
 import { DIMMED, FIRST_PAGE, nextPage } from "@/lib/pages";
 import { useLoadMore } from "@/lib/use-load-more";
+import { useSearchBox } from "@/lib/use-search-box";
 import { cn } from "@/lib/utils";
 import { firstKind, handleOnYouTube, type Kind, SORTS, videosAddress, videosQuery } from "@/lib/youtube";
 
@@ -165,8 +166,8 @@ function Fact({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode 
 // which: ?kind=…), YouTube's chips for the order (newest, most viewed, oldest: ?sort=…) and its grid of covers, upright
 // for Shorts; or, searched with the tabs' magnifier (?search=…), YouTube's list of results. More load as the grid is
 // scrolled down, as on YouTube. Another tab's or order's videos are asked for once the pointer comes over it (the
-// other tab's too once the page is there), so that it shows them at once; until they come, the grid that was there
-// stays, dimmed, in its own layout.
+// other tab's too once the page is there), so that it shows them at once; until they come, the videos that were there
+// stay, dimmed, in their own layout (a tab's grid, or a search's results).
 export function ChannelVideos({ id }: { id: string }) {
   const t = useTranslations("youtubeChannel");
   const counts = useQuery(youtubeChannelOptions({ path: { channel_id: id } })).data?.videos;
@@ -184,8 +185,10 @@ export function ChannelVideos({ id }: { id: string }) {
     });
   const marker = useLoadMore({ more: !!hasNextPage, loading: isFetchingNextPage, load: fetchNextPage });
   const videos = data?.pages.flatMap((page) => page.videos) ?? [];
-  // While another tab loads, the videos still shown are the last tab's: their own covers, wide or upright
-  const shownKind: Kind = isPlaceholderData && videos[0] ? (videos[0].kind === "short" ? "short" : "video") : kind;
+  // The tab or the search whose videos are shown: while others load, the last ones'
+  const [shown, setShown] = useState({ kind, search });
+  if (!isPlaceholderData && (shown.kind !== kind || shown.search !== search)) setShown({ kind, search });
+  const layout = isPlaceholderData ? shown : { kind, search };
   const tabs = KINDS.filter((option) => option === kind || !counts || counts[option] > 0);
 
   const queryClient = useQueryClient();
@@ -210,8 +213,8 @@ export function ChannelVideos({ id }: { id: string }) {
   if (!data) {
     list = error ? <ApiError error={error} retry={() => void refetch()} retrying={isFetching} /> : <GridSkeleton />;
   } else if (videos.length === 0) {
-    list = <p className="text-sm text-yt-muted">{search ? t("noResults") : t("none")}</p>;
-  } else if (search) {
+    list = <p className="text-sm text-yt-muted">{layout.search ? t("noResults") : t("none")}</p>;
+  } else if (layout.search) {
     list = (
       <>
         <ul className={cn("mt-6 max-w-[1096px] space-y-4 transition-opacity", isPlaceholderData && DIMMED)}>
@@ -230,13 +233,13 @@ export function ChannelVideos({ id }: { id: string }) {
           className={cn(
             "grid transition-opacity",
             isPlaceholderData && DIMMED,
-            shownKind === "short"
+            layout.kind === "short"
               ? "grid-cols-2 gap-x-1 gap-y-6 @min-[600px]:grid-cols-3 @min-[800px]:grid-cols-4 @min-[1000px]:grid-cols-5 @min-[1200px]:grid-cols-6"
               : "grid-cols-1 gap-x-4 gap-y-8 @min-[500px]:grid-cols-2 @min-[860px]:grid-cols-3 @min-[1200px]:grid-cols-4",
           )}
         >
           {videos.map((video) =>
-            shownKind === "short" ? (
+            layout.kind === "short" ? (
               <ShortCard key={video.id} video={video} sort={query.sort} />
             ) : (
               <VideoCard key={video.id} video={video} />
@@ -272,7 +275,10 @@ export function ChannelVideos({ id }: { id: string }) {
         ))}
         <ChannelSearch
           search={search ?? ""}
-          onSearch={(next) => go(videosAddress(next ? { search: next } : { kind }, first), "push")}
+          onSearch={(typed, now) =>
+            // Starting a search or ending it is a step that Back undoes; each key typed into it isn't
+            go(videosAddress(typed ? { search: typed } : { kind }, first), !typed === !now ? "replace" : "push")
+          }
         />
       </nav>
       <div className={cn("flex gap-2 pt-4 pb-6", search && "hidden")}>
@@ -302,24 +308,19 @@ export function ChannelVideos({ id }: { id: string }) {
 }
 
 // The tabs' magnifier, as on a YouTube channel: it opens a field beside it, underlined, which searches the channel's
-// videos by their titles on Enter; an empty field closes again as it's left. It follows the address's search (Back).
-function ChannelSearch({ search, onSearch }: { search: string; onSearch: (search: string) => void }) {
+// videos by their titles at each key; an empty field closes again as it's left. It follows the address's search when
+// that changes some other way (Back), opening or closing with it.
+function ChannelSearch({ search, onSearch }: { search: string; onSearch: (typed: string, now: string) => void }) {
   const t = useTranslations("youtube");
   const [open, setOpen] = useState(!!search);
-  const [text, setText] = useState(search);
-  const [shown, setShown] = useState(search); // the search the field last showed from the address
-  if (search !== shown) {
-    setShown(search);
-    setText(search);
-    setOpen(!!search);
-  }
+  const [text, type] = useSearchBox({ search, follow: true, write: onSearch, adopt: (taken) => setOpen(!!taken) });
   const input = useRef<HTMLInputElement>(null);
   return (
     <form
       role="search"
       onSubmit={(event) => {
         event.preventDefault();
-        onSearch(searchOf(new URLSearchParams({ search: text })));
+        input.current?.blur();
       }}
       className="flex h-12 items-center"
     >
@@ -342,14 +343,12 @@ function ChannelSearch({ search, onSearch }: { search: string; onSearch: (search
           type="text"
           value={text}
           maxLength={SEARCH_MAX}
-          onChange={(event) => setText(event.target.value)}
-          onBlur={() => !text.trim() && !search && setOpen(false)}
+          onChange={(event) => type(event.target.value)}
+          onBlur={() => !text.trim() && setOpen(false)}
           onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              setText("");
-              if (search) onSearch("");
-              else setOpen(false);
-            }
+            if (event.key !== "Escape") return;
+            if (text) type("");
+            setOpen(false);
           }}
           placeholder={t("search")}
           aria-label={t("search")}

@@ -31,7 +31,6 @@ import { cn } from "@/lib/utils";
 
 const GROUP_WITHIN = 10 * 60 * 1000; // ms: a message this soon after the one before joins its group, as in Telegram
 const DOWN_FROM = 200; // px above the newest messages: higher up, the button back to them shows
-const SEARCH_WAIT = 300; // ms after the last key before the chat is searched
 const SCROLLING_FOR = 1000; // ms after scrolling stops while the date stuck at the top still shows
 
 // A channel's chat, as Telegram Web shows one: its top bar floating over the chat (the picture, the name and the
@@ -45,32 +44,18 @@ export function TelegramChat({ id }: { id: number }) {
   const { info, setInfo } = useTelegram();
   const [searching, setSearching] = useState(false);
   const [typed, setTyped] = useState("");
-  const [asked, setAsked] = useState(""); // the search the chat shows, a moment after the last key
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const field = useRef<HTMLInputElement>(null);
   const root = useRef<HTMLDivElement>(null);
-  useEffect(() => () => clearTimeout(timer.current), []);
   const { data, error, isFetching, refetch } = useQuery(telegramChannelOptions({ path: { channel_id: id } }));
-
-  function type(value: string) {
-    setTyped(value);
-    clearTimeout(timer.current);
-    const next = searchOf(new URLSearchParams({ search: value }));
-    timer.current = setTimeout(() => setAsked(next), SEARCH_WAIT);
-  }
 
   function find(text: string) {
     setSearching(true);
-    clearTimeout(timer.current);
     setTyped(text);
-    setAsked(text);
   }
 
   function stopSearching() {
-    clearTimeout(timer.current);
     setSearching(false);
     setTyped("");
-    setAsked("");
   }
 
   useEffect(() => {
@@ -120,9 +105,14 @@ export function TelegramChat({ id }: { id: number }) {
           info && "@min-[1276px]/telegram:right-(--tg-right)",
         )}
       >
-        <Messages id={id} username={data.username} search={searching ? asked : ""} onHashtag={find} />
+        <Messages
+          id={id}
+          username={data.username}
+          search={searching ? searchOf(new URLSearchParams({ search: typed })) : ""}
+          onHashtag={find}
+        />
         {searching ? (
-          <SearchBar field={field} channel={data} name={name} typed={typed} type={type} close={stopSearching} />
+          <SearchBar field={field} channel={data} name={name} typed={typed} type={setTyped} close={stopSearching} />
         ) : (
           <header className="absolute inset-x-4 top-4 z-20 mx-auto flex h-12 max-w-[728px] items-center rounded-[2rem] bg-white p-1 shadow-tg-pane max-[600px]:inset-x-2 max-[600px]:top-2">
             <PageLink
