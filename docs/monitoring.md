@@ -34,12 +34,12 @@ everything again, in this order.
    video YouTube shows nothing for (removed, private, or blocked where the proxy is) is marked unavailable and
    tried again every round. `youtube details all` fetches them again for every saved video without an exact publish
    time, newest first: once, for videos saved before details took them from the player.
-5. **Views and likes** (`youtube stats 365`). Ask for the current views and likes of every video published in the last
-   365 days, with the lightest request YouTube's own video page makes to refresh its counts. A video without an
-   exact publish time counts by its upload day, and one without either (a stream that hasn't started) from when
-   it was found.
-6. **Comments** (`youtube comments 365`). Read the comments of the same videos, newest first, until reaching comments
-   already saved. The most viewed videos go first, so their long lists don't hold up the end of the run.
+5. **Views and likes** (`youtube stats all`). Ask for the current views and likes of every video, with the lightest
+   request YouTube's own video page makes to refresh its counts. With a number of days (`DAYS=30 ./run.sh`), only
+   the videos published in them: a video without an exact publish time counts by its upload day, and one without
+   either (a stream that hasn't started) from when it was found.
+6. **Comments** (`youtube comments all`). Read the comments of the same videos, newest first, until reaching
+   comments already saved. The most viewed videos go first, so their long lists don't hold up the end of the run.
 7. **Telegram channels** (`telegram channels`). Refresh every Telegram channel's title, description, photo and
    subscriber count from its public page, and note a new channel's newest message, where reading its messages
    starts (see [Channel details](#channel-details)).

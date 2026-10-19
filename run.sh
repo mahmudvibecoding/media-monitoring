@@ -4,8 +4,8 @@
 # comments; then Telegram's channel details and new messages. Run it again for the next round, for example every 15
 # minutes from cron (see README.md). Started while a round is still running, it skips its own.
 #
-#   ./run.sh              one round, through the VPN proxies; views, likes and comments for the last 365 days
-#   DAYS=30 ./run.sh      the same for the last 30 days
+#   ./run.sh              one round, through the VPN proxies; views, likes and comments of every video
+#   DAYS=30 ./run.sh      the same, with views, likes and comments only for the videos of the last 30 days
 #   ./run.sh setup        only set the machine up
 #
 # On a fresh Debian or Ubuntu machine it installs what's missing (PostgreSQL 18, sing-box, uv, Python and the
@@ -18,7 +18,7 @@
 # deployed with deploy.sh.
 set -u
 cd "$(dirname "$0")"
-DAYS=${DAYS:-365}
+DAYS=${DAYS:-all}
 DATABASE=media_monitoring
 API_USER=media_monitoring_api  # the web API's user, on this machine and in PostgreSQL
 WEB_USER=media_monitoring_web  # the website's user, on this machine only (see deploy.sh)

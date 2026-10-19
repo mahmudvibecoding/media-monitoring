@@ -20,7 +20,7 @@ website, Caddy, the database and its tables, and the channels from `youtube_chan
 Telegram's channel details and new messages.
 
 ```bash
-DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (365 by default)
+DAYS=30 ./run.sh   # views, likes and comments only for the videos of the last 30 days (every video by default)
 ./run.sh setup     # only set the machine up
 ```
 
@@ -44,8 +44,8 @@ and the rest continues next run. `uv run youtube` or `uv run telegram` alone lis
 | `uv run youtube channels` | refreshes every channel's name, handle, description, picture and subscriber count |
 | `uv run youtube videos` | finds new videos in each channel's uploads list (a channel's first run reads its whole history) |
 | `uv run youtube details [all]` | fetches the original title and description, exact publish time, length and kind (video or Short) of new videos (`all`: again for saved videos without an exact publish time) |
-| `uv run youtube stats [days\|all]` | refreshes views and likes (videos from the last 365 days by default) |
-| `uv run youtube comments [days\|all\|unread]` | collects new comments (videos from the last 365 days by default) |
+| `uv run youtube stats [all\|days]` | refreshes views and likes (every video by default; with a number of days, only the videos published in them) |
+| `uv run youtube comments [all\|days\|unread]` | collects new comments (every video by default; with a number of days, only the videos published in them) |
 | `uv run telegram channels` | refreshes every Telegram channel's title, description, photo and subscriber count from its public page, and notes its newest message the first time |
 | `uv run telegram messages` | reads every Telegram channel's new messages, and keeps those with text |
 | `uv run telegram history [letters]` | reads back every Telegram channel's older messages, the channels with the fewest letters first, until its saved messages hold 10,000 letters (or the number given) and 100 messages, its first message, or 10,000 messages before its last one |

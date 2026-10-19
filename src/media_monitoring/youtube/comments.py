@@ -4,9 +4,9 @@ To recognize those, each video keeps the IDs of its newest comments (youtube_com
 those for each batch of videos it takes in one query, instead of every saved comment. A read that stops partway (a
 page fails, or the run stops) continues next time from where it stopped.
 
-"uv run youtube comments" covers the videos published in the last DAYS days, "uv run youtube comments 30" the last
-30 days, "uv run youtube comments all" every video, and "uv run youtube comments unread" every video whose whole list
-hasn't been read yet. Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run
+"uv run youtube comments" (or "uv run youtube comments all") covers every video, "uv run youtube comments 30" the
+videos published in the last 30 days, and "uv run youtube comments unread" every video whose whole list hasn't been
+read yet. Each video's total comment count, as YouTube shows it, goes next to its views and likes, so run
 stats first.
 
 Comments come from YouTube's next endpoint, which blocks busy addresses for a while: once the VPN proxies are blocked
@@ -25,7 +25,7 @@ import psycopg
 from media_monitoring.parallel import Collector, run
 from media_monitoring.youtube import API, CONTEXT, TEST_VIDEO, call
 
-DAYS = 365  # by default, the videos published in the last DAYS days
+DEFAULT = "all"  # by default, every video
 EMPTY_PAGE_TRIES = 3  # an empty page in the middle of a list is usually an odd answer: ask this many times
 NOTE_EVERY = 20  # during a long read, every this many pages note where to continue, in case the run stops
 END, KNOWN, INVALID = object(), object(), object()  # how a read of pages ended (see read_video)
@@ -241,12 +241,12 @@ class Comments(Collector):
     follow_lists = True
     item_name = "videos"
     saved_name = "new comments"
-    argument = f"a number of days ({DAYS} by default), all, or unread"
+    argument = "all (the default), a number of days, or unread"
     words = ("all", "unread")
     number = True
 
     def load(self, conn, argument):
-        days = argument or str(DAYS)
+        days = argument or DEFAULT
         # "unread" leaves out videos without views and likes (stats found them removed or private): their count row,
         # where a finished read is recorded, doesn't exist. A video counts by its exact publish time where it's known,
         # else its upload day; with neither (a stream that hasn't started yet), from when it was found.
@@ -259,7 +259,7 @@ class Comments(Collector):
                 {where} ORDER BY s.views DESC NULLS LAST""", () if days in ("all", "unread") else (int(days),))]
 
     def describe(self, argument):
-        days = argument or str(DAYS)
+        days = argument or DEFAULT
         window = {"all": "every video", "unread": "not read in full yet"}.get(
             days, f"published in the last {days} days")
         return f"videos to read comments of ({window})"

@@ -1,16 +1,16 @@
-"""Refresh the views and likes of recent videos: each video has one row in youtube_video_stats with its latest
-numbers, overwritten on every refresh.
+"""Refresh the views and likes of videos: each video has one row in youtube_video_stats with its latest numbers,
+overwritten on every refresh.
 
-"uv run youtube stats" refreshes the videos published in the last DAYS days, "uv run youtube stats 30" the last 30
-days, and "uv run youtube stats all" every video. Run details first, so new videos have their upload day, and run it
-while sing-box is running ("uv run proxies"): the pool tests the proxies by itself (see pool.py).
+"uv run youtube stats" (or "uv run youtube stats all") refreshes every video, "uv run youtube stats 30" the videos
+published in the last 30 days. Run details first, so new videos have their upload day, and run it while sing-box is
+running ("uv run proxies"): the pool tests the proxies by itself (see pool.py).
 """
 from functools import partial
 
 from media_monitoring.parallel import Collector, run
 from media_monitoring.youtube import API, CONTEXT, TEST_VIDEO, call
 
-DAYS = 365  # by default, refresh the videos published in the last DAYS days
+DEFAULT = "all"  # by default, refresh every video
 # updated_metadata is what a watch page calls to refresh its counts: the lightest answer, with exact numbers
 FIELDS = ("actions/updateViewershipAction/viewCount/videoViewCountRenderer(originalViewCount,isLive),"
           "frameworkUpdates/entityBatchUpdate/mutations/payload/likeCountEntity/likeCountIfIndifferentNumber")
@@ -59,12 +59,12 @@ async def fetch(session, video_id, proxy):
 class Stats(Collector):
     item_name = "videos"
     saved_name = "refreshed"
-    argument = f"a number of days ({DAYS} by default) or all"
+    argument = "all (the default) or a number of days"
     words = ("all",)
     number = True
 
     def load(self, conn, argument):
-        days = argument or str(DAYS)
+        days = argument or DEFAULT
         if days == "all":
             return [row[0] for row in conn.execute("SELECT video_id FROM youtube_videos")]
         # Its exact publish time where it's known, else its upload day; a video with neither (a stream that hasn't
@@ -74,7 +74,7 @@ class Stats(Collector):
                    >= now() - make_interval(days => %s::int)""", (int(days),))]
 
     def describe(self, argument):
-        days = argument or str(DAYS)
+        days = argument or DEFAULT
         return "videos to refresh (" + ("every video" if days == "all" else f"published in the last {days} days") + ")"
 
     async def prepare(self, conn):

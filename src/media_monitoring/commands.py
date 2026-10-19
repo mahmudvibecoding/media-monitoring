@@ -7,8 +7,8 @@ YOUTUBE = {
     "channels": "refresh every channel's name, handle, description, picture and subscriber count",
     "videos": "find new videos in each channel's uploads list",
     "details": "fetch the details of new videos ([all])",
-    "stats": "refresh views and likes ([days|all], the last 365 days by default)",
-    "comments": "collect new comments ([days|all|unread], the last 365 days by default)",
+    "stats": "refresh views and likes ([all|days], every video by default)",
+    "comments": "collect new comments ([all|days|unread], every video by default)",
 }
 TELEGRAM = {
     "channels": "refresh every channel's title, description, photo and subscriber count from its public page",
