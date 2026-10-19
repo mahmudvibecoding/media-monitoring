@@ -284,15 +284,24 @@ function Reel({
 }
 
 // What the player last told about itself; started once it has played, which the picture shows until; failed when it
-// can't play the Short here, which its own screen then says why
-type State = { playing: boolean; muted: boolean; time: number; duration: number; started: boolean; failed: boolean };
+// can't play the Short here, and live for a stream or a premiere: the player's own screen then says why, or when it
+// starts, until it plays
+type State = {
+  playing: boolean;
+  muted: boolean;
+  time: number;
+  duration: number;
+  started: boolean;
+  failed: boolean;
+  live: boolean;
+};
 const CROP = 160; // px of the player above and below the frame
 
 // The Short playing, by YouTube's player over its picture, with the page's own controls, as YouTube's Shorts have them:
 // a click on it plays and pauses (K and the space bar too), a big play sign shows while it's paused, the play and sound
 // buttons at its top left come under the mouse (M mutes), and the red line along its bottom says where it's at and goes
 // where it's clicked; at its end it starts again. A Short the player can't play here shows the player's own screen, which
-// says why, without the controls. The picture shows until the Short has started, so sliding to it
+// says why, without the controls; so does a premiere or a stream that hasn't started, its screen saying when it will. The picture shows until the Short has started, so sliding to it
 // doesn't go black. The player is 160 px taller than the frame at each end, so what YouTube puts along them (the
 // title, its logo, and for a Short its own like count) falls outside it, while the Short, as wide as the frame, fills
 // it (YouTube's ⏸ still shows a moment as a Short starts: see youtube-embed). The player is loaded only once its page
@@ -305,6 +314,7 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
     duration: video.duration ?? 0,
     started: false,
     failed: false,
+    live: false,
   });
   const last = useRef(state); // the same, for the handlers
   useEffect(() => {
@@ -329,9 +339,12 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
         duration: typeof info.duration === "number" && info.duration > 0 ? info.duration : now.duration,
         started: now.started || info.playerState === PLAYING,
         failed: now.failed || info.error !== undefined,
+        live: info.videoData ? info.videoData.isLive === true : now.live,
       }));
     },
   );
+  const own = state.failed || (state.live && !state.started); // the player's own screen shows
+  const crop = own ? 0 : CROP; // the player's own screen whole, a premiere's countdown at its bottom too
   const send = (func: string, args: unknown[] = []) => command(frame.current, func, args);
   const toggle = () => send(last.current.playing ? "pauseVideo" : "playVideo");
   const mute = () => {
@@ -348,7 +361,9 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
   useEffect(() => {
     function key(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
-      if (last.current.failed || event.metaKey || event.ctrlKey || event.altKey || target.isContentEditable) return;
+      const { failed, live, started } = last.current;
+      if (failed || (live && !started)) return; // the player's own screen takes no keys
+      if (event.metaKey || event.ctrlKey || event.altKey || target.isContentEditable) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
       if (event.key === " " && ["BUTTON", "A"].includes(target.tagName)) return;
       if (event.key === " " || event.key === "k") toggle();
@@ -368,14 +383,14 @@ function ShortPlayer({ video }: { video: YouTubeVideo }) {
         title={video.title ?? video.id}
         allow="autoplay; encrypted-media; picture-in-picture; web-share"
         tabIndex={-1}
-        style={cropped(CROP)}
+        style={cropped(crop)}
         className={cn(
           "absolute transition-opacity duration-300",
-          !state.failed && "pointer-events-none",
-          state.started || state.failed ? "opacity-100" : "opacity-0",
+          !own && "pointer-events-none",
+          state.started || own ? "opacity-100" : "opacity-0",
         )}
       />
-      {!state.failed && <ShortControls state={state} toggle={toggle} mute={mute} seek={seek} />}
+      {!own && <ShortControls state={state} toggle={toggle} mute={mute} seek={seek} />}
     </>
   );
 }

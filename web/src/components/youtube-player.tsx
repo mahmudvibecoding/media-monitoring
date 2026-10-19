@@ -64,6 +64,7 @@ type State = {
   rate: number;
   started: boolean;
   failed: boolean; // YouTube's player can't play the video here: its own screen shows, saying why
+  live: boolean; // a stream or a premiere: until it plays, the player's own screen shows, saying when it starts
 };
 
 // YouTube's sign that comes and fades in the middle (or for a jump, at the side) as one plays, pauses, jumps or changes
@@ -83,7 +84,8 @@ type Bezel = { kind: "play" | "pause" | "mute" | "volume" | "back" | "forward"; 
 // youtube-embed). It's loaded only as its page shows and unloaded as it goes (Next keeps a page one has left alive,
 // hidden), and loaded again on coming back, from the second it had got to. A video the player can't play here (removed,
 // private, kept from the country it's watched in, not to be played on other sites) shows the player's own screen,
-// which says why, as YouTube's watch page does, without the picture and the controls.
+// which says why, as YouTube's watch page does, without the picture and the controls; so does a premiere or a stream
+// that hasn't started, its screen saying when it will, until it plays.
 export function Player({ id, title, next }: { id: string; title: string; next?: { id: string; title: string } }) {
   const t = useTranslations("youtube");
   const [go, going] = useGo();
@@ -98,6 +100,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
     rate: 1,
     started: false,
     failed: false,
+    live: false,
   });
   const last = useRef(state); // the same, for the handlers
   useEffect(() => {
@@ -127,9 +130,14 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         rate: typeof info.playbackRate === "number" ? info.playbackRate : now.rate,
         started: now.started || info.playerState === PLAYING,
         failed: now.failed || info.error !== undefined,
+        live: info.videoData ? info.videoData.isLive === true : now.live,
       }));
     },
   );
+  // The player's own screen, in place of the page's picture and controls: it says why it can't play the video, or when
+  // a premiere or a stream starts (and takes the click that plays it then)
+  const own = state.failed || (state.live && !state.started);
+  const crop = own ? 0 : CROP; // the player's own screen whole, a premiere's countdown at its bottom too
 
   const send = (func: string, args: unknown[] = []) => command(frame.current, func, args);
 
@@ -229,7 +237,9 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
   useEffect(() => {
     function key(event: KeyboardEvent) {
       const target = event.target as HTMLElement;
-      if (last.current.failed || event.metaKey || event.ctrlKey || event.altKey || target.isContentEditable) return;
+      const { failed, live, started } = last.current;
+      if (failed || (live && !started)) return; // the player's own screen takes no keys
+      if (event.metaKey || event.ctrlKey || event.altKey || target.isContentEditable) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) return;
       const focused = !!box.current?.contains(document.activeElement);
       const length = last.current.duration;
@@ -300,7 +310,7 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
       )}
     >
       {going && <PageLoadingLine color="youtube" />}
-      {!state.started && !state.failed && (
+      {!state.started && !own && (
         <CoverImage
           sources={[`https://i.ytimg.com/vi_webp/${id}/maxresdefault.webp`, bigThumbnail(id), thumbnail(id, "hq")]}
           className="absolute inset-0 size-full object-cover"
@@ -312,15 +322,15 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         title={title}
         allow="autoplay; encrypted-media; picture-in-picture"
         tabIndex={-1}
-        style={cropped(CROP)}
+        style={cropped(crop)}
         className={cn(
           "absolute transition-opacity duration-300",
-          !state.failed && "pointer-events-none",
-          state.started || state.failed ? "opacity-100" : "opacity-0",
+          !own && "pointer-events-none",
+          state.started || own ? "opacity-100" : "opacity-0",
         )}
       />
       {/* The video's face: a click plays and pauses it (or closes the menu), a double click fills the screen */}
-      {!state.failed && (
+      {!own && (
         <div
           className="absolute inset-0"
           onClick={() => {
@@ -332,13 +342,13 @@ export function Player({ id, title, next }: { id: string; title: string; next?: 
         />
       )}
       {state.state === BUFFERING && state.started && <Spinner />}
-      {blocked && !state.started && !state.failed && <BigPlay label={t("play")} onClick={play} />}
+      {blocked && !state.started && !own && <BigPlay label={t("play")} onClick={play} />}
       {bezel && <BezelSign key={bezel.at} bezel={bezel} />}
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 transition-opacity duration-200",
           shown ? "opacity-100" : "pointer-events-none opacity-0",
-          state.failed && "hidden",
+          own && "hidden",
         )}
       >
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-black/70 via-black/25 to-transparent" />

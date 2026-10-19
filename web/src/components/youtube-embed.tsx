@@ -15,8 +15,10 @@ export const PAUSED = 2;
 export const BUFFERING = 3;
 
 // What a player tells the page listening to it: its state, where it's at, the video's length, its sound, how much of the
-// video is loaded, and its speed; or that it can't play the video here (removed, private, kept from the country it's
-// watched in, not to be played on other sites: error, YouTube's code for it), when its own screen says which
+// video is loaded, and its speed; whether the video is live (a stream, or a premiere, which is one while it's shown:
+// before it starts, the player's own screen says when it will); or that it can't play the video here (removed,
+// private, kept from the country it's watched in, not to be played on other sites: error, YouTube's code for it), when
+// its own screen says which
 export type PlayerInfo = {
   playerState?: number;
   currentTime?: number;
@@ -25,6 +27,7 @@ export type PlayerInfo = {
   volume?: number;
   videoLoadedFraction?: number;
   playbackRate?: number;
+  videoData?: { isLive?: boolean };
   error?: number;
 };
 
