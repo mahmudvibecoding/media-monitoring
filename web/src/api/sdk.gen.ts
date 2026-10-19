@@ -131,7 +131,7 @@ export const youtubeVideoComments = <ThrowOnError extends boolean = false>(optio
  *
  * The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
  * first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
- * apostrophes aside. With busy, only the channels that post 300 messages a day or more, searched as well.
+ * apostrophes aside.
  */
 export const telegramChannels = <ThrowOnError extends boolean = false>(options?: Options<TelegramChannelsData, ThrowOnError>): RequestResult<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError> => (options?.client ?? client).get<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError>({ url: '/api/telegram/channels', ...options });
 

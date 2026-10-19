@@ -76,8 +76,6 @@ COUNT = sql.SQL("SELECT count(*) FROM telegram_channels {where}")
 # Only the channels with a saved message (app.sql), and with a search, those it matches: lowercase, apostrophes left out
 LISTED = sql.SQL("WHERE has_messages")
 SEARCHED = sql.SQL("WHERE has_messages AND search_text LIKE app.searchable(%(pattern)s)")
-# For a while, to review them: the channels that post 300 messages a day or more (app.telegram_busy)
-BUSY = sql.SQL("WHERE channel_id IN (SELECT channel_id FROM app.telegram_busy)")
 # Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
 ORDERS = {
     "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
@@ -103,18 +101,12 @@ async def telegram_channels(
         Literal["subscribers", "latest"], Query(description="The biggest first, or the latest to post")
     ] = "subscribers",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} channels to a page")] = 1,
-    busy: Annotated[
-        bool, Query(description="For a while: only the channels that post 300 messages a day or more")
-    ] = False,
 ) -> TelegramChannels:
     """The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
     first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
-    apostrophes aside. With busy, only the channels that post 300 messages a day or more, searched as well."""
+    apostrophes aside."""
     search = " ".join(search.split())
-    if busy:
-        where = BUSY + sql.SQL(" AND search_text LIKE app.searchable(%(pattern)s)") if search else BUSY
-    else:
-        where = SEARCHED if search else LISTED
+    where = SEARCHED if search else LISTED
     values = {"pattern": anywhere(search), "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
 
     # Planned for the search they're given (prepare=False), as for YouTube's channels

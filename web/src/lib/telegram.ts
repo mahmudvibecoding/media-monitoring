@@ -2,16 +2,13 @@ import type { TelegramChannelsData } from "@/api/types.gen";
 
 export type TelegramChannelsQuery = NonNullable<TelegramChannelsData["query"]>;
 export type TelegramSort = NonNullable<TelegramChannelsQuery["sort"]>;
-// For a while: a folder of the channels that post 300 messages a day or more, the biggest first
-export type TelegramFolder = TelegramSort | "busy";
 
 // The chat list's query: only what isn't the API's default, so that the server and the browser build the same one,
-// and so the same key for TanStack Query's cache. A search looks through every channel, whichever folder is open.
-export function channelsQuery(folder: TelegramFolder, search: string): TelegramChannelsQuery {
+// and so the same key for TanStack Query's cache
+export function channelsQuery(sort: TelegramSort, search: string): TelegramChannelsQuery {
   const query: TelegramChannelsQuery = {};
   if (search) query.search = search;
-  if (folder === "latest") query.sort = folder;
-  else if (folder === "busy" && !search) query.busy = true;
+  if (sort !== "subscribers") query.sort = sort;
   return query;
 }
 
