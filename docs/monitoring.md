@@ -174,16 +174,12 @@ asked again at the end.
 ### Channel details
 
 `uv run telegram channels`, run by hand rather than in the rounds, refreshes each channel's title, description, photo
-and subscriber count from its public page, and saves the messages that page shows.
+and subscriber count from its public page. It doesn't save the messages that page shows: `telegram messages` does.
 
 - **One page per channel.** The page shows the channel's title, description and counters, and its 20 or so newest
   messages. It rounds subscriber counts of 1,000 and more to three digits (1.14M). Only the channel's plain page,
   `t.me/<username>`, has the exact count, but Telegram answers about 10 of those a second per address, against
   hundreds of public pages.
-- **The page's messages.** Those with text are kept as `telegram messages` keeps them; those already saved are
-  skipped. They don't move the channel's last message on, so `telegram messages` still reads everything after it, and
-  nothing between it and them is missed. `telegram channels unread` reads only the channels without a saved message:
-  those whose page was hidden through every proxy tried, or new in the list.
 - **The photo's address, not the photo.** The page shows the channel's photo, 160 × 160 (about 10 KB), on Telegram's
   image server (cdn1.telesco.pe, ...); the website loads it from there. The address is the same from one request to
   the next, and the step saves whatever address the page shows, so a new photo replaces the old. A channel without a
@@ -196,11 +192,6 @@ and subscriber count from its public page, and saves the messages that page show
   times, and the proxy keeps working: Telegram hides some channels from an address, not all of them. From the
   server's own address alone, Telegram hid about half the pages at 500 a second; at about 30,000 requests a second,
   it also kept hiding those channels for about 12 minutes afterwards, from other visitors too.
-
-The first run that saved the pages' messages, on October 18, 2026, took 81 seconds: it read 260,801 channels and
-saved 3,232,704 messages, while Telegram hid the pages of 49,014 channels through all ten tries. Two `unread` runs
-right after it, of 34 and 28 seconds, saved 509,936 more; then 298,169 channels had saved messages, and about 5,000
-channels' pages stayed hidden through every proxy, as in earlier runs.
 
 ### History
 

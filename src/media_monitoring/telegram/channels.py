@@ -1,15 +1,12 @@
 """Refresh every channel's details in telegram_channels (title, description, subscriber_count, photo_url) from its
-public page, as fast as the proxies answer: one page per channel, whose messages with text are saved too. Only
-channels whose details changed are written. Telegram rounds subscriber counts of 1,000 and more on these pages, to
-three digits (1.14M).
+public page, as fast as the proxies answer: one page per channel. Only channels whose details changed are written.
+Telegram rounds subscriber counts of 1,000 and more on these pages, to three digits (1.14M).
 
-The page shows the channel's 20 or so newest messages. Those with text are kept as the messages step keeps them (see
-messages.py), those already saved skipped; they don't move the channel's last message on, so the messages step still
-reads everything after it, and misses nothing between it and them. A channel without a last message yet gets the
-page's newest one (last_message_id, last_message_at), so reading its messages can start there; one that has it keeps
-it, and while the page's newest message is still that one, takes its time from the page again, which puts right a time
-read wrong. A page whose messages belong to another channel means the username now belongs to that channel: nothing is
-written for it.
+The page also shows the channel's newest messages, which aren't saved here (the messages step saves them): a channel
+without a last message yet gets its newest one (last_message_id, last_message_at), so reading its messages can start
+there; one that has it keeps it, and while the page's newest message is still that one, takes its time from the page
+again, which puts right a time read wrong. A page whose messages belong to another channel means the username now
+belongs to that channel: nothing is written for it.
 
 Run it after "uv run proxies": the pool tests the proxies by itself (see pool.py). A page Telegram hides from a
 proxy's address goes out again through another one, up to ATTEMPTS times in all; the proxy keeps working.
@@ -21,7 +18,6 @@ from functools import partial
 from media_monitoring.parallel import Collector, run
 from media_monitoring.telegram import (PAGE, TEST_CHANNEL, call, channel_id, count, newest_message, page_messages,
                                        text)
-from media_monitoring.telegram.messages import NEW_MESSAGES, SAVE_MESSAGES
 
 TITLE = re.compile(r'<div class="tgme_channel_info_header_title"[^>]*>(.*?)</div>', re.S)
 DESCRIPTION = re.compile(r'<div class="tgme_channel_info_description"[^>]*>(.*?)</div>', re.S)
@@ -52,18 +48,17 @@ SAVE = """UPDATE telegram_channels AS c
 
 
 def parse(page):
-    """(channel ID, title, description, subscriber_count, photo_url, last message ID, when it was published, the
-    messages with text) from a channel's page, or None if it isn't one. The channel ID and the last message are None,
-    and there are no messages, when the page shows none."""
+    """(channel ID, title, description, subscriber_count, photo_url, last message ID, when it was published) from a
+    channel's page, or None if it isn't one. The channel ID and the last message are None when the page shows no
+    messages."""
     title = TITLE.search(page)
     if not title:
         return None
     description, subscribers, photo = DESCRIPTION.search(page), SUBSCRIBERS.search(page), PHOTO.search(page)
-    found = page_messages(page)
-    newest = newest_message(found) or (None, None)
+    newest = newest_message(page_messages(page)) or (None, None)
     return (channel_id(page), text(title.group(1)), (text(description.group(1)) or None) if description else None,
             count(subscribers.group(1)) if subscribers else None, html.unescape(photo.group(1)) if photo else None,
-            *newest, [message for message in found if message.text])
+            *newest)
 
 
 async def fetch(session, username, proxy):
@@ -83,23 +78,16 @@ class Channels(Collector):
     report_every = 2
     item_name = "channels"
     saved_name = "changed"
-    argument = "unread (only the channels without a saved message)"
-    words = ("unread",)
 
     def load(self, conn, argument):
-        # "unread": e.g. those whose page was hidden through every proxy tried last time, or new in the list
-        where = ("WHERE NOT EXISTS (SELECT 1 FROM telegram_messages AS m WHERE m.channel_id = c.channel_id)"
-                 if argument == "unread" else "")
-        return conn.execute(f"SELECT username, channel_id FROM telegram_channels AS c {where}").fetchall()
+        return conn.execute("SELECT username, channel_id FROM telegram_channels").fetchall()
 
     def describe(self, argument):
-        return f"Telegram channels{' without a saved message' if argument == 'unread' else ''} to refresh"
+        return "Telegram channels to refresh"
 
     async def prepare(self, conn, channels):
-        self.pending = []  # the channels' details, for the next save
-        self.texts = []  # the messages with text on their pages: (channel_id, message_id, published_at, text)
-        for table in (CHANNELS, NEW_MESSAGES):
-            await conn.execute(table)
+        self.pending = []
+        await conn.execute(CHANNELS)
 
     async def test(self, session, proxy):
         return await fetch(session, TEST_CHANNEL, proxy)
@@ -111,19 +99,13 @@ class Channels(Collector):
             return outcome  # "failed": hidden through every proxy tried (or no public page now), or no answer
         if details[0] is not None and details[0] != known:
             return "other channel"  # the username belongs to another channel now
-        self.pending.append((known, *details[1:-1]))
-        for message in details[-1]:
-            if message.channel_id in (None, known):  # each message says whose it is
-                self.texts.append((known, message.id, message.published_at, message.text))
-                self.results["messages with text"] += 1
+        self.pending.append((known, *details[1:]))
         return "ok"
 
     async def save(self, conn):
-        """Write the details that changed and the messages not saved yet, in one transaction. Returns how many channels
-        changed; how many messages were added is counted in results."""
-        rows, texts = self.pending[:], self.texts[:]
+        """Returns how many channels changed."""
+        rows = self.pending[:]
         self.pending.clear()
-        self.texts.clear()
         if not rows:
             return 0
         async with conn.transaction(), conn.cursor() as cur:
@@ -131,20 +113,12 @@ class Channels(Collector):
                 for row in rows:
                     await copy.write_row(row)
             await cur.execute(SAVE)
-            changed = cur.rowcount
-            if texts:
-                async with cur.copy("COPY new_messages FROM STDIN") as copy:
-                    for row in texts:
-                        await copy.write_row(row)
-                await cur.execute(SAVE_MESSAGES)
-                self.results["messages saved"] += cur.rowcount
-        return changed
+            return cur.rowcount
 
     def summary(self, results, saved):
-        return (f"{results['ok']} channels read ({saved} changed; {results['messages with text']} messages with text "
-                f"on their pages, {results['messages saved']} of them new and saved), {results['other channel']} whose "
-                "username now belongs to another channel (left as they were), "
-                f"{results['failed']} failed (hidden through every proxy tried, or no public page now)")
+        return (f"{results['ok']} channels read ({saved} changed), {results['other channel']} whose username now "
+                f"belongs to another channel (left as they were), {results['failed']} failed (hidden through every "
+                "proxy tried, or no public page now)")
 
 
 def main():
