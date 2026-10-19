@@ -16,8 +16,8 @@ On a Debian or Ubuntu machine, as root or as a user with sudo:
 
 It sets the machine up if needed: PostgreSQL 18, sing-box, uv with Python and the packages, Node.js and pnpm for the
 website, Caddy, the database and its tables, and the channels from `youtube_channels.txt` and
-`telegram_channels.txt`. Then it runs one round: fresh VPN
-proxies, then each of YouTube's steps in turn, then Telegram's new messages.
+`telegram_channels.txt`. Then it runs one round: fresh VPN proxies, then each of YouTube's steps in turn, then
+Telegram's channel details and new messages.
 
 ```bash
 DAYS=30 ./run.sh   # views, likes and comments for the last 30 days (365 by default)
@@ -36,9 +36,8 @@ started while the last one is still running is skipped:
 Each step can also run on its own, after `uv run proxies`. Every step goes through the VPN proxies, and brings in
 the plain proxies by itself once those stop working, or once it has tested them all and has room for more tests:
 YouTube blocks busy addresses for a while on video pages and comments, Telegram hides its pages from them, and the
-plain proxies are many more addresses. `uv run telegram channels` isn't part of a round. Ctrl+C or `kill` stops a
-step early: it saves what it has collected first, and the rest continues next run. `uv run youtube` or `uv run
-telegram` alone lists the steps.
+plain proxies are many more addresses. Ctrl+C or `kill` stops a step early: it saves what it has collected first,
+and the rest continues next run. `uv run youtube` or `uv run telegram` alone lists the steps.
 
 | Command | What it does |
 |---|---|

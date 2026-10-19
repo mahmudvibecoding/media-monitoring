@@ -40,7 +40,10 @@ everything again, in this order.
    it was found.
 6. **Comments** (`youtube comments 365`). Read the comments of the same videos, newest first, until reaching comments
    already saved. The most viewed videos go first, so their long lists don't hold up the end of the run.
-7. **Telegram messages** (`telegram messages`). Read every Telegram channel's new messages, and keep those with
+7. **Telegram channels** (`telegram channels`). Refresh every Telegram channel's title, description, photo and
+   subscriber count from its public page, and note a new channel's newest message, where reading its messages
+   starts (see [Channel details](#channel-details)).
+8. **Telegram messages** (`telegram messages`). Read every Telegram channel's new messages, and keep those with
    text (see [Telegram](#telegram)).
 
 Each step loads what it needs from the database, works as fast as the proxies answer, saves as it goes, and
@@ -177,8 +180,8 @@ asked again at the end.
 
 ### Channel details
 
-`uv run telegram channels`, run by hand rather than in the rounds, refreshes each channel's title, description, photo
-and subscriber count from its public page. It doesn't save the messages that page shows: `telegram messages` does.
+`uv run telegram channels`, in each round before `telegram messages`, refreshes each channel's title, description,
+photo and subscriber count from its public page. It doesn't save the messages that page shows: `telegram messages` does.
 
 - **One page per channel.** The page shows the channel's title, description and counters, and its 20 or so newest
   messages. It rounds subscriber counts of 1,000 and more to three digits (1.14M). Only the channel's plain page,

@@ -1,8 +1,8 @@
 #!/bin/bash
 # Set this machine up if needed, then run one monitoring round: fresh proxies (new VPN configs for sing-box, and new
 # plain proxies), then YouTube's steps in order: channel details, new videos, video details, views and likes, and
-# comments; then Telegram's new messages. Run it again for the next round, for example every 15 minutes from cron (see
-# README.md). Started while a round is still running, it skips its own.
+# comments; then Telegram's channel details and new messages. Run it again for the next round, for example every 15
+# minutes from cron (see README.md). Started while a round is still running, it skips its own.
 #
 #   ./run.sh              one round, through the VPN proxies; views, likes and comments for the last 365 days
 #   DAYS=30 ./run.sh      the same for the last 30 days
@@ -236,7 +236,7 @@ if ! uv run proxies > data/proxies.log 2>&1; then
 fi
 tail -2 data/proxies.log | head -1
 for step in "youtube channels" "youtube videos" "youtube details" "youtube stats $DAYS" "youtube comments $DAYS" \
-            "telegram messages"; do
+            "telegram channels" "telegram messages"; do
     echo "### $(date -u +%T) $step"
     uv run $step 9>&-  # without the lock: a step left running after the round can't hold up the next ones
 done
