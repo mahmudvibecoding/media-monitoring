@@ -135,9 +135,9 @@ half minutes, and reading every video's comments the first time took hours.
 
 ## Telegram
 
-`telegram_channels` holds the 298,149 public Uzbek Telegram channels in `telegram_channels.txt` (a channel's ID and
+`telegram_channels` holds the 298,077 public Uzbek Telegram channels in `telegram_channels.txt` (a channel's ID and
 username on each line), keyed by Telegram's ID for the channel: a list of channels found through their public pages
-(September 2026), without the 12,282 [deleted](#channels-deleted). Everything comes from those public pages,
+(September 2026), without the 12,354 [deleted](#channels-deleted). Everything comes from those public pages,
 `t.me/s/<username>`, which anyone can read without an account. They only work by username, so a channel that changes
 its username can't be followed any more.
 
@@ -236,6 +236,11 @@ On October 18, 2026, 12,282 channels were deleted, with their 529,597 messages:
   messages up to 2,000 letters, on the A40 server, in 68 minutes, and answered with one letter.
 - **Without messages** (4,758 more): channels without a saved message, whatever their language: pages Telegram never
   showed a post on (channels gone, or names now someone else's) and channels whose posts have no text.
+
+On October 19, 72 more went, with their 541,225 messages: the channels that had posted 300 messages a day or more
+over the three days before (304 to 11,847 a day), mostly taxi ride ads, with shops and a betting-signals channel.
+After a three-day gap they had brought half of a run's new messages, and kept it running minutes after every other
+channel was done.
 
 `telegram_channels.txt` doesn't have them, so they don't come back.
 

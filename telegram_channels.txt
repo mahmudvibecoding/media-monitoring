@@ -2112,7 +2112,6 @@
 1101706381 xorazm_ish
 1101707877 hayotimiz_kundaligi
 1101709659 foydali_bilimlarr
-1101716248 pronovinki
 1101720192 tomchidahayotaksi
 1101750984 oboikarpos
 1101786788 muvad_uz
@@ -13588,7 +13587,6 @@
 1185354579 matematik_savollar
 1185361977 saintrosesuz
 1185366723 domashnyayakuhnyanurii
-1185367329 bagdod_toshkent88888
 1185379177 arzon_uz
 1185384798 azizaovqatmalika
 1185385818 registan_sergeli
@@ -106422,7 +106420,6 @@
 1613511060 ismoil_okezi_statuslari
 1613516509 qaysar_qizz
 1613525265 teatrafisha
-1613534202 toshkent_samarqand_taksi24
 1613534489 asabchamsan2
 1613536803 farhodnabiev
 1613545526 asrhrbxbfh
@@ -114675,7 +114672,6 @@
 1655399097 alfido_kundaligi
 1655412468 rayimjonoveldorbek
 1655413586 library_ntm
-1655414389 efootball_shop
 1655425247 mebelchilik_online_kurs
 1655425469 qoqon_professionallari
 1655437033 dizayner_freelance
@@ -124915,7 +124911,6 @@
 1707847951 gagotech
 1707858330 http_ruxshoncha
 1707866077 oddibolamanu
-1707866494 toshkent_shaxrisabzi
 1707870950 davlatobod_it_school
 1707871113 freee_akkaunt
 1707873969 away_from_the_world
@@ -149534,7 +149529,6 @@
 1839219949 muslimaa_makeup
 1839220509 mingbuloqjomemasjidirasmiy
 1839222160 qarshi_sovchilari_qarshilikk
-1839228789 umidakamoll
 1839237540 benim_dunyam_78_8
 1839240574 qizil_qum_jaslari_2
 1839256467 biz_siz_va_ular
@@ -150153,7 +150147,6 @@
 1843111108 semeykaalmalik
 1843123903 sehrli_olamning_sirli_manzillari
 1843125431 geogriflar_007
-1843143069 navoiy_toshkent_taxi_taksi24
 1843146659 codemup
 1843182978 gurlan_sardorlari_2023
 1843186186 boypolymer
@@ -152568,7 +152561,6 @@
 1858100149 beco_gaming
 1858118497 mlbb_j4sui
 1858120465 soglom_life
-1858127455 qoqon_toshkent_taxi2
 1858131328 marxamat_marxamatliklar_24
 1858132336 furqat_manaviy_hayoti
 1858135438 baliqchi_chinobodliklar_darvoza
@@ -155061,7 +155053,6 @@
 1873523632 zaripovs_natijalari
 1873524038 toshkent_uy_bozor_toshkent_uy
 1873547289 clash_apex_freefire_callofduty
-1873547705 turk_ibrohim
 1873552306 hima_shopuz
 1873563109 fire_man_mod
 1873564759 uybozor_quyichirchiq_oqqorgon
@@ -156642,7 +156633,6 @@
 1882970335 homes_yogoch_zna_poyalari
 1882976376 ochun_uz
 1882993352 gosht_markazi_xojaobod
-1883001899 brandmixxuz
 1883002871 fut_golnews
 1883003363 xalati_piter_tashkent
 1883005250 murodovyusufbek
@@ -157474,7 +157464,6 @@
 1887963694 chinozmanaviyat
 1887964053 novator_azk
 1887982508 murodjon_nazirov
-1887983446 toshkent_buxoro7
 1887997603 nthvacancy
 1888000452 pubg_lite_chiter_uz
 1888003611 shirinabonuborixodjayeva
@@ -158846,7 +158835,6 @@
 1896497705 koson_shlifovka
 1896498307 uychiyoshlaragentligi
 1896504459 geoarxeology
-1896505890 yaypan_toshkent_qoqon_taksi24
 1896509588 erkatoyinman
 1896512438 yangi_katalog1
 1896514513 qaqnus_tilaklari
@@ -166127,7 +166115,6 @@
 1946808218 cloudtravel_uz
 1946813309 senga_oshiqman_ishani_1_2_3
 1946815988 hunter_x_hunteruz
-1946819925 baxtsaroyiiii
 1946825898 silencee_uz
 1946835736 saudiyashop
 1946843722 power_g_bio_rich
@@ -166376,7 +166363,6 @@
 1948543151 chapani_bol
 1948543227 travell365uz
 1948543967 matematika_fizika_yechimlarim
-1948548483 asrorbek9797aa
 1948583416 jmxdreamdecor
 1948588496 korengacademy
 1948598835 dehqonobod_filologiya
@@ -178403,7 +178389,6 @@
 2033139412 muhammad_garand_isbot
 2033146845 sadoqat_massaj
 2033150688 sizga_xat
-2033158454 qadirdonlar8482
 2033160755 koreyskiy_lingarie
 2033162978 by_heart001
 2033175091 akelagroup_transport
@@ -181591,7 +181576,6 @@
 2053989215 soglom_umurtqa_markazi
 2053993751 zardes1gn
 2054013357 huququshunos_uz
-2054018321 aziza_turkiya_brend
 2054019459 kopirayterbonum
 2054022839 onrunning_uz
 2054027027 mycmac
@@ -184241,7 +184225,6 @@
 2071107366 montclair_uz
 2071119291 doctor_umida
 2071134508 sunshine_qalbim_quyoshi
-2071135976 boron555
 2071139830 shinam_uyim_shop
 2071151300 exammatem
 2071156626 kimsan_1111
@@ -187604,7 +187587,6 @@
 2093504143 oktamovdesign
 2093529964 nashidalar_tekst
 2093537151 neytrallik_ila
-2093542088 yyyangiliklar
 2093543226 achiq67
 2093547763 callanconsulting
 2093551727 faberlic_cosmetics_sale
@@ -190800,7 +190782,6 @@
 2114278358 zukkokitobxon24
 2114280051 bahrom_bin_akrom
 2114290501 ayfon_ol
-2114295689 s_e_v_i_m_l_i_m
 2114296545 dunyo_kosonsoy
 2114302930 juftlik_sherlar
 2114304949 sovgalar_samarqandd
@@ -192715,7 +192696,6 @@
 2126622296 croissantbydeco
 2126639629 ijctcm
 2126640000 mezanaarchitects
-2126640165 bintuum
 2126646056 nurobod_moshina_bozori
 2126669506 diyorbek_efl
 2126685012 aminabags1
@@ -198604,7 +198584,6 @@
 2167971757 axmedovam_20_02
 2167976121 kukatirgulim
 2167982961 guzauz
-2167985795 navoiy_toshkent_taksi_24
 2168006096 avtoo_elektrik
 2168031330 jch_2026_saralash
 2168042764 nakrutka_uzb_obunachi
@@ -202593,7 +202572,6 @@
 2197463770 university_essays_ieltslistening
 2197476885 abd_notes
 2197487873 bankir_offical
-2197488515 efootballpageshop
 2197519659 alianmaxfiy
 2197527549 pinocchio_6070
 2197540465 muhajeer_crypto
@@ -203718,7 +203696,6 @@
 2205852004 kinomax1080
 2205865991 tarjima_kinouz_premyera
 2205892769 dmj_mathacademy
-2205906809 feruza9193
 2205913997 maryam_cooking_ksa
 2205918166 nortoy03
 2205922232 primeffuz
@@ -209496,7 +209473,6 @@
 2249990585 bilol_nuriddinov_1
 2249991015 youngecogirl
 2250005231 talim_telekanali
-2250006736 kungrad_nukus_kanal
 2250009333 s_mutallibov
 2250011277 park_liyasan
 2250032041 otzivlar_natijalarimiz
@@ -211476,7 +211452,6 @@
 2268304429 sgfounders_school
 2268335973 pul_tikmasdan_pul_ishlang
 2268336962 rasulov_kimyo
-2268349000 umarumar11
 2268349767 flexstylle
 2268370076 sertifikat_natija
 2268393223 openranooo
@@ -213998,7 +213973,6 @@
 2292468777 plafon_fergana
 2292472214 vnshablon_factory_n1
 2292473971 pedfak_112
-2292479668 toshkent_navoiyii
 2292480411 dgghjjcfszaa
 2292481442 men_emas
 2292510580 andijon_mebel_sarvarbek
@@ -215382,7 +215356,6 @@
 2305342528 kitabuniy
 2305343711 hikmatli_sozlar_tr
 2305378664 javoh_blogs
-2305400298 navoiy_toshkent6
 2305410417 virjiniavulf
 2305443714 toward_coder
 2305456049 dlshodvna17
@@ -216250,7 +216223,6 @@
 2313844447 nerus_andijon
 2313851525 merauz8809
 2313892546 avto_sulton
-2313893635 taksi_xizmati0
 2313895140 konimex_tuman_sanepidqomita
 2313895371 nikohboti
 2313897232 kichik_auditoriya
@@ -222326,7 +222298,6 @@
 2371421803 wcfutbol
 2371427397 crypto_mic
 2371460988 cr7siuronaldo
-2371470514 buyurtmalar_topssmm_uz
 2371470572 otabekabdiraimov_blog
 2371478091 ou_antikorrupsiya
 2371489963 men236
@@ -222365,7 +222336,6 @@
 2371806678 uybozorimn2
 2371807499 umraga_sayoxat
 2371817782 huquqvodiysi
-2371820011 toshkent_navoiy6
 2371821644 chinor_kamtar_oil
 2371835595 mavlonjonning_blogi
 2371837813 englishteacher_ali
@@ -223486,7 +223456,6 @@
 2382226375 foydali_reklama_xizmati
 2382230466 sahifam_1924
 2382232897 ambivert_201
-2382233838 mb119605600zmab
 2382252496 yaqinlarimgatilagim
 2382260433 elvera_kim
 2382268277 samueltahlil
@@ -225659,7 +225628,6 @@
 2402772269 anvorul_qalb
 2402773405 attestatsiya_tayyorgarlik
 2402778069 gulhayo_alisherovna
-2402798691 toshkent_samarqand_taksil
 2402802864 raxmonov772
 2402815549 uxtiyem_blog
 2402819977 karyera_uzb
@@ -226653,7 +226621,6 @@
 2412483949 mashhurbek_muhammad
 2412490378 moshinabozorabzor
 2412496742 fisabil1209
-2412499851 navoiyi_toshkent
 2412500847 defpedagog
 2412513258 billurnur_uz
 2412523004 xoroz_arenan1
@@ -231004,7 +230971,6 @@
 2453643101 insholar_bayonlarrr
 2453653403 erkin_etiqod14
 2453653420 by_safhati
-2453656302 azmrut
 2453661735 itv_uzbek
 2453662062 moon_oy
 2453669368 chalkash_fikrlar
@@ -232447,7 +232413,6 @@
 2466987873 ruzael7
 2467009025 musofiromadi
 2467023972 sunnatovarobiyaxon
-2467034900 yyyyangiliklar
 2467036723 fargona_kirguli_uy_ijara
 2467037630 itdunyosii
 2467038331 arzon_sifatli_darvoza
@@ -234516,7 +234481,6 @@
 2486369053 hayotdan_olingan_satrlar
 2486370392 eco_breend
 2486381118 ff_chitlar_2025
-2486392695 toshkent_navoiy_taxi6
 2486404375 oqituvchiga_madad
 2486415384 chdpu_mi_yi
 2486416363 my_lovekanali
@@ -239751,7 +239715,6 @@
 2566811797 ish_ru
 2566834648 by_amor
 2566870582 turonodobilm_oltiariq
-2566893998 true_private_signals
 2566897589 d_biologiya2026
 2566900516 dildoshimga_tabrik_2
 2566901877 armonli_sevgim_0_09
@@ -240111,7 +240074,6 @@
 2573017148 sancho_akk
 2573028613 arzon_avto_kridit
 2573030641 alifituz
-2573057289 toshkent_navoiy_taksilar
 2573069528 aziz4ik_23
 2573078587 fargona_sovchilar7
 2573079291 matchedexpo
@@ -244567,7 +244529,6 @@
 2648611226 sarvar_murad_buildings
 2648637863 kvartira_bor_ijaraga
 2648664765 toshkent_24uz
-2648671562 navoiy_toshkent_taksi_taxi
 2648672159 nicow41
 2648688125 alakhonova_nafisa
 2648698106 ilmsohili_sat
@@ -245281,7 +245242,6 @@
 2660013134 esma_news
 2660015961 guliston_sayxunobod
 2660036174 picco_uzbekiston
-2660051458 kungrad_nukus647
 2660054531 mondomanzillari
 2660067378 sado1997
 2660086150 pashsha_deputat
@@ -247896,7 +247856,6 @@
 2709407129 avtokara555filial
 2709411023 m1dineem
 2709442793 sakura_home47
-2709447805 yolga_hamrohx
 2709467526 sumbulamath
 2709473356 sariosiyo4bms
 2709486106 ovozolamiz11
@@ -247934,7 +247893,6 @@
 2710128185 zikr_aytt7
 2710165040 arenda_kvartira_boboev
 2710206000 arenda_kvartera_otzivlar
-2710241071 navoiy_toshkent_taxi1
 2710268205 sector_uc
 2710275205 tincklikparvar
 2710287437 tiltpremiumservice
@@ -249405,7 +249363,6 @@
 2751588177 perfect_qabul
 2751601924 pc_build1
 2751617842 mustafo_1999
-2751624417 kungrad_nukus28
 2751628556 biology_registan
 2751709746 embers_animania
 2751792723 shunaqa_gaplardaaaaa
@@ -251015,7 +250972,6 @@
 2796059103 transformator_tashkent_uzb
 2796080027 finhub_001
 2796116551 madinaxitoyoptom
-2796123611 bagdod_toshkent8
 2796160819 omad_kanall
 2796166540 premium_stars_xizmati
 2796214202 m_it_uz
@@ -251218,7 +251174,6 @@
 2801438063 stefando1
 2801439054 bitigchi
 2801475724 uning_olamidann
-2801489996 qiziltepa_tosh
 2801511273 abdujalilovaruxshona
 2801542709 cheksizlik_akademiyasi
 2801583381 datawith_islombek
@@ -252579,7 +252534,6 @@
 2837858940 kafansizkomilganlar05
 2837875183 gjhm92
 2837912467 qalbim_00
-2837914421 nukus_kungrad4
 2837954779 nevromasaj1
 2837962615 arena_int
 2837986468 capcut_ed2tors
@@ -253326,7 +253280,6 @@
 2860316285 neftchifa
 2860412851 oltin_qanott
 2860499037 germanyada_tibbiyot
-2860542041 jizzaxtaxi
 2860543185 expert_novostroek
 2860551166 imomov_bobosher
 2860566173 top_fast_uc
@@ -256807,7 +256760,6 @@
 2973993337 hojiyevluxe_shop
 2974002786 a_toshqulov
 2974009696 ezoz_un
-2974032454 sumayyaturkshopyangiliklar
 2974085292 mlbbakkauntshop
 2974163864 tripstargoryashiyeturi
 2974164574 aisha_gold_namangan
@@ -260279,7 +260231,6 @@
 3098309465 ilovemexexex
 3098332952 texno
 3098364516 paqildoqlar_salyutlar_mushak
-3098515285 fargona_yaypan_taksila
 3098555774 abbosjon_blog
 3098574086 shaxsiyblogshirina
 3098667127 aleksandr_faynbergg
@@ -260396,7 +260347,6 @@
 3102406481 xayrulladomla
 3102416607 mirmir1985
 3102432266 optomdetskiy_1111
-3102495939 tojmaxal2024
 3102644342 dmasharipovadeputat
 3102698303 faberlicporloqkelajak
 3102776363 interagrostar
@@ -260728,7 +260678,6 @@
 3114649198 laligarasmiy_futboluz
 3114654871 laranauz
 3114673871 sara_maqollar
-3114701390 akosh0777
 3114702932 farhodyunusov_blog
 3114765278 avtomaktab9999
 3114786759 streetlawclub
@@ -263264,7 +263213,6 @@
 3210303325 berdimurodov_a
 3210316188 kitob_olamidan
 3210355205 naturee_uz
-3210393314 zllflb
 3210443468 striker_uzb_yt
 3210553904 englishgramschool
 3210556669 kigo_sherik
@@ -264222,7 +264170,6 @@
 3250690406 iqtidorli_yoshlar_jamoasi
 3250708239 yurakdag1_gaplar9
 3250748022 nazaokatcollection
-3250752884 kungratu
 3250821620 khayrway
 3250832003 kalewensen_belts
 3250887673 diplomatlaruyushmasi
@@ -268275,7 +268222,6 @@
 3410089261 blagovsem_official
 3410117324 meishang_stylee
 3410151661 tarix_quiz_testlari
-3410162968 nukus_taksi_xizmati
 3410230765 bachkanalashmaylik
 3410233553 mittivoyshodlik_namangan
 3410345132 moskva_kvartiralaruy
@@ -270375,7 +270321,6 @@
 3495625924 yoshekologlarharakati_fargona
 3495643473 sofymart_ecom
 3495710523 arzon_ugalok
-3495748081 nokiss_qonirat_taksi
 3495808313 edulink_uz
 3495817093 mukammal_dunyo_uzbekcha
 3495838986 newcastle_english_school
@@ -273637,7 +273582,6 @@
 3597957160 ilmsaribirga
 3597992796 futbol_golar_sport
 3598026513 musiqa2026yil
-3598078972 toshnqv
 3598097720 aesthetic_shop23
 3598101581 jizzaxtimsoll
 3598162832 aishakoreacosmetics
@@ -274124,7 +274068,6 @@
 3613057296 mobile_legends_uz_yangiliklar
 3613105457 shaharhokimligi
 3613148082 starsfree_uz2026pay
-3613173891 yukbozortest
 3613229170 uzambassador
 3613274914 togo_gaming_n1
 3613294485 prokuror_212
@@ -278338,7 +278281,6 @@
 3723972856 botiraliyevnavlog
 3724005275 yuuragim
 3724007369 x78_storie
-3724042107 jizzax_toshkenttaksiy
 3724045594 fcsavdo0
 3724076503 i1lmiyyah
 3724095851 numonovv_stars
@@ -279966,7 +279908,6 @@
 3755070596 sabriddinov_natijalar
 3755087963 redbags_lingerie
 3755088794 thoughtsofotabek
-3755092788 rpszufnoedu6
 3755103817 terabitiyaga_koprik
 3755110492 temirchixususiykorxonasi
 3755124410 quietnotesdurdona
@@ -280186,7 +280127,6 @@
 3759798616 asir_1a
 3759812424 omadbek973100252
 3759816105 dobriycommerce
-3759816241 kungradnokis1taxi
 3759817259 medstyleuzz
 3759846792 zakovat_ellf
 3759854868 kixxuzbekiston
@@ -282080,7 +282020,6 @@
 3796219467 dilbar
 3796219567 jzzaxviloyatkelajakmarkazi
 3796219856 asliddinwrites
-3796230031 gtaxo4
 3796240153 yangiariqleague
 3796253507 hhtpxs
 3796258126 zarina_rashidovna_webinar
@@ -283782,7 +283721,6 @@
 3829010554 islomiy_videolar_2026
 3829025368 gyfmun
 3829035290 kelajak_fargona_shahar
-3829040691 secondchanceuz
 3829065747 tolov_karvon
 3829071751 englishwithkhadichaam
 3829102234 afifangiz
@@ -284470,7 +284408,6 @@
 3842041180 adabiyot_urfoni
 3842050017 primeeducationsamarqand
 3842069722 cheap_shoup
-3842070623 qonirat_n
 3842075023 raqamli_avlodktk
 3842093190 unicornrent
 3842144609 satzone_5
@@ -284805,7 +284742,6 @@
 3848525578 ani_zone_uz
 3848527464 withleylah
 3848715320 jayhunn72
-3848727524 konirat_nukusz
 3848738274 misr_nafasi
 3848758778 my_life_1231
 3848763902 bs_savdo1
@@ -284886,7 +284822,6 @@
 3850476151 gamalika84
 3850482743 kinot_eator
 3850563177 enchella
-3850583478 kalbsirim
 3850598201 astrasoftuz
 3850603165 khusanoovam
 3850607173 makkadan_quron_hatmi
@@ -286525,7 +286460,6 @@
 3881654461 sangacaa
 3881702537 mudofaaaa
 3881724388 spintiger
-3881726382 kungrattt
 3881755507 tarmoq_time
 3881758135 nargiza_uzbekcha
 3881773754 lesxozbekat
@@ -289161,7 +289095,6 @@
 3932680660 ish_uzbekistan_rabota
 3932684074 sibavayhakademiyasi
 3932686393 nordicuniversitykandidat
-3932692287 kungrad_nukuss_99
 3932693423 primemedacademy07
 3932761100 erimbetov_muxammad
 3932776521 bilimzon_surxon
@@ -289674,7 +289607,6 @@
 3943189291 asian_bl_drama_uzb_sub
 3943225609 metallar_va_armaturalar_oqb
 3943249633 only_business_qr
-3943268839 yukbor_toshkent1
 3943274682 adamari_sergeli
 3943311487 extirosli_videolar_xikoyalar
 3943354029 begz0djon
@@ -289712,7 +289644,6 @@
 3944016236 stekbloxx
 3944033681 flowers_shop24
 3944049499 yangi_botlar_admin
-3944064358 dilmurod010109
 3944080158 mskimyo26
 3944102425 farangiz_gift_box
 3944136764 uzsecinsight
@@ -292031,7 +291962,6 @@
 3991571024 fcmobilel
 3991585392 sahgamingg
 3991594758 xol1d_blog
-3991605206 nukus_kungrad777
 3991624568 sam_kvartira_arenda
 3991630592 tashkent_artem
 3991636816 kompyuter_asri
@@ -292390,7 +292320,6 @@
 3998497574 ruspro_onlayn
 3998518694 arabic_abdulife
 3998521927 starspeynews
-3998535308 nokis_taxi_xizmeti
 3998546880 spoyler_uz1
 3998596201 psychology_assistant
 3998596479 globalinfouz
@@ -293776,7 +293705,6 @@
 4326620272 book_shop_n1
 4326632026 nemo_republic_olympiad
 4326695700 yangi_4sinf
-4326752204 kungraddddddd
 4326767949 qibray_press_madaniyat
 4326857939 book_mutolaa
 4326957335 bagdodwisemedicaltexnikum
