@@ -36,7 +36,7 @@ const SCROLLING_FOR = 1000; // ms after scrolling stops while the date stuck at 
 // A channel's chat, as Telegram shows one: its top bar floating over the chat (the picture, the name and the
 // subscribers, which open the channel's info; the search), and its saved messages as Telegram's bubbles on Telegram's
 // wallpaper, the newest at the bottom, each day under its date. Both take the chat's whole width, as in Telegram's
-// desktop app, the bubbles at its left. As in Telegram, Ctrl+F (⌘F) opens the search, and Esc closes the search, then
+// desktop app, the bubbles at its left: 32 px from the chat list beside it (16 px from the window's edge without it). As in Telegram, Ctrl+F (⌘F) opens the search, and Esc closes the search, then
 // the info, then the chat.
 export function TelegramChat({ id }: { id: number }) {
   const t = useTranslations("telegramChannel");
@@ -115,7 +115,7 @@ export function TelegramChat({ id }: { id: number }) {
         {searching ? (
           <SearchBar field={field} channel={data} name={name} typed={typed} type={setTyped} close={stopSearching} />
         ) : (
-          <header className="absolute inset-x-4 top-4 z-20 flex h-12 items-center rounded-[2rem] bg-white p-1 shadow-tg-pane max-[600px]:inset-x-2 max-[600px]:top-2">
+          <header className="absolute inset-x-4 top-4 z-20 flex h-12 items-center rounded-[2rem] bg-white p-1 shadow-tg-pane max-[600px]:inset-x-2 max-[600px]:top-2 @min-[926px]/telegram:left-8">
             <PageLink
               line="telegram"
               href="/telegram/channels"
@@ -184,7 +184,7 @@ function SearchBar({
 }) {
   const t = useTranslations("telegramChannel");
   return (
-    <div className="absolute inset-x-4 top-4 z-20 flex h-12 animate-in items-center rounded-[2rem] bg-white py-1 pr-[13px] pl-1 shadow-tg-island duration-200 fade-in max-[600px]:inset-x-2 max-[600px]:top-2 max-[600px]:pr-2">
+    <div className="absolute inset-x-4 top-4 z-20 flex h-12 animate-in items-center rounded-[2rem] bg-white py-1 pr-[13px] pl-1 shadow-tg-island duration-200 fade-in max-[600px]:inset-x-2 max-[600px]:top-2 max-[600px]:pr-2 @min-[926px]/telegram:left-8">
       <ChannelPhoto
         id={channel.id}
         name={name}
@@ -331,7 +331,7 @@ function Messages({
       >
         <div
           className={cn(
-            "flex w-full flex-col-reverse px-4 pt-20 pb-4 transition-opacity max-[600px]:px-2 max-[600px]:pt-16",
+            "flex w-full flex-col-reverse px-4 pt-20 pb-4 transition-opacity max-[600px]:px-2 max-[600px]:pt-16 @min-[926px]/telegram:pl-8",
             isPlaceholderData && DIMMED,
           )}
         >
