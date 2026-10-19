@@ -150,8 +150,8 @@ CREATE TABLE IF NOT EXISTS runs (
     summary      text                           -- its last line, as it printed it, or why it failed
 );
 -- For the website's activity pages (see api/activity.py): the rounds and the runs started by hand, newest first; one
--- step's runs; a round's steps; and what runs now
+-- step's runs; a round's steps
 CREATE INDEX IF NOT EXISTS runs_top ON runs (started_at DESC, id DESC) WHERE round_id IS NULL;
 CREATE INDEX IF NOT EXISTS runs_step ON runs (step, started_at DESC, id DESC);
 CREATE INDEX IF NOT EXISTS runs_round ON runs (round_id) WHERE round_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS runs_running ON runs (started_at) WHERE outcome = 'running';
+DROP INDEX IF EXISTS runs_running;  -- what ran now, which no page asks for any more

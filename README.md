@@ -105,9 +105,8 @@ message; `/api/telegram/channels/{id}` gives a channel's details, with how many 
 them.
 
 `/api/runs`, for admins, lists the runs the `runs` table keeps, newest first, 20 to a page: each round with its steps,
-and the runs started by hand; with `step`, only that step's runs. `/api/runs/latest` gives the newest round and every
-step going now, and `/api/runs/{id}` one run with all its numbers. A run that still says it's running but hasn't said
-anything for 5 minutes is given as lost: it was killed outright.
+and the runs started by hand; with `step`, only that step's runs, and `/api/runs/{id}` one run with all its numbers. A
+run that still says it's running but hasn't said anything for 5 minutes is given as lost: it was killed outright.
 
 ## The website
 
@@ -125,18 +124,18 @@ versions are pinned exactly, and pnpm only installs releases at least a day old.
 Every page but `/sign-in` needs someone signed in: a visitor who isn't goes to `/sign-in`, and back afterwards, and an
 account with a temporary password to `/change-password` until it has its own. The site is light and sober, and its
 YouTube and Telegram pages look like YouTube's and Telegram's own. Admins have a menu at the side, a strip of icons with
-their names under them, which slides in on a phone: the overview, with how much the database holds (the channels with
-something collected, and every video, comment and message), then the activity, every round with its steps and every run
-started by hand, newest first, with their numbers, and a page for each run with all its numbers; YouTube's channels with
-a video collected, a grid of their pictures, the biggest first, searched as one types, which fills the screen with as
-many as fit, whose address keeps the search and the page (← and → turn the pages); Telegram's channels with a message
-saved, as Telegram Web's chat list, with their latest messages, in two folders (the biggest, and the latest to post),
-searched as one types. YouTube's pages are under YouTube's top bar, whose search box suggests channels as one types. A
-YouTube channel's page is laid out like the channel on YouTube, with its About box, its videos and Shorts in grids,
-newest, most viewed or oldest first, that load more as they're scrolled, each playing silently while the mouse stays on
-it, and its search by title; a video's, like YouTube's watch page, with YouTube's player and controls drawn by the page
-as YouTube's, which starts as the page opens and takes YouTube's keys, its description, its comments, a Share box and
-more from its channel; a Short's, like YouTube's Shorts, a feed that slides from one upright Short to the next with the
+their names under them, which slides in on a phone: the activity, with how much the database holds (the channels with
+something collected, and every video, comment and message), then every round with its steps and every run started by
+hand, newest first, with their numbers, and a page for each run with all its numbers; YouTube's channels with a video
+collected, a grid of their pictures, the biggest first, searched as one types, which fills the screen with as many as
+fit, whose address keeps the search and the page (← and → turn the pages); Telegram's channels with a message saved, as
+Telegram Web's chat list, with their latest messages, in two folders (the biggest, and the latest to post), searched as
+one types. YouTube's pages are under YouTube's top bar, whose search box suggests channels as one types. A YouTube
+channel's page is laid out like the channel on YouTube, with its About box, its videos and Shorts in grids, newest, most
+viewed or oldest first, that load more as they're scrolled, each playing silently while the mouse stays on it, and its
+search by title; a video's, like YouTube's watch page, with YouTube's player and controls drawn by the page as
+YouTube's, which starts as the page opens and takes YouTube's keys, its description, its comments, a Share box and more
+from its channel; a Short's, like YouTube's Shorts, a feed that slides from one upright Short to the next with the
 wheel, a two-finger swipe or ↑ and ↓, with the comments and the description in panels beside it; Telegram's pages look
 like Telegram Web, its wallpaper under floating panels: the chat list at the left, and beside it a channel's chat, its
 messages as bubbles, the newest at the bottom, under their dates, with its search (which a hashtag starts too) and its

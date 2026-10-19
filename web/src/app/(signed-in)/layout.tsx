@@ -10,9 +10,9 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { signedInUser } from "@/lib/api-server";
 
-// The menu's width on a wide screen, where it's always folded to its icons, each with its name under it: 72 px, as
-// YouTube's narrow menu
-const STRIP = { "--sidebar-width-icon": "4.5rem" } as CSSProperties;
+// The menu's width on a wide screen, where it's always folded to its icons, each with its name under it, as YouTube's
+// narrow menu: its items, squares of 70 px, 4 px from each side, and its border
+const STRIP = { "--sidebar-width-icon": "79px" } as CSSProperties;
 
 // Every page here needs someone signed in: whoever isn't, or whose session ended, goes to the sign-in page, and
 // whoever has a temporary password, to the page that changes it. (proxy.ts sends visitors without a session cookie to

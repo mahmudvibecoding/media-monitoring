@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, LatestRunsData, LatestRunsErrors, LatestRunsResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
+import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -158,13 +158,6 @@ export const telegramChannelMessages = <ThrowOnError extends boolean = false>(op
  * alone (rounds with their steps)
  */
 export const runs = <ThrowOnError extends boolean = false>(options?: Options<RunsData, ThrowOnError>): RequestResult<RunsResponses, RunsErrors, ThrowOnError> => (options?.client ?? client).get<RunsResponses, RunsErrors, ThrowOnError>({ url: '/api/runs', ...options });
-
-/**
- * Latest Runs
- *
- * The newest round with its steps, and every step going now, in a round or started by hand
- */
-export const latestRuns = <ThrowOnError extends boolean = false>(options?: Options<LatestRunsData, ThrowOnError>): RequestResult<LatestRunsResponses, LatestRunsErrors, ThrowOnError> => (options?.client ?? client).get<LatestRunsResponses, LatestRunsErrors, ThrowOnError>({ url: '/api/runs/latest', ...options });
 
 /**
  * Run Details

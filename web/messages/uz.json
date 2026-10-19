@@ -9,7 +9,7 @@
     "signOut": "Chiqish"
   },
   "home": {
-    "title": "Umumiy koʻrinish",
+    "title": "Activity",
     "greeting": "Assalomu alaykum, {name}!",
     "empty": "Hozircha bu yerda hech narsa yoʻq."
   },
@@ -25,7 +25,7 @@
     }
   },
   "nav": {
-    "overview": "Umumiy koʻrinish",
+    "activity": "Activity",
     "toggle": "Menyuni koʻrsatish yoki yashirish"
   },
   "youtube": {

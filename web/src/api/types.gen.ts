@@ -47,17 +47,6 @@ export type Health = {
 };
 
 /**
- * LatestRuns
- */
-export type LatestRuns = {
-    round: RunWithSteps | null;
-    /**
-     * Running
-     */
-    running: Array<Run>;
-};
-
-/**
  * LocaleChange
  */
 export type LocaleChange = {
@@ -1522,47 +1511,6 @@ export type RunsResponses = {
 };
 
 export type RunsResponse = RunsResponses[keyof RunsResponses];
-
-export type LatestRunsData = {
-    body?: never;
-    path?: never;
-    query?: never;
-    url: '/api/runs/latest';
-};
-
-export type LatestRunsErrors = {
-    /**
-     * not_signed_in: no session, or it ended
-     */
-    401: Error;
-    /**
-     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
-     */
-    403: Error;
-    /**
-     * Something went wrong on the server
-     */
-    500: Error;
-    /**
-     * The database doesn't answer
-     */
-    503: Error;
-    /**
-     * A query ran past the time limit
-     */
-    504: Error;
-};
-
-export type LatestRunsError = LatestRunsErrors[keyof LatestRunsErrors];
-
-export type LatestRunsResponses = {
-    /**
-     * Successful Response
-     */
-    200: LatestRuns;
-};
-
-export type LatestRunsResponse = LatestRunsResponses[keyof LatestRunsResponses];
 
 export type RunDetailsData = {
     body?: never;

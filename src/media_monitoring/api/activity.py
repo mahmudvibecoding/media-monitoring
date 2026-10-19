@@ -1,6 +1,6 @@
 """The runs, for admins: every round of run.sh, every "uv run proxies" and every run of a step, as the runs table keeps
-them (see runs.py). GET /api/runs gives a page of them, newest first, each round with its steps; GET /api/runs/latest
-the newest round and what runs now, for the overview; GET /api/runs/{run_id} one run with all its numbers."""
+them (see runs.py). GET /api/runs gives a page of them, newest first, each round with its steps; GET /api/runs/{run_id}
+one run with all its numbers."""
 
 from datetime import datetime, timedelta
 from typing import Annotated, Any, Literal
@@ -56,11 +56,6 @@ class Runs(BaseModel):
     page_size: int
 
 
-class LatestRuns(BaseModel):
-    round: RunWithSteps | None  # the newest round, with its steps; None before the first
-    running: list[Run]  # every step going now, in a round or started by hand, the longest going first
-
-
 # A round is lost once neither it nor any of its steps has said anything for LOST_AFTER: it says nothing itself
 # between its start and its end
 COLUMNS = sql.SQL("""
@@ -80,14 +75,6 @@ STEPS = sql.SQL(
     "SELECT {columns}, {numbers} FROM runs AS r WHERE r.round_id = ANY(%(rounds)s) ORDER BY r.started_at, r.id"
 )
 ONE = sql.SQL("SELECT {columns}, {numbers} FROM runs AS r WHERE r.id = %(id)s")
-LAST_ROUND = sql.SQL(
-    "SELECT {columns}, {numbers} FROM runs AS r WHERE r.step = 'round' ORDER BY r.started_at DESC, r.id DESC LIMIT 1"
-)
-# The steps whose rows say they're running, but not the lost ones
-RUNNING = sql.SQL("""
-    SELECT * FROM (SELECT {columns}, {numbers} FROM runs AS r WHERE r.outcome = 'running' AND r.step <> 'round') AS going
-    WHERE going.outcome = 'running' ORDER BY going.started_at, going.id
-""")
 TOP = sql.SQL("r.round_id IS NULL")  # rounds, and the runs started by hand
 OF_STEP = sql.SQL("r.step = %(step)s")
 
@@ -131,29 +118,6 @@ async def runs(
         found = await with_steps(conn, found)
         (total,) = await (await conn.execute(COUNT.format(where=where), values)).fetchone()
     return Runs(runs=found, total=total, page_size=PAGE_SIZE)
-
-
-# Before /api/runs/{run_id}, which would take "latest" for a run's ID
-@router.get(
-    "/api/runs/latest",
-    responses=failures(
-        {
-            401: "not_signed_in: no session, or it ended",
-            403: "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
-        }
-    ),
-)
-async def latest_runs(request: Request, _: Admin) -> LatestRuns:
-    """The newest round with its steps, and every step going now, in a round or started by hand"""
-    values = {"lost_after": LOST_AFTER}
-    async with request.state.pool.connection() as conn:
-        cursor = conn.cursor(row_factory=class_row(RunWithSteps))
-        last = await (await cursor.execute(LAST_ROUND.format(columns=COLUMNS, numbers=LISTED), values)).fetchone()
-        if last is not None:
-            (last,) = await with_steps(conn, [last])
-        cursor = conn.cursor(row_factory=class_row(Run))
-        running = await (await cursor.execute(RUNNING.format(columns=COLUMNS, numbers=LISTED), values)).fetchall()
-    return LatestRuns(round=last, running=running)
 
 
 @router.get(

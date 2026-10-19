@@ -9,7 +9,7 @@
     "signOut": "Выйти"
   },
   "home": {
-    "title": "Обзор",
+    "title": "Activity",
     "greeting": "Здравствуйте, {name}!",
     "empty": "Здесь пока ничего нет."
   },
@@ -25,7 +25,7 @@
     }
   },
   "nav": {
-    "overview": "Обзор",
+    "activity": "Activity",
     "toggle": "Показать или скрыть меню"
   },
   "youtube": {

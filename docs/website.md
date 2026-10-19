@@ -108,15 +108,14 @@ the most (7,000).
 
 `/api/runs` gives admins the rows of the `runs` table (see [How monitoring works](monitoring.md#rounds)), 20 at a time,
 newest first: the rounds, each with its steps in the order they ran, and the runs started by hand; with `step`, only
-that step's runs, in rounds or by hand. `/api/runs/latest` is the newest round, with its steps, and every step going
-now (no page of the site asks for it); `/api/runs/{id}` is one run with all its numbers, or a round with its steps. Lists leave out the
-numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own page has them.
+that step's runs, in rounds or by hand; `/api/runs/{id}` is one run with all its numbers, or a round with its steps.
+Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own page has them.
 - A run writes its numbers every few seconds while it works, so a row that still says running but hasn't changed for 5
   minutes belongs to a run killed outright (out of memory, the machine going down), which never wrote how it ended: the
   API gives it as lost. A round is lost once neither it nor any of its steps has changed for 5 minutes.
-- Each lookup has an index of its own in `schema.sql`: the rounds and the runs by hand, a step's runs, a round's steps,
-  and the rows still running. Pages are picked and counted from them, so they stay quick as rows pile up: about 900 a
-  day, with a round every 15 minutes.
+- Each lookup has an index of its own in `schema.sql`: the rounds and the runs by hand, a step's runs, and a round's
+  steps. Pages are picked and counted from them, so they stay quick as rows pile up: about 900 a day, with a round every
+  15 minutes.
 
 ## The site
 
@@ -145,11 +144,12 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   inside a page comes after Next has begun sending it: a 200, followed only by the browser's scripts. The site's server
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
 - Admins have a menu at the side (shadcn's sidebar) and no bar above the page, which takes the window's whole width
-  (each page keeps its own: the overview 1,280 px at most, a YouTube channel's page 1,284 px as YouTube's): the
-  overview, YouTube and Telegram, and at its foot who's signed in, with the language and signing out. On a wide screen it's a strip 72 px wide, always there, as YouTube's narrow
-  menu: each item its icon (24 px) with its name under it. On a phone it slides in over the page, where a thin bar opens
-  it (on YouTube's pages, the ☰ in YouTube's top bar; on Telegram's, the ☰ over the chat list, which a wide screen
-  doesn't show: there, only a search's ← comes in beside the field).
+  (each page keeps its own: the activity 1,280 px at most, a YouTube channel's page 1,284 px as YouTube's): the
+  activity, YouTube and Telegram, and at its foot who's signed in, with the language and signing out. On a wide screen
+  it's a strip 79 px wide, always there, as YouTube's narrow menu: each item a square of 70 px, its icon (24 px) with
+  its name under it. On a phone it slides in over the page, where a thin bar opens it (on YouTube's pages, the ☰ in
+  YouTube's top bar; on Telegram's, the ☰ over the chat list, which a wide screen doesn't show: there, only a search's ←
+  comes in beside the field).
 - Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
   middle-click opens it in a new tab, as a link does.
 - YouTube's channel list keeps its search, order and page in the address, so Back, Forward and a copied link bring it
@@ -236,14 +236,14 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
   number on hover; times are how long ago (3 h ago, 2 days ago; in YouTube's lists 3d ago, 3 дн. назад, as YouTube's
   lists write them), with the exact time on hover. How long ago is counted in the browser: Next won't let the server
   read the clock while it prerenders a page, so the server writes the date and the browser turns it into how long ago.
-- The overview has how much the database holds, then the activity: the runs as the API gives them, one step's alone
-  with its list of steps, a page at a time (the address keeps the step and the page: `/?step=…&page=…`; `/activity`,
-  where it used to be, sends there with them), and a page for each run (`/activity/{id}`) with every number it kept:
-  its items' outcomes, its requests and proxy tests by outcome, its proxies; for `uv run proxies`, a row per list. A
-  step's texts are looked up by its name as the table has it (`activity.steps` in the messages), and so are its
-  outcomes' names; one without a text shows as it is. The activity's first page, and any page with a run going, are
-  asked for again every 5 s. How long a run has been going is counted to its last update, not to the
-  browser's clock, so the server's page and the browser's agree.
+- The activity, the home page (`/`), has how much the database holds, then the runs as the API gives them, one step's
+  alone with its list of steps, a page at a time (the address keeps the step and the page: `/?step=…&page=…`;
+  `/activity`, where they used to be, sends there with them), and a page for each run (`/activity/{id}`) with every
+  number it kept: its items' outcomes, its requests and proxy tests by outcome, its proxies; for `uv run proxies`, a row
+  per list. A step's texts are looked up by its name as the table has it (`activity.steps` in the messages), and so are
+  its outcomes' names; one without a text shows as it is. The runs' first page, and any page with a run going, are asked
+  for again every 5 s. How long a run has been going is counted to its last update, not to the browser's clock, so the
+  server's page and the browser's agree.
 - Channel pictures come from YouTube's image server at twice the size shown (192 px in the grid), not at the 900 px
   saved (114 KB), and Telegram's from its own, at the one size its pages give, 160 px (10 KB). Video covers come from
   YouTube's image server, loaded as they scroll into view: 640 × 480 (27 KB as WebP) in a channel's grids, or 480 × 360
@@ -261,9 +261,10 @@ numbers of each proxy list `uv run proxies` read (about 10 KB a run); its own pa
 - Counts are written by the site's own function (`src/lib/format.ts`), not the browser's `Intl`: Chrome's Uzbek data
   writes 55,859 where Node's writes 55 859, and the browser would rewrite what the server rendered.
 - The texts are in `web/messages/` (`ru.json`, `uz.json`, `en.json`): a key missing from one, or asked for by a page but
-  not there, fails the typecheck. The activity is only in English, whatever the language chosen, its numbers, dates and
-  times too: its texts are only in `en.json`, and the overview's activity and a run's page have an English frame of
-  their own (`EnglishOnly`).
+  not there, fails the typecheck. The activity's runs are only in English, whatever the language chosen, their numbers,
+  dates and times too: their texts are only in `en.json`, and the runs and a run's page have an English frame of their
+  own (`EnglishOnly`). Its name, Activity, is English in every language's file too; the database's numbers above the
+  runs are in the language chosen.
 - The font is Inter, Roboto on YouTube's pages, and Telegram Web's on Telegram's (Roboto, or the system's on Apple's
   devices): Geist, Next's and shadcn's own, has no `ʻ`, which Uzbek writes oʻ and gʻ with; these have it.
 - `web/src/api/` is the API's client, generated from `openapi.json` (`pnpm api`), so an endpoint or a field the API

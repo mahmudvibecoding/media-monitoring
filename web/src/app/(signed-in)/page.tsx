@@ -10,7 +10,7 @@ import { toSearchParams } from "@/lib/address";
 import { serverClient, signedInUser } from "@/lib/api-server";
 import { getQueryClient } from "@/lib/query-client";
 
-// The home page: for admins, how much the database holds, then the activity, every run, as the address asks for
+// The home page: for admins, the activity, how much the database holds, then every run, as the address asks for
 // (?step=…&page=…); for customers, a greeting, as there's nothing of theirs yet
 export default async function Home({ searchParams }: PageProps<"/">) {
   const t = await getTranslations("home");
@@ -23,7 +23,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       </div>
     );
   }
-  const activity = await getTranslations({ locale: "en", namespace: "activity" }); // in English, as the whole activity
   const query = runsQuery(toSearchParams(await searchParams));
   const queryClient = getQueryClient();
   // So the page arrives with the numbers and the runs, both asked for at once
@@ -36,8 +35,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       <h1 className="text-lg font-semibold tracking-tight">{t("title")}</h1>
       <HydrationBoundary state={dehydrate(queryClient)}>
         <Status />
-        <section id="activity" className="scroll-mt-6 space-y-2">
-          <h2 className="font-medium text-muted-foreground">{activity("title")}</h2>
+        {/* The runs, in English, as the whole activity: a run's page goes back to them, and another page of them
+            starts at their top */}
+        <section id="activity" className="scroll-mt-6">
           <EnglishOnly>
             <Activity />
           </EnglishOnly>

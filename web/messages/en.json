@@ -9,7 +9,7 @@
     "signOut": "Sign out"
   },
   "home": {
-    "title": "Overview",
+    "title": "Activity",
     "greeting": "Hello, {name}!",
     "empty": "Nothing here yet."
   },
@@ -25,7 +25,7 @@
     }
   },
   "nav": {
-    "overview": "Overview",
+    "activity": "Activity",
     "toggle": "Show or hide the menu"
   },
   "youtube": {

@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { changeLocale, changePassword, health, latestRuns, me, type Options, ready, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, LatestRunsData, LatestRunsError, LatestRunsResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { changeLocale, changePassword, health, me, type Options, ready, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -581,26 +581,6 @@ export const runsInfiniteOptions = (options?: Options<RunsData>) => {
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };
-
-export const latestRunsQueryKey = (options?: Options<LatestRunsData>) => createQueryKey('latestRuns', options);
-
-/**
- * Latest Runs
- *
- * The newest round with its steps, and every step going now, in a round or started by hand
- */
-export const latestRunsOptions = (options?: Options<LatestRunsData>) => queryOptions<LatestRunsResponse, LatestRunsError, LatestRunsResponse, ReturnType<typeof latestRunsQueryKey>>({
-    queryFn: async ({ queryKey, signal }) => {
-        const { data } = await latestRuns({
-            ...options,
-            ...queryKey[0],
-            signal,
-            throwOnError: true
-        });
-        return data;
-    },
-    queryKey: latestRunsQueryKey(options)
-});
 
 export const runDetailsQueryKey = (options: Options<RunDetailsData>) => createQueryKey('runDetails', options);
 

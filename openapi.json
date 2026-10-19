@@ -1489,75 +1489,6 @@
         }
       }
     },
-    "/api/runs/latest": {
-      "get": {
-        "summary": "Latest Runs",
-        "description": "The newest round with its steps, and every step going now, in a round or started by hand",
-        "operationId": "latest_runs",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LatestRuns"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Something went wrong on the server",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "not_signed_in: no session, or it ended",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The database doesn't answer",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "504": {
-            "description": "A query ran past the time limit",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/runs/{run_id}": {
       "get": {
         "summary": "Run Details",
@@ -1793,33 +1724,6 @@
           "status"
         ],
         "title": "Health"
-      },
-      "LatestRuns": {
-        "properties": {
-          "round": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/RunWithSteps"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "running": {
-            "items": {
-              "$ref": "#/components/schemas/Run"
-            },
-            "type": "array",
-            "title": "Running"
-          }
-        },
-        "type": "object",
-        "required": [
-          "round",
-          "running"
-        ],
-        "title": "LatestRuns"
       },
       "LocaleChange": {
         "properties": {
