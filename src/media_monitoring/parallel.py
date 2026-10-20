@@ -48,6 +48,7 @@ OWN_FREE, OWN_BUSY = 0.6, 0.9
 # BATCHES_EACH of them; at least BATCH_MIN, as each batch costs a look at what's already saved for its items
 BATCH, BATCH_MIN, BATCHES_EACH = 1000, 50, 20
 DISPATCH_EVERY = 0.02  # seconds between the main process's looks for processes that want another batch
+FIRST_WAIT = 30  # seconds the first batches wait at most for every process to ask for one (see dispatch)
 DELIVERY_WAIT = 0.2  # seconds a worker process waits for its batch at a time, between looks at whether to stop
 
 # Shared by all processes: whether the run is stopping early (set by the main process on Ctrl+C or kill, see run),
@@ -80,6 +81,7 @@ class Collector:
     give_up = True  # end the run when every proxy rests at once (see Pool)
     follow_lists = False  # take in refreshed proxy lists while running
     report_every = 10  # seconds between progress lines
+    batch = BATCH  # items in a batch at most (see dispatch)
     item_name = "items"
     saved_name = "saved"
     argument = None  # what the command line's argument may be, for its help; None if it takes none
@@ -396,7 +398,15 @@ def relay(news_out, news_in, done):
 def dispatch(items, size, counter, batches, done):
     """In the main process, until done is set: every DISPATCH_EVERY seconds, gives each worker process that has asked
     for another batch (WANTED, see next_batch) the next size items, in their order, through its own queue, or None once
-    none are left."""
+    none are left. The first batches wait until every process has asked for one (FIRST_WAIT at most, in case one never
+    does), so that they go to the processes in turn: the first items can be the biggest, and a process that starts
+    sooner would take them all."""
+    deadline = time.monotonic() + FIRST_WAIT
+    while not all(counter[SHARES + PER_SHARE * share + WANTED] for share in range(len(batches))):
+        if done.wait(DISPATCH_EVERY):
+            return
+        if time.monotonic() > deadline:
+            break
     given, start = [0] * len(batches), 0
     while not done.wait(DISPATCH_EVERY):
         for share, batch_queue in enumerate(batches):
@@ -494,7 +504,7 @@ def collect(collector_class, collector, argument, record):
         return
 
     processes = max(1, min(PROCESSES, (len(vpn) or len(plain)) // 50, math.ceil(len(items) / 1000)))
-    size = max(BATCH_MIN, min(BATCH, math.ceil(len(items) / (processes * BATCHES_EACH))))
+    size = min(collector.batch, max(BATCH_MIN, min(BATCH, math.ceil(len(items) / (processes * BATCHES_EACH)))))
     print(f"working with {processes} processes, which take {size} {collector.item_name} at a time...")
     record.update(processes=processes, batch=size)
     context = get_context("spawn")

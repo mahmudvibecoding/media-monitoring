@@ -33,6 +33,8 @@ NOTICE = re.compile(r'class="tgme_widget_message [^"]*\bservice_message\b')
 DIV = re.compile(r"<(/?)div\b")
 LINK = re.compile(r"<a\b([^>]*)>(.*?)</a>", re.S)
 HREF = re.compile(r'href="([^"]*)"')
+BREAK = re.compile(r"<br\s*/?>")
+TAG = re.compile(r"<[^>]+>")
 
 
 class Message(NamedTuple):
@@ -86,8 +88,7 @@ async def light(session, proxy, url):
 def text(fragment):
     """A piece of a page as plain text: line breaks kept, links as the text they show (the address itself, or the
     @username), emoji as characters, and no NUL characters (PostgreSQL can't store them)."""
-    fragment = re.sub(r"<br\s*/?>", "\n", fragment)
-    return html.unescape(re.sub(r"<[^>]+>", "", fragment)).replace("\x00", "").strip()
+    return html.unescape(TAG.sub("", BREAK.sub("\n", fragment))).replace("\x00", "").strip()
 
 
 def count(shown):
@@ -151,8 +152,8 @@ def link(match):
     address, shown = HREF.search(match.group(1)), match.group(2)
     if not address:
         return shown
-    url, words = html.unescape(address.group(1)), text(shown)
-    if not url.startswith(("http://", "https://")) or words.startswith(("@", "#", "$", "/")):
+    url = html.unescape(address.group(1))  # the link's text only when it's needed: many links are hashtags
+    if not url.startswith(("http://", "https://")) or (words := text(shown)).startswith(("@", "#", "$", "/")):
         return shown  # a hashtag's search, a phone number, an e-mail address, a @username, a command
     if bare(url) == bare(words):
         return shown

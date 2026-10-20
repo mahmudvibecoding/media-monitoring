@@ -46,13 +46,14 @@ everything again, in this order.
 8. **Telegram messages** (`telegram messages`). Read every Telegram channel's new messages, and keep those with
    text (see [Telegram](#telegram)).
 
-Each step loads what it needs from the database, works as fast as the proxies answer, saves as it goes, and
-stops. On the 52-core server the work is split between up to 48 processes (four cores stay free for
-sing-box), each with up to 500 items in progress at a time. The items go out in batches of up to 1,000 (fewer in a
-small run, so that each process takes about 20): a process asks for the next batch once few of its last one's items
-are left to start, so one whose proxies work faster takes more, and none sits idle while another still has many left.
-With fixed equal shares, the last 57,000 of 8 million videos in a comments run took 2 of its 7 minutes, a few
-processes working alone; with batches, 46 s, 35 of them on a single video.
+Each step loads what it needs from the database, works as fast as the proxies answer, saves as it goes, and stops.
+On the 52-core server the work is split between up to 48 processes (four cores stay free for sing-box), each with up
+to 500 items in progress at a time. The items go out in batches of up to 1,000 (fewer in a small run, so that each
+process takes about 20): a process asks for the next batch once few of its last one's items are left to start, so
+one whose proxies work faster takes more, and none sits idle while another still has many left. The first batches
+wait until every process has asked for one, so that they go to the processes in turn: a step can put its biggest
+items first. With fixed equal shares, the last 57,000 of 8 million videos in a comments run took 2 of its 7 minutes,
+a few processes working alone; with batches, 46 s, 35 of them on a single video.
 
 Every round, every `uv run proxies` and every run of a step, whether in a round or by hand, leaves a row in the
 `runs` table (`src/media_monitoring/runs.py`):
@@ -210,15 +211,24 @@ letters first, as far as each needs:
   its last one are: a channel posting photos without captions for years would bring few letters for many pages.
   Letters are counted without links, as `letters()` in `schema.sql` does; each channel keeps the count of its saved
   messages' letters, which a trigger adds to whichever step saves them.
+- **Or everything.** `telegram history all` reads every channel back to its first message, the channels with the
+  most left first, one channel at a time to each process in turn. Each process keeps about 1,000 pages asked for at
+  once, shared among its channels as what each has left to read is of what they all have left (up to 300 for one
+  channel): the channels a process reads end about together, the biggest don't run on alone at the end, and
+  whatever a process has left keeps it busy. Letters aren't counted along the way.
 - **The messages before the oldest one read.** That's the request a channel's page makes as you scroll up: 20
   messages before a given one, or an empty answer before the first. After two pages one after another, a channel
   keeps up to 10 pages asked for at once, starting 20 IDs apart, but no more than the letters and messages it still
-  lacks need at the rate its pages brought them so far.
-- **It goes on where it stopped.** How far back each channel is read (`history_from`; 0 once its first message is
-  reached) is saved with its messages, in one transaction, and only as far as the pages read without a gap; the
-  next run starts there. The messages with text are kept as `telegram messages` keeps them, those already saved
-  skipped, and the channel's last message doesn't move. Hidden pages and moved usernames are handled as in
-  `telegram messages`, failed channels asked again at the end.
+  lacks need at the rate its pages brought them so far. No page starts below 1, since Telegram answers a request for
+  the messages before 0 with the newest ones: a page starting 20 IDs or fewer above 0 holds all that's left. An
+  empty answer is asked for twice more, 5 seconds apart, before it counts as the first message: in a test, a page
+  440,000 IDs above a channel's first message came back empty once, and the read stopped there for good.
+- **It goes on where it stopped.** What a read brings is saved every two seconds as it goes, with how far back each
+  channel is read now (`history_from`; 0 once its first message is reached), in one transaction, and only as far as
+  the pages read without a gap; the next run starts there. A long read holds little in memory. The messages with
+  text are kept as `telegram messages` keeps them, those already saved skipped, and the channel's last message
+  doesn't move. Hidden pages and moved usernames are handled as in `telegram messages`, failed channels asked again
+  at the end.
 
 Its first runs, on October 18, 2026, went to 1,000 letters (101,107 channels in 389 seconds), then part of the way
 to 100,000, then to 10,000 letters and 100 messages: 251,375 channels in 765 seconds, at about 4,900 pages a second,
