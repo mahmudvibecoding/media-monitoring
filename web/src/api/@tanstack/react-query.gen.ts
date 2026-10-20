@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { changeLocale, changePassword, health, me, type Options, ready, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, ReadyData, ReadyError, ReadyResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { addOrganization, addPerson, changeLocale, changeOrganization, changePassword, changePerson, health, me, type Options, organizationDetails, organizations, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -601,6 +601,145 @@ export const runDetailsOptions = (options: Options<RunDetailsData>) => queryOpti
     },
     queryKey: runDetailsQueryKey(options)
 });
+
+export const organizationsQueryKey = (options?: Options<OrganizationsData>) => createQueryKey('organizations', options);
+
+/**
+ * Organizations
+ *
+ * Every customer organization, by name, with how many people each has.
+ */
+export const organizationsOptions = (options?: Options<OrganizationsData>) => queryOptions<OrganizationsResponse, OrganizationsError, OrganizationsResponse, ReturnType<typeof organizationsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await organizations({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: organizationsQueryKey(options)
+});
+
+/**
+ * Add Organization
+ *
+ * Adds a customer organization, without people yet.
+ */
+export const addOrganizationMutation = (options?: Partial<Options<AddOrganizationData>>): UseMutationOptions<AddOrganizationResponse, AddOrganizationError, Options<AddOrganizationData>> => {
+    const mutationOptions: UseMutationOptions<AddOrganizationResponse, AddOrganizationError, Options<AddOrganizationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addOrganization({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const organizationDetailsQueryKey = (options: Options<OrganizationDetailsData>) => createQueryKey('organizationDetails', options);
+
+/**
+ * Organization Details
+ *
+ * An organization and its people.
+ */
+export const organizationDetailsOptions = (options: Options<OrganizationDetailsData>) => queryOptions<OrganizationDetailsResponse, OrganizationDetailsError, OrganizationDetailsResponse, ReturnType<typeof organizationDetailsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await organizationDetails({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: organizationDetailsQueryKey(options)
+});
+
+/**
+ * Change Organization
+ *
+ * Renames an organization, or disables or enables it: disabled, its people's sessions end at once, and they can't
+ * sign in until it's enabled again.
+ */
+export const changeOrganizationMutation = (options?: Partial<Options<ChangeOrganizationData>>): UseMutationOptions<ChangeOrganizationResponse, ChangeOrganizationError, Options<ChangeOrganizationData>> => {
+    const mutationOptions: UseMutationOptions<ChangeOrganizationResponse, ChangeOrganizationError, Options<ChangeOrganizationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await changeOrganization({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Add Person
+ *
+ * Adds a person to an organization, as a customer, with a temporary password: it's in the answer, this once, for
+ * the admin to pass on, and it's to be changed at the first sign-in.
+ */
+export const addPersonMutation = (options?: Partial<Options<AddPersonData>>): UseMutationOptions<AddPersonResponse, AddPersonError, Options<AddPersonData>> => {
+    const mutationOptions: UseMutationOptions<AddPersonResponse, AddPersonError, Options<AddPersonData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addPerson({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Change Person
+ *
+ * Renames a customer, or disables or enables them: disabled, their sessions end at once, and they can't sign in
+ * until enabled again.
+ */
+export const changePersonMutation = (options?: Partial<Options<ChangePersonData>>): UseMutationOptions<ChangePersonResponse, ChangePersonError, Options<ChangePersonData>> => {
+    const mutationOptions: UseMutationOptions<ChangePersonResponse, ChangePersonError, Options<ChangePersonData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await changePerson({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Reset Password
+ *
+ * Gives a customer a new temporary password, in the answer this once, for the admin to pass on: their sessions
+ * end, and they change it at their next sign-in.
+ */
+export const resetPasswordMutation = (options?: Partial<Options<ResetPasswordData>>): UseMutationOptions<ResetPasswordResponse, ResetPasswordError, Options<ResetPasswordData>> => {
+    const mutationOptions: UseMutationOptions<ResetPasswordResponse, ResetPasswordError, Options<ResetPasswordData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await resetPassword({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 export const healthQueryKey = (options?: Options<HealthData>) => createQueryKey('health', options);
 

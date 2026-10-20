@@ -26,7 +26,8 @@
   },
   "nav": {
     "activity": "Activity",
-    "toggle": "Menyuni koʻrsatish yoki yashirish"
+    "toggle": "Menyuni koʻrsatish yoki yashirish",
+    "customers": "Mijozlar"
   },
   "youtube": {
     "search": "Qidiruv",
@@ -132,6 +133,40 @@
     "lastPost": "Oxirgi post",
     "savedMessages": "Saqlangan xabarlar"
   },
+  "customers": {
+    "title": "Mijozlar",
+    "empty": "Hozircha mijozlar yoʻq.",
+    "newName": "Tashkilot nomi",
+    "add": "Mijoz qoʻshish",
+    "adding": "Qoʻshilmoqda…",
+    "name": "Nomi",
+    "people": "Xodimlar",
+    "added": "Qoʻshilgan",
+    "status": "Holati",
+    "active": "Faol",
+    "disabled": "Oʻchirilgan",
+    "rename": "Nomini oʻzgartirish",
+    "save": "Saqlash",
+    "cancel": "Bekor qilish",
+    "disable": "Oʻchirish",
+    "enable": "Yoqish",
+    "confirmDisable": "«{name}» oʻchirilsinmi? Uning barcha xodimlari darhol tizimdan chiqariladi va tashkilot qayta yoqilmaguncha kira olmaydi.",
+    "confirmDisablePerson": "{name} oʻchirilsinmi? U darhol tizimdan chiqariladi va qayta yoqilmaguncha kira olmaydi.",
+    "noPeople": "Hozircha xodimlar yoʻq: birinchisini quyida qoʻshing.",
+    "email": "Pochta",
+    "language": "Til",
+    "lastSignIn": "Oxirgi kirish",
+    "never": "Kirmagan",
+    "temporary": "Vaqtinchalik parol",
+    "newPassword": "Yangi parol",
+    "addPerson": "Xodim qoʻshish",
+    "personName": "Ism va familiya",
+    "passwordFor": "{name} uchun vaqtinchalik parol",
+    "passwordNote": "U faqat hozir koʻrsatiladi — uni yetkazing. Birinchi kirishda parolni almashtirish kerak boʻladi.",
+    "copy": "Nusxalash",
+    "copied": "Nusxalandi",
+    "close": "Yopish"
+  },
   "common": {
     "loading": "Yuklanmoqda…",
     "more": "Toʻliq koʻrsatish",
@@ -182,7 +217,11 @@
     "not_signed_in": "Siz tizimga kirmagansiz.",
     "must_change_password": "Avval vaqtinchalik parolni almashtiring.",
     "forbidden": "Ruxsat yetarli emas.",
-    "cross_site": "Boshqa saytdan kelgan soʻrov rad etildi."
+    "cross_site": "Boshqa saytdan kelgan soʻrov rad etildi.",
+    "name_taken": "Bunday nomli tashkilot allaqachon bor",
+    "email_taken": "Bu pochta bilan hisob allaqachon bor",
+    "invalid_name": "Nomini kiriting",
+    "invalid_email": "Bu pochta manzili emas"
   },
   "notFound": {
     "title": "Sahifa topilmadi",

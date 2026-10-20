@@ -1,6 +1,7 @@
 """Accounts: signing in and out, who's signed in, and changing one's own password (/api/auth/...), and the checks other
 endpoints use to require someone signed in, or an admin. An account is an admin, who sees and manages everything, or a
-customer, a person who sees what's theirs; app.sql has their tables.
+customer, a person in an organization, who sees what's its own (organizations.py manages them); app.sql has their
+tables. A disabled account, or a customer of a disabled organization, can't sign in, and its sessions end.
 
 Signing in starts a session: a random token in a cookie that the page's scripts can't read, that's sent only over
 HTTPS and not with requests that start on another site, and of which the database keeps only a hash. A session lasts
@@ -47,6 +48,7 @@ class Me(BaseModel):
     role: Literal["admin", "customer"]
     locale: Literal["ru", "uz", "en"]
     must_change_password: bool  # a password an admin set: to be changed before anything else
+    organization: str | None = None  # a customer's organization's name; an admin has none
 
 
 class SignIn(BaseModel):
@@ -104,11 +106,11 @@ async def same_origin(request: Request) -> None:
 
 
 SESSION_USER = """
-    SELECT u.id, u.email, u.name, u.role, u.locale, u.must_change_password,
+    SELECT u.id, u.email, u.name, u.role, u.locale, u.must_change_password, o.name AS organization,
         s.last_used_at < now() - %(touch)s AS untouched
-    FROM app.sessions s JOIN app.users u ON u.id = s.user_id
+    FROM app.sessions s JOIN app.users u ON u.id = s.user_id LEFT JOIN app.organizations o ON o.id = u.organization_id
     WHERE s.token_hash = %(hash)s AND s.expires_at > now() AND s.last_used_at > now() - %(idle)s
-        AND u.disabled_at IS NULL
+        AND u.disabled_at IS NULL AND o.disabled_at IS NULL
 """
 
 
@@ -171,9 +173,11 @@ async def record_failure(conn, email: str, ip: str | None) -> None:
     await conn.execute("DELETE FROM app.sign_in_failures WHERE at < now() - interval '1 day'")
 
 
+# An account, disabled if it is or if its organization is
 USER_BY_EMAIL = """
-    SELECT id, email, name, role, locale, must_change_password, password_hash, disabled_at
-    FROM app.users WHERE lower(email) = lower(%s)
+    SELECT u.id, u.email, u.name, u.role, u.locale, u.must_change_password, u.password_hash, o.name AS organization,
+        coalesce(u.disabled_at, o.disabled_at) AS disabled_at
+    FROM app.users u LEFT JOIN app.organizations o ON o.id = u.organization_id WHERE lower(u.email) = lower(%s)
 """
 START_SESSION = """
     INSERT INTO app.sessions (token_hash, user_id, expires_at, ip, user_agent)
@@ -290,9 +294,14 @@ async def change_locale(body: LocaleChange, user: SignedIn, request: Request) ->
         await conn.execute("UPDATE app.users SET locale = %s WHERE id = %s", [body.locale, user.id])
 
 
+def temporary_password() -> str:
+    """A password for an admin to pass on, to be changed at the first sign-in"""
+    return secrets.token_urlsafe(12)
+
+
 def add_admin(database_url: str, email: str, name: str) -> str:
     """Adds an admin with a temporary password, which they're to change at their first sign-in, and returns it"""
-    password = secrets.token_urlsafe(12)
+    password = temporary_password()
     with psycopg.connect(database_url, autocommit=True) as conn:
         conn.execute(
             "INSERT INTO app.users (email, name, role, password_hash) VALUES (%s, %s, 'admin', %s)",

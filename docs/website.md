@@ -32,8 +32,9 @@ to keep it fresh.
 
 ### Accounts
 
-An account is an admin or a customer, each a person; there's no signing up (`uv run api add-admin` adds an admin on
-the server). Signing in (`/api/auth/sign-in`) starts a session:
+An account is an admin or a customer, each a person; a customer belongs to an organization (see
+[Customers](#customers)). There's no signing up: admins add customers on the site, and `uv run api add-admin` adds an
+admin on the server. Signing in (`/api/auth/sign-in`) starts a session:
 - Its token is in a cookie that page scripts can't read, sent only over HTTPS and not with requests that start on other
   sites; the database keeps only the token's hash, so the table alone can't be used to sign in.
 - A session lasts up to 30 days and ends after 7 days unused; signing out, a password change (for the other sessions)
@@ -43,6 +44,17 @@ the server). Signing in (`/api/auth/sign-in`) starts a session:
 - After 10 failures for an email, or 50 from an address, within 15 minutes, sign-ins wait (429).
 - A request that changes something, from another site's page (its Origin header), is refused.
 - Sign-ins, failures, sign-outs and password changes go into the log, with the address, never a password.
+
+### Customers
+
+`/api/organizations` gives admins the customers' organizations (a company or an office), by name, each with how many
+people it has. Admins add one, rename it, or disable and enable it (`/api/organizations/{id}`): disabled, its people's
+sessions end at once, and they can't sign in until it's enabled again. `/api/organizations/{id}/people` adds a person
+to one, as a customer, with a temporary password that's in the answer this once, for the admin to pass on and for them
+to change at their first sign-in. `/api/people/{id}` renames, disables or enables a customer, and
+`/api/people/{id}/password` gives one a new temporary password, ending their sessions. Names have their extra spaces
+taken out; organizations' names and emails can't repeat, whatever the case of their letters; nothing is deleted. The
+organizations are in `app.organizations`, and each customer's row in `app.users` names theirs.
 
 ### YouTube
 
@@ -146,11 +158,18 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
 - Admins have a menu at the side (shadcn's sidebar) and no bar above the page, which takes the window's whole width
   (each page keeps its own: the activity 1,280 px at most, a YouTube channel's page 1,284 px as YouTube's): the
-  activity, YouTube and Telegram, and at its foot who's signed in, with the language and signing out. On a wide screen
-  it's a strip 79 px wide, always there, as YouTube's narrow menu: each item a square of 70 px, its icon (24 px) with
-  its name under it. On a phone it slides in over the page, where a thin bar opens it (on YouTube's pages, the ☰ in
-  YouTube's top bar; on Telegram's, the ☰ over the chat list, which a wide screen doesn't show: there, only a search's ←
-  comes in beside the field).
+  activity, YouTube, Telegram and the customers, and at its foot who's signed in, with the language and signing out.
+  On a wide screen it's a strip 79 px wide, always there, as YouTube's narrow menu: each item a square of 70 px, its
+  icon (24 px) with its name under it. On a phone it slides in over the page, where a thin bar opens it (on YouTube's
+  pages, the ☰ in YouTube's top bar; on Telegram's, the ☰ over the chat list, which a wide screen doesn't show: there,
+  only a search's ← comes in beside the field).
+- The customers' pages, for admins: the organizations, by name, with how many people each has, when it was added and
+  whether it's disabled, under a field that adds one and opens its page. There, its name (renamed in place) and its
+  state, with the button that disables or enables it (after a confirmation); its people, with their language, their
+  last sign-in and whether they still have a temporary password, each with a button for a new temporary password and
+  one that disables or enables them; and a form that adds a person. A temporary password shows once, above the people,
+  with a button that copies it. A customer sees only a greeting for now, with their organization's name beside theirs
+  at the top.
 - Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
   middle-click opens it in a new tab, as a link does.
 - YouTube's channel list keeps its search, order and page in the address, so Back, Forward and a copied link bring it

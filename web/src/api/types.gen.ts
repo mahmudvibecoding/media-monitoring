@@ -5,6 +5,17 @@ export type ClientOptions = {
 };
 
 /**
+ * AddedPerson
+ */
+export type AddedPerson = {
+    person: Person;
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * Error
  */
 export type Error = {
@@ -84,6 +95,89 @@ export type Me = {
      * Must Change Password
      */
     must_change_password: boolean;
+    /**
+     * Organization
+     */
+    organization?: string | null;
+};
+
+/**
+ * NewOrganization
+ */
+export type NewOrganization = {
+    /**
+     * Name
+     */
+    name: string;
+};
+
+/**
+ * NewPerson
+ */
+export type NewPerson = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Locale
+     */
+    locale?: 'ru' | 'uz' | 'en';
+};
+
+/**
+ * Organization
+ */
+export type Organization = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * People
+     */
+    people: number;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Disabled
+     */
+    disabled: boolean;
+};
+
+/**
+ * OrganizationChange
+ */
+export type OrganizationChange = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Disabled
+     */
+    disabled?: boolean | null;
+};
+
+/**
+ * OrganizationDetails
+ */
+export type OrganizationDetails = {
+    organization: Organization;
+    /**
+     * People
+     */
+    people: Array<Person>;
 };
 
 /**
@@ -98,6 +192,58 @@ export type PasswordChange = {
      * New
      */
     new: string;
+};
+
+/**
+ * Person
+ */
+export type Person = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Locale
+     */
+    locale: 'ru' | 'uz' | 'en';
+    /**
+     * Must Change Password
+     */
+    must_change_password: boolean;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Last Sign In At
+     */
+    last_sign_in_at: string | null;
+    /**
+     * Disabled
+     */
+    disabled: boolean;
+};
+
+/**
+ * PersonChange
+ */
+export type PersonChange = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Disabled
+     */
+    disabled?: boolean | null;
 };
 
 /**
@@ -402,6 +548,16 @@ export type TelegramMessages = {
      * Page Size
      */
     page_size: number;
+};
+
+/**
+ * TemporaryPassword
+ */
+export type TemporaryPassword = {
+    /**
+     * Password
+     */
+    password: string;
 };
 
 /**
@@ -1565,6 +1721,376 @@ export type RunDetailsResponses = {
 };
 
 export type RunDetailsResponse = RunDetailsResponses[keyof RunDetailsResponses];
+
+export type OrganizationsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/organizations';
+};
+
+export type OrganizationsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type OrganizationsError = OrganizationsErrors[keyof OrganizationsErrors];
+
+export type OrganizationsResponses = {
+    /**
+     * Response Organizations
+     *
+     * Successful Response
+     */
+    200: Array<Organization>;
+};
+
+export type OrganizationsResponse = OrganizationsResponses[keyof OrganizationsResponses];
+
+export type AddOrganizationData = {
+    body: NewOrganization;
+    path?: never;
+    query?: never;
+    url: '/api/organizations';
+};
+
+export type AddOrganizationErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * name_taken: an organization has that name
+     */
+    409: Error;
+    /**
+     * invalid_name: the name is empty
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type AddOrganizationError = AddOrganizationErrors[keyof AddOrganizationErrors];
+
+export type AddOrganizationResponses = {
+    /**
+     * Successful Response
+     */
+    201: Organization;
+};
+
+export type AddOrganizationResponse = AddOrganizationResponses[keyof AddOrganizationResponses];
+
+export type OrganizationDetailsData = {
+    body?: never;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: number;
+    };
+    query?: never;
+    url: '/api/organizations/{organization_id}';
+};
+
+export type OrganizationDetailsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such organization
+     */
+    404: Error;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type OrganizationDetailsError = OrganizationDetailsErrors[keyof OrganizationDetailsErrors];
+
+export type OrganizationDetailsResponses = {
+    /**
+     * Successful Response
+     */
+    200: OrganizationDetails;
+};
+
+export type OrganizationDetailsResponse = OrganizationDetailsResponses[keyof OrganizationDetailsResponses];
+
+export type ChangeOrganizationData = {
+    body: OrganizationChange;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: number;
+    };
+    query?: never;
+    url: '/api/organizations/{organization_id}';
+};
+
+export type ChangeOrganizationErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such organization
+     */
+    404: Error;
+    /**
+     * name_taken: another organization has that name
+     */
+    409: Error;
+    /**
+     * invalid_name: the name is empty
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type ChangeOrganizationError = ChangeOrganizationErrors[keyof ChangeOrganizationErrors];
+
+export type ChangeOrganizationResponses = {
+    /**
+     * Successful Response
+     */
+    200: Organization;
+};
+
+export type ChangeOrganizationResponse = ChangeOrganizationResponses[keyof ChangeOrganizationResponses];
+
+export type AddPersonData = {
+    body: NewPerson;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: number;
+    };
+    query?: never;
+    url: '/api/organizations/{organization_id}/people';
+};
+
+export type AddPersonErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such organization
+     */
+    404: Error;
+    /**
+     * email_taken: an account has that email
+     */
+    409: Error;
+    /**
+     * invalid_name: the name is empty; invalid_email: that isn't an email address
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type AddPersonError = AddPersonErrors[keyof AddPersonErrors];
+
+export type AddPersonResponses = {
+    /**
+     * Successful Response
+     */
+    201: AddedPerson;
+};
+
+export type AddPersonResponse = AddPersonResponses[keyof AddPersonResponses];
+
+export type ChangePersonData = {
+    body: PersonChange;
+    path: {
+        /**
+         * Person Id
+         */
+        person_id: number;
+    };
+    query?: never;
+    url: '/api/people/{person_id}';
+};
+
+export type ChangePersonErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such customer
+     */
+    404: Error;
+    /**
+     * invalid_name: the name is empty
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type ChangePersonError = ChangePersonErrors[keyof ChangePersonErrors];
+
+export type ChangePersonResponses = {
+    /**
+     * Successful Response
+     */
+    200: Person;
+};
+
+export type ChangePersonResponse = ChangePersonResponses[keyof ChangePersonResponses];
+
+export type ResetPasswordData = {
+    body?: never;
+    path: {
+        /**
+         * Person Id
+         */
+        person_id: number;
+    };
+    query?: never;
+    url: '/api/people/{person_id}/password';
+};
+
+export type ResetPasswordErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such customer
+     */
+    404: Error;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type ResetPasswordError = ResetPasswordErrors[keyof ResetPasswordErrors];
+
+export type ResetPasswordResponses = {
+    /**
+     * Successful Response
+     */
+    200: TemporaryPassword;
+};
+
+export type ResetPasswordResponse = ResetPasswordResponses[keyof ResetPasswordResponses];
 
 export type HealthData = {
     body?: never;

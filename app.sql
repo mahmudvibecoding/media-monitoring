@@ -1,12 +1,24 @@
--- The website's own tables, in a schema of their own, apart from the collected data: accounts, their sessions and
--- failed sign-ins. The API's database user may read and change these, and nothing else (the collected data stays
--- read-only to it). Then the indexes the site's pages need on the collected data. Safe to run again: it only adds
--- what's missing. deploy.sh runs it before starting a new release.
+-- The website's own tables, in a schema of their own, apart from the collected data: customers' organizations,
+-- accounts, their sessions and failed sign-ins. The API's database user may read and change these, and nothing else
+-- (the collected data stays read-only to it). Then the indexes the site's pages need on the collected data. Safe to run
+-- again: it only adds what's missing. deploy.sh runs it before starting a new release.
 SET client_min_messages = warning;  -- don't list everything that already exists
 
 CREATE SCHEMA IF NOT EXISTS app;
 
--- Accounts: admins, who see and manage everything, and customers, each a person, who see what's theirs
+-- Customers: a company or an office, whose people sign in as customers and see only what's its own. Disabling one
+-- stops all its people signing in.
+CREATE TABLE IF NOT EXISTS app.organizations (
+    id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name         text NOT NULL,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    disabled_at  timestamptz                             -- NULL while its people may sign in
+);
+-- One organization per name, whatever the case of its letters
+CREATE UNIQUE INDEX IF NOT EXISTS organizations_name ON app.organizations (lower(name));
+
+-- Accounts: admins, who see and manage everything, and customers, each a person in an organization, who see what's
+-- its own
 CREATE TABLE IF NOT EXISTS app.users (
     id                    bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     email                 text NOT NULL,
@@ -17,10 +29,17 @@ CREATE TABLE IF NOT EXISTS app.users (
     locale                text NOT NULL DEFAULT 'ru' CHECK (locale IN ('ru', 'uz', 'en')),
     disabled_at           timestamptz,                    -- NULL while the account may sign in
     created_at            timestamptz NOT NULL DEFAULT now(),
-    last_sign_in_at       timestamptz
+    last_sign_in_at       timestamptz,
+    organization_id       bigint REFERENCES app.organizations  -- a customer's; an admin has none
 );
+ALTER TABLE app.users ADD COLUMN IF NOT EXISTS organization_id bigint REFERENCES app.organizations;
+ALTER TABLE app.users DROP CONSTRAINT IF EXISTS users_customer_organization;
+ALTER TABLE app.users ADD CONSTRAINT users_customer_organization
+    CHECK ((role = 'customer') = (organization_id IS NOT NULL));
 -- One account per email, whatever the case of its letters
 CREATE UNIQUE INDEX IF NOT EXISTS users_email ON app.users (lower(email));
+-- An organization's people
+CREATE INDEX IF NOT EXISTS users_organization ON app.users (organization_id) WHERE organization_id IS NOT NULL;
 
 -- Each signed-in browser. Only the hash of its token is kept: the token itself is only in the browser's cookie, so
 -- this table alone can't be used to sign in.

@@ -26,7 +26,8 @@
   },
   "nav": {
     "activity": "Activity",
-    "toggle": "Show or hide the menu"
+    "toggle": "Show or hide the menu",
+    "customers": "Customers"
   },
   "youtube": {
     "search": "Search",
@@ -291,6 +292,40 @@
     "skipped": "Skipped",
     "downloadFailed": "Failed to download: {error}"
   },
+  "customers": {
+    "title": "Customers",
+    "empty": "No customers yet.",
+    "newName": "Organization name",
+    "add": "Add customer",
+    "adding": "Adding…",
+    "name": "Name",
+    "people": "People",
+    "added": "Added",
+    "status": "Status",
+    "active": "Active",
+    "disabled": "Disabled",
+    "rename": "Rename",
+    "save": "Save",
+    "cancel": "Cancel",
+    "disable": "Disable",
+    "enable": "Enable",
+    "confirmDisable": "Disable {name}? All its people will be signed out at once and can't sign in until it's enabled again.",
+    "confirmDisablePerson": "Disable {name}? They'll be signed out at once and can't sign in until enabled again.",
+    "noPeople": "No people yet: add the first one below.",
+    "email": "Email",
+    "language": "Language",
+    "lastSignIn": "Last sign-in",
+    "never": "Never",
+    "temporary": "Temporary password",
+    "newPassword": "New password",
+    "addPerson": "Add person",
+    "personName": "Full name",
+    "passwordFor": "Temporary password for {name}",
+    "passwordNote": "It's shown only now: pass it on. They'll change it at their first sign-in.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "close": "Close"
+  },
   "common": {
     "loading": "Loading…",
     "more": "Show more",
@@ -341,7 +376,11 @@
     "not_signed_in": "You're not signed in.",
     "must_change_password": "Change your temporary password first.",
     "forbidden": "You don't have access to this.",
-    "cross_site": "A request from another site was refused."
+    "cross_site": "A request from another site was refused.",
+    "name_taken": "An organization with this name already exists",
+    "email_taken": "An account with this email already exists",
+    "invalid_name": "Enter a name",
+    "invalid_email": "That isn't an email address"
   },
   "notFound": {
     "title": "Page not found",

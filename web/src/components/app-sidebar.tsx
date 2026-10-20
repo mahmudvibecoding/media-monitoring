@@ -1,6 +1,6 @@
 "use client";
 
-import { ActivityIcon, RadarIcon, SendIcon } from "lucide-react";
+import { ActivityIcon, Building2Icon, RadarIcon, SendIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { type ComponentType, useState } from "react";
@@ -37,10 +37,11 @@ const STRIP_ITEM = cn(
 const STRIP_SIDES = "group-data-[collapsible=icon]:px-1"; // 4 px from its sides, so that its items are 70 px squares
 const STRIP_GAPS = "group-data-[collapsible=icon]:gap-1"; // and apart, each a tile of its own
 
-// The admins' menu, at the side: the activity (with how much the database holds; a run's page too), YouTube and
-// Telegram, and at its foot who's signed in, with the language and signing out. On a wide screen it's a strip 79 px
-// wide, always there, as YouTube's narrow menu; on a phone it slides in over the page, with the site's name at its top,
-// and goes away once a page is chosen. The item clicked shows as the current one at once, while its page is on its way.
+// The admins' menu, at the side: the activity (with how much the database holds; a run's page too), YouTube, Telegram
+// and the customers, and at its foot who's signed in, with the language and signing out. On a wide screen it's a strip
+// 79 px wide, always there, as YouTube's narrow menu; on a phone it slides in over the page, with the site's name at
+// its top, and goes away once a page is chosen. The item clicked shows as the current one at once, while its page is on
+// its way.
 export function AppSidebar({ user }: { user: Me }) {
   const t = useTranslations();
   const pathname = usePathname();
@@ -69,6 +70,7 @@ export function AppSidebar({ user }: { user: Me }) {
             <Item href="/" also="/activity" icon={ActivityIcon} label={t("nav.activity")} {...item} />
             <Item href="/youtube/channels" also="/youtube" icon={YouTubeIcon} label="YouTube" {...item} />
             <Item href="/telegram/channels" also="/telegram" icon={SendIcon} label="Telegram" {...item} />
+            <Item href="/customers" icon={Building2Icon} label={t("nav.customers")} {...item} />
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

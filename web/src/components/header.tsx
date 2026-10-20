@@ -6,7 +6,8 @@ import { PageLink } from "@/components/page-link";
 import { SignOutButton } from "@/components/sign-out-button";
 
 // The top of the pages without the admins' menu (the sign-in page, customers' pages): the site's name, the language
-// menu, and, once someone's signed in, their name and signing out. Admins have all this in their menu instead.
+// menu, and, once someone's signed in, their name (a customer's with their organization's) and signing out. Admins have
+// all this in their menu instead.
 export async function Header({ user }: { user?: Me }) {
   const t = await getTranslations();
   return (
@@ -19,7 +20,9 @@ export async function Header({ user }: { user?: Me }) {
           <LanguageSwitcher />
           {user && (
             <>
-              <span className="hidden text-muted-foreground sm:inline">{user.name}</span>
+              <span className="hidden text-muted-foreground sm:inline">
+                {user.organization ? `${user.name} · ${user.organization}` : user.name}
+              </span>
               <SignOutButton />
             </>
           )}

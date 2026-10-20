@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, ReadyData, ReadyErrors, ReadyResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
+import type { AddOrganizationData, AddOrganizationErrors, AddOrganizationResponses, AddPersonData, AddPersonErrors, AddPersonResponses, ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangeOrganizationData, ChangeOrganizationErrors, ChangeOrganizationResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, ChangePersonData, ChangePersonErrors, ChangePersonResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, OrganizationDetailsData, OrganizationDetailsErrors, OrganizationDetailsResponses, OrganizationsData, OrganizationsErrors, OrganizationsResponses, ReadyData, ReadyErrors, ReadyResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -165,6 +165,87 @@ export const runs = <ThrowOnError extends boolean = false>(options?: Options<Run
  * One run with all its numbers (for "uv run proxies", each list's too); a round with its steps
  */
 export const runDetails = <ThrowOnError extends boolean = false>(options: Options<RunDetailsData, ThrowOnError>): RequestResult<RunDetailsResponses, RunDetailsErrors, ThrowOnError> => (options.client ?? client).get<RunDetailsResponses, RunDetailsErrors, ThrowOnError>({ url: '/api/runs/{run_id}', ...options });
+
+/**
+ * Organizations
+ *
+ * Every customer organization, by name, with how many people each has.
+ */
+export const organizations = <ThrowOnError extends boolean = false>(options?: Options<OrganizationsData, ThrowOnError>): RequestResult<OrganizationsResponses, OrganizationsErrors, ThrowOnError> => (options?.client ?? client).get<OrganizationsResponses, OrganizationsErrors, ThrowOnError>({ url: '/api/organizations', ...options });
+
+/**
+ * Add Organization
+ *
+ * Adds a customer organization, without people yet.
+ */
+export const addOrganization = <ThrowOnError extends boolean = false>(options: Options<AddOrganizationData, ThrowOnError>): RequestResult<AddOrganizationResponses, AddOrganizationErrors, ThrowOnError> => (options.client ?? client).post<AddOrganizationResponses, AddOrganizationErrors, ThrowOnError>({
+    url: '/api/organizations',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Organization Details
+ *
+ * An organization and its people.
+ */
+export const organizationDetails = <ThrowOnError extends boolean = false>(options: Options<OrganizationDetailsData, ThrowOnError>): RequestResult<OrganizationDetailsResponses, OrganizationDetailsErrors, ThrowOnError> => (options.client ?? client).get<OrganizationDetailsResponses, OrganizationDetailsErrors, ThrowOnError>({ url: '/api/organizations/{organization_id}', ...options });
+
+/**
+ * Change Organization
+ *
+ * Renames an organization, or disables or enables it: disabled, its people's sessions end at once, and they can't
+ * sign in until it's enabled again.
+ */
+export const changeOrganization = <ThrowOnError extends boolean = false>(options: Options<ChangeOrganizationData, ThrowOnError>): RequestResult<ChangeOrganizationResponses, ChangeOrganizationErrors, ThrowOnError> => (options.client ?? client).patch<ChangeOrganizationResponses, ChangeOrganizationErrors, ThrowOnError>({
+    url: '/api/organizations/{organization_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Add Person
+ *
+ * Adds a person to an organization, as a customer, with a temporary password: it's in the answer, this once, for
+ * the admin to pass on, and it's to be changed at the first sign-in.
+ */
+export const addPerson = <ThrowOnError extends boolean = false>(options: Options<AddPersonData, ThrowOnError>): RequestResult<AddPersonResponses, AddPersonErrors, ThrowOnError> => (options.client ?? client).post<AddPersonResponses, AddPersonErrors, ThrowOnError>({
+    url: '/api/organizations/{organization_id}/people',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Change Person
+ *
+ * Renames a customer, or disables or enables them: disabled, their sessions end at once, and they can't sign in
+ * until enabled again.
+ */
+export const changePerson = <ThrowOnError extends boolean = false>(options: Options<ChangePersonData, ThrowOnError>): RequestResult<ChangePersonResponses, ChangePersonErrors, ThrowOnError> => (options.client ?? client).patch<ChangePersonResponses, ChangePersonErrors, ThrowOnError>({
+    url: '/api/people/{person_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Reset Password
+ *
+ * Gives a customer a new temporary password, in the answer this once, for the admin to pass on: their sessions
+ * end, and they change it at their next sign-in.
+ */
+export const resetPassword = <ThrowOnError extends boolean = false>(options: Options<ResetPasswordData, ThrowOnError>): RequestResult<ResetPasswordResponses, ResetPasswordErrors, ThrowOnError> => (options.client ?? client).post<ResetPasswordResponses, ResetPasswordErrors, ThrowOnError>({ url: '/api/people/{person_id}/password', ...options });
 
 /**
  * Health
