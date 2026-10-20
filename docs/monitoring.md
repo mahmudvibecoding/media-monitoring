@@ -142,9 +142,9 @@ half minutes, and reading every video's comments the first time took hours.
 
 ## Telegram
 
-`telegram_channels` holds the 298,077 public Uzbek Telegram channels in `telegram_channels.txt` (a channel's ID and
+`telegram_channels` holds the 294,408 public Uzbek Telegram channels in `telegram_channels.txt` (a channel's ID and
 username on each line), keyed by Telegram's ID for the channel: a list of channels found through their public pages
-(September 2026), without the 12,354 [deleted](#channels-deleted). Everything comes from those public pages,
+(September 2026), without the 16,023 [deleted](#channels-deleted). Everything comes from those public pages,
 `t.me/s/<username>`, which anyone can read without an account. They only work by username, so a channel that changes
 its username can't be followed any more.
 
@@ -248,6 +248,11 @@ On October 19, 72 more went, with their 541,225 messages: the channels that had 
 over the three days before (304 to 11,847 a day), mostly taxi ride ads, with shops and a betting-signals channel.
 After a three-day gap they had brought half of a run's new messages, and kept it running minutes after every other
 channel was done.
+
+On October 20, 3,669 more went, with their 464,552 messages: those whose language, as CLD2 finds it in their title,
+description and messages, wasn't Uzbek, Russian or English (1,802: Kazakh 484, many of them in fact Karakalpak, which
+CLD2 doesn't know; Turkish 285; Tajik 103; Persian 85; 845 in 80 others, many of them names in decorative letters), or
+couldn't be told (1,867).
 
 `telegram_channels.txt` doesn't have them, so they don't come back.
 
