@@ -82,6 +82,7 @@ class Collector:
     follow_lists = False  # take in refreshed proxy lists while running
     report_every = 10  # seconds between progress lines
     batch = BATCH  # items in a batch at most (see dispatch)
+    per_process = 1000  # items for each process at least: a smaller run has fewer processes
     item_name = "items"
     saved_name = "saved"
     argument = None  # what the command line's argument may be, for its help; None if it takes none
@@ -503,7 +504,7 @@ def collect(collector_class, collector, argument, record):
         record.end("failed", 'no proxies: "uv run proxies" gets them')
         return
 
-    processes = max(1, min(PROCESSES, (len(vpn) or len(plain)) // 50, math.ceil(len(items) / 1000)))
+    processes = max(1, min(PROCESSES, (len(vpn) or len(plain)) // 50, math.ceil(len(items) / collector.per_process)))
     size = min(collector.batch, max(BATCH_MIN, min(BATCH, math.ceil(len(items) / (processes * BATCHES_EACH)))))
     print(f"working with {processes} processes, which take {size} {collector.item_name} at a time...")
     record.update(processes=processes, batch=size)

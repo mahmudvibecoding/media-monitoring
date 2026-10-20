@@ -269,8 +269,9 @@ class History(Collector):
     def load(self, conn, argument):
         if argument == "all":
             self.everything = True
-            # One channel to a batch: at first each process takes one of the biggest in turn, not a batch of them
-            self.batch = 1
+            # One channel to a batch: at first each process takes one of the biggest in turn, not a batch of them.
+            # And a channel's whole history can be much to read: a few channels get every process too
+            self.batch = self.per_process = 1
             return conn.execute(LOAD_ALL).fetchall()
         targets = {"letters": int(argument or LETTERS), "messages": MESSAGES, "history": HISTORY}
         return conn.execute(LOAD, targets).fetchall()
