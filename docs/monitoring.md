@@ -220,20 +220,27 @@ letters first, as far as each needs:
   messages before a given one, or an empty answer before the first. After two pages one after another, a channel
   keeps up to 10 pages asked for at once, starting 20 IDs apart, but no more than the letters and messages it still
   lacks need at the rate its pages brought them so far. No page starts below 1, since Telegram answers a request for
-  the messages before 0 with the newest ones: a page starting 20 IDs or fewer above 0 holds all that's left. An
-  empty answer is asked for twice more, 5 seconds apart, before it counts as the first message: in a test, a page
-  440,000 IDs above a channel's first message came back empty once, and the read stopped there for good.
+  the messages before 0 with the newest ones: a page starting 20 IDs or fewer above 0 holds all that's left, and an
+  empty one starting there marks the first message. An empty answer higher up doesn't: while it's busy, Telegram
+  sometimes answers a page with nothing (in the first full run, about one channel in 450, the same page empty again
+  5 and 10 seconds later, with its messages hours later), and some channels' older messages are gone. The channel
+  keeps how far it's read, and the page is asked for again at the end of the run and by the next one.
 - **It goes on where it stopped.** What a read brings is saved every two seconds as it goes, with how far back each
   channel is read now (`history_from`; 0 once its first message is reached), in one transaction, and only as far as
   the pages read without a gap; the next run starts there. A long read holds little in memory. The messages with
   text are kept as `telegram messages` keeps them, those already saved skipped, and the channel's last message
-  doesn't move. Hidden pages and moved usernames are handled as in `telegram messages`, failed channels asked again
-  at the end.
+  doesn't move. Hidden pages and moved usernames are handled as in `telegram messages`; failed channels, and those
+  whose page came back empty high up, are asked again at the end.
 
 Its first runs, on October 18, 2026, went to 1,000 letters (101,107 channels in 389 seconds), then part of the way
 to 100,000, then to 10,000 letters and 100 messages: 251,375 channels in 765 seconds, at about 4,900 pages a second,
 saving 23.3 million messages. Then 184,941 channels had both, 118,038 had less but were read back to their first
 message, and the 36.5 million saved messages took 15 GB.
+
+The first full run, `telegram history all` on October 20, 2026, read 171,756 channels' 1.07 billion message IDs in
+2 hours 53 minutes, at about 5,000 pages and 41,000 saved messages a second, with all 52 cores busy (the collector's
+48 processes, sing-box and PostgreSQL), and saved 430 million messages: the messages table went from 15 GB to 222 GB.
+The channels with the longest histories are mostly shops, rentals and taxi boards posting ads.
 
 ### Languages
 

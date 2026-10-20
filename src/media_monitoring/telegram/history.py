@@ -36,11 +36,12 @@ HISTORY = 10_000
 # enough that answers don't wait so long for it that they time out. One channel takes MAX_WINDOW of them at most
 IN_FLIGHT = 1_000
 MAX_WINDOW = 300
-# A page that brings nothing older marks a channel's first message, and nothing before it is ever asked for again: so
-# it's asked for again EMPTY_AGAIN times, EMPTY_WAIT seconds apart, through other proxies. In a test, a page 440,000
-# IDs above a channel's first message came back empty once, and never again in 3,000 tries through proxies
-EMPTY_AGAIN = 2
-EMPTY_WAIT = 5
+# A page that brings nothing older only marks a channel's first message when it starts PAGE IDs or fewer above 0 (see
+# read_back). Higher up, Telegram sometimes answers a page with nothing while it's busy: in the first full run
+# (2026-10-20), about one channel in 450, though the page came back empty again 5 and 10 seconds later through other
+# proxies, and had its messages hours later. A channel's older messages can also be gone. Either way, the read ends
+# "empty" with the history read as far as that page, and the page is asked for again at the end of the run (see
+# finish) and by the next one.
 TEST_BEFORE = 1  # proxies are tested by asking for the messages before the first one: "" comes back
 LINK = re.compile(r"https?://\S+")
 NEW_HISTORY = """CREATE TEMP TABLE new_history (channel_id bigint, history_from integer) ON COMMIT DELETE ROWS"""
@@ -107,18 +108,19 @@ async def read_back(pool, session, channel, keep, tally, budget=None):
     texts are messages with text, oldest first, and read_to how far back the history is read without a gap (0 once
     nothing older is left); by then, every message with text from read_to on has gone to keep. tally counts the pages
     that brought messages, the messages with text and, with a target, their letters, as they come. Returns (outcome,
-    read_to, found, counted): outcome is "enough", "first message", "limit" (floor reached), "other channel" (the
-    username belongs to another channel now: nothing from that page on counts) or "failed" (a page failed every try:
-    the next run goes on from the last page read without a gap); read_to as above (start if nothing was read); found
-    the letters in the messages with text read (with a target), counted how many there were.
+    read_to, found, counted): outcome is "enough", "first message", "empty" (a page above the first PAGE IDs brought
+    nothing older: see the top of this file), "limit" (floor reached), "other channel" (the username belongs to
+    another channel now: nothing from that page on counts) or "failed" (a page failed every try); after "empty" or
+    "failed", the next read goes on from the last page read without a gap. read_to is as above (start if nothing was
+    read); found the letters in the messages with text read (with a target), counted how many there were.
 
     Each page needs the oldest message of the one before it, so a long read would go one page at a time. But a
     channel's message IDs are consecutive: after two pages one after another, a channel with more to read keeps
     several pages asked for at once (see window), the messages before base, base - PAGE, base - 2 * PAGE and so on,
     the next one going out as soon as one comes back. Each answer covers at least the PAGE IDs before where it starts
     (more where messages were deleted; duplicates are dropped): one that starts PAGE IDs or fewer above 0 holds all
-    that's left, and an empty one, once asked for again (see EMPTY_AGAIN), marks the channel's first message. The
-    history only counts as read as far back as the pages read without a gap."""
+    that's left, and an empty one starting there marks the channel's first message. The history only counts as read
+    as far back as the pages read without a gap."""
     channel_id, username, start, floor, need, want = channel
     texts, found, counted, pages = {}, 0, 0, 0
     read_to = start
@@ -164,18 +166,6 @@ async def read_back(pool, session, channel, keep, tally, budget=None):
             read_to = min(read_to, to)
             keep(done, read_to)
 
-    async def ask(before):
-        """The answer for the page before an ID (see EMPTY_AGAIN)."""
-        for again in range(EMPTY_AGAIN + 1):
-            if again:
-                await asyncio.sleep(EMPTY_WAIT)
-            outcome, answer = await pool.run(partial(fetch_before, session, username, before))
-            if outcome != "ok" or any(message.id < before for message in answer):
-                if again and outcome == "ok":
-                    tally["empty, then not"] += 1
-                break
-        return outcome, answer
-
     def result(outcome, to):
         if outcome != "other channel":
             hand_over(to, everything=True)
@@ -183,6 +173,11 @@ async def read_back(pool, session, channel, keep, tally, budget=None):
 
     def enough():
         return need is not None and found >= need and counted >= want
+
+    def nothing_before(page_start):
+        """The page starting before page_start brought nothing older: the channel's first message, or not (see the
+        top of this file)."""
+        return result("first message", 0) if page_start <= PAGE + 1 else result("empty", read_to)
 
     before = start
     left_before(before)
@@ -192,12 +187,12 @@ async def read_back(pool, session, channel, keep, tally, budget=None):
                 return result("enough", before)
             if before <= floor:
                 return result("limit", before)
-            outcome, answer = await ask(before)
+            outcome, answer = await pool.run(partial(fetch_before, session, username, before))
             if outcome != "ok":
                 return result("failed", before)
             oldest = take(answer, before)
             if oldest is None:
-                return result("first message", 0)
+                return nothing_before(before)
             before = oldest
             hand_over(before)
             left_before(before)
@@ -222,7 +217,8 @@ async def read_back(pool, session, channel, keep, tally, budget=None):
         def ask_more():
             nonlocal following
             while stop is None and not enough() and len(asked) < window() and base - following * PAGE > lowest:
-                asked[asyncio.ensure_future(ask(base - following * PAGE))] = following
+                page = pool.run(partial(fetch_before, session, username, base - following * PAGE))
+                asked[asyncio.ensure_future(page)] = following
                 following += 1
                 left_before(base - following * PAGE)
 
@@ -247,7 +243,7 @@ async def read_back(pool, session, channel, keep, tally, budget=None):
             for task in asked:  # left over only when a page belonged to another channel
                 task.cancel()
         if gapless in answered and answered[gapless] is None:
-            return result("first message", 0)
+            return nothing_before(base - gapless * PAGE)
         if gapless == following and base - following * PAGE <= lowest and floor <= 0:
             return result("first message", 0)  # every page came back, the last one with all that was left
         if enough():
@@ -288,7 +284,8 @@ class History(Collector):
     async def prepare(self, conn):
         self.budget = Budget()  # for the channels read with no target ("all")
         self.pending = []  # (channel_id, messages with text, how far back it's read now), as the reads hand them over
-        self.failed = []  # (the channel as it stands after its failed read, when it failed), to ask again (see finish)
+        # (the channel as it stands after a read that failed or came back empty, that outcome, when), to ask again
+        self.failed = []
         for table in (NEW_MESSAGES, NEW_HISTORY):
             await conn.execute(table)
 
@@ -297,8 +294,8 @@ class History(Collector):
 
     async def handle(self, pool, session, channel):
         outcome, after = await self.read(pool, session, channel)
-        if outcome == "failed":
-            self.failed.append((after, time.monotonic()))
+        if outcome in ("failed", "empty"):
+            self.failed.append((after, outcome, time.monotonic()))
         return outcome
 
     async def read(self, pool, session, channel):
@@ -317,23 +314,23 @@ class History(Collector):
         return outcome, (channel_id, username, read_to, floor, need, want)
 
     async def finish(self, pool, session):
-        """Ask the channels whose read failed once more, from where it stopped (see RETRY_AFTER). Those it reads no
-        longer count as failed."""
+        """Ask the channels whose read failed or came back empty (see the top of this file) once more, from where it
+        stopped (see RETRY_AFTER). They count with the outcome of this read."""
         gate = asyncio.Semaphore(self.concurrency)
 
-        async def again(channel, failed_at):
+        async def again(channel, first, ended_at):
             async with gate:
-                await asyncio.sleep(max(0, failed_at + RETRY_AFTER - time.monotonic()))
+                await asyncio.sleep(max(0, ended_at + RETRY_AFTER - time.monotonic()))
                 try:
-                    outcome, _ = await self.read(pool, session, channel)
+                    outcome, after = await self.read(pool, session, channel)
                 except NoProxiesLeft:
                     return
-            if outcome != "failed":
-                self.results["failed"] -= 1
-                self.results[outcome] += 1
-                self.results["read when asked again"] += 1
+            self.results[first] -= 1
+            self.results[outcome] += 1
+            if after[2] < channel[2]:  # it got further back
+                self.results["read further when asked again"] += 1
 
-        await asyncio.gather(*(again(channel, failed_at) for channel, failed_at in self.failed))
+        await asyncio.gather(*(again(*failed) for failed in self.failed))
 
     async def save(self, conn):
         """Write the messages handed over since the last save, and how far back their channels are read now, in one
@@ -365,9 +362,9 @@ class History(Collector):
                        f"{results['limit']} to {HISTORY:,} messages before their last one")
         how_long = "" if self.everything else f" ({results['letters']:,} letters)"
         return (f"{reached}, {results['other channel']} whose username now belongs to another channel, "
-                f"{results['failed']} failed even when asked again at the end (they go on from there next run; "
-                f"{results['read when asked again']} more were read then): {results['pages']} pages "
-                f"({results['empty, then not']} came back empty once, then not), "
+                f"{results['empty']} whose page above their first messages came back empty and {results['failed']} "
+                f"that failed, even when asked again at the end (they go on from there next run; "
+                f"{results['read further when asked again']} more were read further then): {results['pages']} pages, "
                 f"{results['messages with text']} messages with text{how_long}, {saved} saved")
 
 
