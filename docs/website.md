@@ -132,25 +132,25 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
 ## The site
 
 - Next.js 16 and React 19 in TypeScript, with shadcn/ui's components on Base UI.
-- Light only, and sober: white, near-black and greys, with color only for a status (running, stopped, failed). YouTube's
-  pages look like YouTube's own, in its sizes, measured on youtube.com: its font, Roboto, and its colors; its top bar,
-  which stays at the top as a page scrolls and from page to page, with a way up (from a video to its channel, from a
-  Short to its channel's Shorts, from a channel to the channels), its logo (the very one its site shows) and its search
-  box; its pills, chips, tabs and tooltips; its grids of covers, with the views by its play sign and how long ago the
-  short way (▷ 48K • 3d ago, as YouTube's lists write them now), the blue that comes round a card under the mouse, and
-  the white "New" on a video out less than a week beside another; its watch page, its Shorts' player, its channel's
-  About box and its Share box; and its red line along the top while the next page is on its way. Telegram's look like
-  Telegram Web's (web.telegram.org/a, measured there) as it looks on the visitor's device, which the browser's name
-  tells: in Roboto, or in the system's font and Apple's sizes on a Mac or an iPhone. Its default wallpaper (its four
-  colors blended as Telegram draws them, without its pattern) lies under its floating panels, with its corners rounder
-  at the ends where the browser can draw them (squircles): the chat list at the left, with its ☰ (the site's menu) and
-  its search field, its folders on a floating bar (the biggest channels, and the latest to post), and its rows, each
-  with its latest message and when, the open chat's blue; a chat's top bar floating over it, which, as the chat, takes
-  the chat's whole width, as in Telegram's desktop app (Telegram Web's keeps its chat to a column in the middle), its
-  bubbles at its left, in groups with their tails, its links as Telegram shows them (one hidden behind words as the
-  words), its dates, which stay at the top while it scrolls and fade once it stops, and its round button back down to
-  the newest messages; and its info panel, beside the chat or over it. A click ripples as in Telegram, and dates are
-  Telegram's words (14:05, Mon, Oct 9 in the list; Today, Yesterday, Thursday, October 9 over the messages).
+- Light only, and sober: white, near-black and greys, with color only for a status (running, stopped, failed) and the
+  menu's icons. YouTube's pages look like YouTube's own, in its sizes, measured on youtube.com: its font, Roboto, and
+  its colors; its top bar, which stays at the top as a page scrolls and from page to page, with a way up (from a video
+  to its channel, from a Short to its channel's Shorts, from a channel to the channels), its logo (the very one its site
+  shows) and its search box; its pills, chips, tabs and tooltips; its grids of covers, with the views by its play sign
+  and how long ago the short way (▷ 48K • 3d ago, as YouTube's lists write them now), the blue that comes round a card
+  under the mouse, and the white "New" on a video out less than a week beside another; its watch page, its Shorts'
+  player, its channel's About box and its Share box; and its red line along the top while the next page is on its way.
+  Telegram's look like Telegram Web's (web.telegram.org/a, measured there) as it looks on the visitor's device, which
+  the browser's name tells: in Roboto, or in the system's font and Apple's sizes on a Mac or an iPhone. Its default
+  wallpaper (its four colors blended as Telegram draws them, without its pattern) lies under its floating panels, with
+  its corners rounder at the ends where the browser can draw them (squircles): the chat list at the left, with its ☰
+  (the site's menu) and its search field, its folders on a floating bar (the biggest channels, and the latest to post),
+  and its rows, each with its latest message and when, the open chat's blue; a chat's top bar floating over it, which,
+  as the chat, takes the chat's whole width, as in Telegram's desktop app (Telegram Web's keeps its chat to a column in
+  the middle), its bubbles at its left, in groups with their tails, its links as Telegram shows them (one hidden behind
+  words as the words), its dates, which stay at the top while it scrolls and fade once it stops, and its round button
+  back down to the newest messages; and its info panel, beside the chat or over it. A click ripples as in Telegram, and
+  dates are Telegram's words (14:05, Mon, Oct 9 in the list; Today, Yesterday, Thursday, October 9 over the messages).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
@@ -158,11 +158,12 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
 - Admins have a menu at the side (shadcn's sidebar) and no bar above the page, which takes the window's whole width
   (each page keeps its own: the activity 1,280 px at most, a YouTube channel's page 1,284 px as YouTube's): the
-  activity, YouTube, Telegram and the customers, and at its foot who's signed in, with the language and signing out.
-  On a wide screen it's a strip 79 px wide, always there, as YouTube's narrow menu: each item a square of 70 px, its
-  icon (24 px) with its name under it. On a phone it slides in over the page, where a thin bar opens it (on YouTube's
-  pages, the ☰ in YouTube's top bar; on Telegram's, the ☰ over the chat list, which a wide screen doesn't show: there,
-  only a search's ← comes in beside the field).
+  activity, YouTube, Telegram and the customers, and at its foot who's signed in, with the language and signing out. On
+  a wide screen it's a strip 79 px wide, always there, as YouTube's narrow menu: each item a square of 70 px, its icon
+  (24 px) with its name under it, in near-black. The icons are in color: YouTube's and Telegram's own marks, the
+  activity's pulse in green, the customers (Material Symbols' "group") in violet. On a phone it slides in over the page,
+  where a thin bar opens it (on YouTube's pages, the ☰ in YouTube's top bar; on Telegram's, the ☰ over the chat list,
+  which a wide screen doesn't show: there, only a search's ← comes in beside the field).
 - The customers' pages, for admins: the organizations, by name, with how many people each has, when it was added and
   whether it's disabled, under a field that adds one and opens its page. There, its name (renamed in place) and its
   state, with the button that disables or enables it (after a confirmation); its people, with their language, their

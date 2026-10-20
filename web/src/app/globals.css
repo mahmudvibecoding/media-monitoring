@@ -229,7 +229,7 @@
 }
 
 /* Sober colors: white and near-black, grays for everything else, color only for status (success, warning,
-   destructive) */
+   destructive) and the side menu's icons. The menu's names are near-black too, as YouTube's menu, not gray. */
 :root {
   color-scheme: light;
   --background: #ffffff;
@@ -259,7 +259,7 @@
   --chart-5: #e4e4e7;
   --radius: 0.375rem;
   --sidebar: #fafafa;
-  --sidebar-foreground: #52525b;
+  --sidebar-foreground: #18181b;
   --sidebar-primary: #18181b;
   --sidebar-primary-foreground: #fafafa;
   --sidebar-accent: #ededef;
