@@ -26,13 +26,13 @@ function idOf(given: string): number | null {
   return /^\d{1,15}$/.test(given) ? Number(given) : null;
 }
 
-export async function generateMetadata({ params }: PageProps<"/customers/[id]">): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<"/users/[id]">): Promise<Metadata> {
   const found = await loadOrganization(idOf((await params).id));
   return found ? { title: found.organization.name } : {};
 }
 
 // One customer organization, for admins: its name and state, and its people; the page arrives with them
-export default async function CustomerPage({ params }: PageProps<"/customers/[id]">) {
+export default async function OrganizationPage({ params }: PageProps<"/users/[id]">) {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();
   const id = idOf((await params).id);
@@ -44,7 +44,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <PageLink
-        href="/customers"
+        href="/users"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ChevronLeftIcon className="size-4" />

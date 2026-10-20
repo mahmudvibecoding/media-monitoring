@@ -27,7 +27,7 @@
   "nav": {
     "activity": "Activity",
     "toggle": "Menyuni koʻrsatish yoki yashirish",
-    "customers": "Mijozlar"
+    "users": "Foydala\u00adnuvchilar"
   },
   "youtube": {
     "search": "Qidiruv",
@@ -134,10 +134,10 @@
     "savedMessages": "Saqlangan xabarlar"
   },
   "customers": {
-    "title": "Mijozlar",
-    "empty": "Hozircha mijozlar yoʻq.",
+    "title": "Foydalanuvchilar",
+    "empty": "Hozircha tashkilotlar yoʻq.",
     "newName": "Tashkilot nomi",
-    "add": "Mijoz qoʻshish",
+    "add": "Tashkilot qoʻshish",
     "adding": "Qoʻshilmoqda…",
     "name": "Nomi",
     "people": "Xodimlar",

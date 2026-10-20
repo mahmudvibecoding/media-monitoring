@@ -13,8 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("title") };
 }
 
-// The customers' organizations, for admins; the page arrives with them
-export default async function CustomersPage() {
+// The Users page: the customers' organizations, for admins; the page arrives with them
+export default async function UsersPage() {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();
   const t = await getTranslations("customers");

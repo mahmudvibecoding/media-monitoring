@@ -31,7 +31,7 @@ export function Customers() {
     const added = await add.mutateAsync({ body: { name } }).catch(() => null); // add.error shows what failed
     if (!added) return;
     await queryClient.invalidateQueries({ queryKey: organizationsQueryKey() });
-    router.push(`/customers/${added.id}`);
+    router.push(`/users/${added.id}`);
   }
 
   return (
@@ -70,7 +70,7 @@ export function Customers() {
               {data.map((organization) => (
                 <TableRow key={organization.id}>
                   <TableCell className="font-medium">
-                    <PageLink href={`/customers/${organization.id}`} className="hover:underline">
+                    <PageLink href={`/users/${organization.id}`} className="hover:underline">
                       {organization.name}
                     </PageLink>
                   </TableCell>

@@ -27,7 +27,7 @@
   "nav": {
     "activity": "Activity",
     "toggle": "Show or hide the menu",
-    "customers": "Customers"
+    "users": "Users"
   },
   "youtube": {
     "search": "Search",
@@ -293,10 +293,10 @@
     "downloadFailed": "Failed to download: {error}"
   },
   "customers": {
-    "title": "Customers",
-    "empty": "No customers yet.",
+    "title": "Users",
+    "empty": "No organizations yet.",
     "newName": "Organization name",
-    "add": "Add customer",
+    "add": "Add organization",
     "adding": "Adding…",
     "name": "Name",
     "people": "People",

@@ -158,19 +158,21 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   passes the visitor's session cookie on to the API (`src/lib/api-server.ts`).
 - Admins have a menu at the side (shadcn's sidebar) and no bar above the page, which takes the window's whole width
   (each page keeps its own: the activity 1,280 px at most, a YouTube channel's page 1,284 px as YouTube's): the
-  activity, YouTube, Telegram and the customers, and at its foot who's signed in, with the language and signing out. On
-  a wide screen it's a strip 79 px wide, always there, as YouTube's narrow menu: each item a square of 70 px, its icon
-  (24 px) with its name under it, in near-black. YouTube's and Telegram's icons are their own marks, in their colors,
-  the activity's is a pulse in light blue, and the customers' Material Symbols' "group", in near-black. On a phone it
-  slides in over the page, where a thin bar opens it (on YouTube's pages, the ☰ in YouTube's top bar; on Telegram's, the
-  ☰ over the chat list, which a wide screen doesn't show: there, only a search's ← comes in beside the field).
-- The customers' pages, for admins: the organizations, by name, with how many people each has, when it was added and
-  whether it's disabled, under a field that adds one and opens its page. There, its name (renamed in place) and its
-  state, with the button that disables or enables it (after a confirmation); its people, with their language, their
-  last sign-in and whether they still have a temporary password, each with a button for a new temporary password and
-  one that disables or enables them; and a form that adds a person. A temporary password shows once, above the people,
-  with a button that copies it. A customer sees only a greeting for now, with their organization's name beside theirs
-  at the top.
+  activity, YouTube, Telegram and the users (the customers' organizations and their people), and at its foot who's
+  signed in, with the language and signing out. On a wide screen it's a strip 79 px wide, always there, as YouTube's
+  narrow menu: each item a square of 70 px, its icon (24 px) with its name under it, in near-black, on two lines at most
+  (a name too long for one breaks at its soft hyphen: Пользо-ватели). YouTube's and Telegram's icons are their own
+  marks, in their colors, the activity's is a pulse in light blue, and the users' Material Symbols' "group", in
+  near-black. On a phone it slides in over the page, where a thin bar opens it (on YouTube's pages, the ☰ in YouTube's
+  top bar; on Telegram's, the ☰ over the chat list, which a wide screen doesn't show: there, only a search's ← comes in
+  beside the field).
+- The Users pages (`/users`), for admins: the customers' organizations, by name, with how many people each has, when it
+  was added and whether it's disabled, under a field that adds one and opens its page. There, its name (renamed in
+  place) and its state, with the button that disables or enables it (after a confirmation); its people, with their
+  language, their last sign-in and whether they still have a temporary password, each with a button for a new temporary
+  password and one that disables or enables them; and a form that adds a person. A temporary password shows once, above
+  the people, with a button that copies it. A customer sees only a greeting for now, with their organization's name
+  beside theirs at the top.
 - Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
   middle-click opens it in a new tab, as a link does.
 - YouTube's channel list keeps its search, order and page in the address, so Back, Forward and a copied link bring it
