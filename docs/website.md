@@ -160,10 +160,10 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   (each page keeps its own: the activity 1,280 px at most, a YouTube channel's page 1,284 px as YouTube's): the
   activity, YouTube, Telegram and the customers, and at its foot who's signed in, with the language and signing out. On
   a wide screen it's a strip 79 px wide, always there, as YouTube's narrow menu: each item a square of 70 px, its icon
-  (24 px) with its name under it, in near-black. The icons are in color: YouTube's and Telegram's own marks, the
-  activity's pulse in green, the customers (Material Symbols' "group") in violet. On a phone it slides in over the page,
-  where a thin bar opens it (on YouTube's pages, the ☰ in YouTube's top bar; on Telegram's, the ☰ over the chat list,
-  which a wide screen doesn't show: there, only a search's ← comes in beside the field).
+  (24 px) with its name under it, in near-black. YouTube's and Telegram's icons are their own marks, in their colors,
+  the activity's is a pulse in light blue, and the customers' Material Symbols' "group", in near-black. On a phone it
+  slides in over the page, where a thin bar opens it (on YouTube's pages, the ☰ in YouTube's top bar; on Telegram's, the
+  ☰ over the chat list, which a wide screen doesn't show: there, only a search's ← comes in beside the field).
 - The customers' pages, for admins: the organizations, by name, with how many people each has, when it was added and
   whether it's disabled, under a field that adds one and opens its page. There, its name (renamed in place) and its
   state, with the button that disables or enables it (after a confirmation); its people, with their language, their
