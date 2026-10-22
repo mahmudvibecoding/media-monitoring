@@ -283,6 +283,9 @@ couldn't be told (1,867).
 - **`telegram_channels`:** each channel's username, title, description, subscriber count, photo's address, its
   last message read (ID and time), how far back its history is read, the letters in its saved messages, and its
   main language.
+- **`telegram_channel_photos`:** each channel's photo itself, a JPEG of 160 × 160, with its md5 and the address it
+  was downloaded from. The first run that saved them, on October 22, 2026, downloaded 259,325 along with the 294,408
+  pages, in 4 minutes 36 seconds: 2.8 GB, about 10 KB each.
 - **`telegram_messages`:** each message with text: its ID (an album's first item), when it was published (to the
   second), the text, and when we first saw it.
 
