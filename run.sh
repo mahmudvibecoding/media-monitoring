@@ -164,6 +164,13 @@ setup() {
         until pg_isready -q; do sleep 1; done
     fi
 
+    # Automatic updates don't restart PostgreSQL: Ubuntu's needrestart would, once a library it uses is updated,
+    # cutting off a long job (an index being built, channels' histories being read). It takes the updates at its next
+    # restart, done by hand.
+    if [ -d /etc/needrestart/conf.d ] && [ ! -f /etc/needrestart/conf.d/postgresql.conf ]; then
+        echo '$nrconf{override_rc}{qr(^postgresql)} = 0;' | $sudo tee /etc/needrestart/conf.d/postgresql.conf > /dev/null
+    fi
+
     # The YouTube channels to monitor: the IDs in youtube_channels.txt (ones already in the database are skipped)
     if [ -f youtube_channels.txt ]; then
         grep -o 'UC[A-Za-z0-9_-]\{22\}' youtube_channels.txt | sort -u |

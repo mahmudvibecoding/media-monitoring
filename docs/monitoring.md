@@ -130,7 +130,9 @@ half minutes, and reading every video's comments the first time took hours.
 - **Fast saving.** Each process saves what it has collected every 2 seconds, with COPY, PostgreSQL's fastest
   way to add rows. Saves don't wait for the disk: a crash could lose the last second of them, which the next
   round collects again. `run.sh` also sets PostgreSQL up for heavy writing: a quarter of the memory as its
-  cache (at most 16 GB), a checkpoint every 30 minutes, and a compressed write log.
+  cache (at most 16 GB), a checkpoint every 30 minutes, and a compressed write log; and automatic updates
+  don't restart it (Ubuntu's needrestart would, after updating a library it uses, cutting off long jobs), so
+  it takes them at its next restart.
 - **Small answers.** Each request asks YouTube only for the fields it needs. If YouTube rejects 20 requests
   in a row, those fields have probably changed, and the run stops with an error instead of collecting
   nothing.
