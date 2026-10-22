@@ -148,24 +148,27 @@ class Channels(Collector):
 
     async def save(self, conn):
         """Returns how many channels changed."""
+        # A photo comes after its channel's details, which may have been saved already, at the save before
         rows, photos = self.pending[:], self.photos[:]
         self.pending.clear()
         self.photos.clear()
-        if not rows:
-            return 0
+        changed = 0
+        if not rows and not photos:
+            return changed
         async with conn.transaction(), conn.cursor() as cur:
-            async with cur.copy("COPY channels FROM STDIN") as copy:
-                for row in rows:
-                    await copy.write_row(row)
-            await cur.execute(SAVE)
-            changed = cur.rowcount
+            if rows:
+                async with cur.copy("COPY channels FROM STDIN") as copy:
+                    for row in rows:
+                        await copy.write_row(row)
+                await cur.execute(SAVE)
+                changed = cur.rowcount
             if photos:
                 async with cur.copy("COPY photos FROM STDIN") as copy:
                     copy.set_types(["bigint", "text", "bytea"])
                     for row in photos:
                         await copy.write_row(row)
                 await cur.execute(SAVE_PHOTOS)
-            return changed
+        return changed
 
     def summary(self, results, saved):
         return (f"{results['ok']} channels read ({saved} changed), {results['other channel']} whose username now "
