@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddOrganizationData, AddOrganizationErrors, AddOrganizationResponses, AddPersonData, AddPersonErrors, AddPersonResponses, ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangeOrganizationData, ChangeOrganizationErrors, ChangeOrganizationResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, ChangePersonData, ChangePersonErrors, ChangePersonResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, OrganizationDetailsData, OrganizationDetailsErrors, OrganizationDetailsResponses, OrganizationsData, OrganizationsErrors, OrganizationsResponses, ReadyData, ReadyErrors, ReadyResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
+import type { AddOrganizationData, AddOrganizationErrors, AddOrganizationResponses, AddPersonData, AddPersonErrors, AddPersonResponses, AddProjectData, AddProjectErrors, AddProjectResponses, ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangeOrganizationData, ChangeOrganizationErrors, ChangeOrganizationResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, ChangePersonData, ChangePersonErrors, ChangePersonResponses, ChangeProjectData, ChangeProjectErrors, ChangeProjectResponses, HealthData, HealthErrors, HealthResponses, MeData, MeErrors, MeResponses, OrganizationDetailsData, OrganizationDetailsErrors, OrganizationDetailsResponses, OrganizationsData, OrganizationsErrors, OrganizationsResponses, PreviewProjectData, PreviewProjectErrors, PreviewProjectResponses, ProjectDetailsData, ProjectDetailsErrors, ProjectDetailsResponses, ProjectsData, ProjectsErrors, ProjectsResponses, ReadyData, ReadyErrors, ReadyResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -246,6 +246,63 @@ export const changePerson = <ThrowOnError extends boolean = false>(options: Opti
  * end, and they change it at their next sign-in.
  */
 export const resetPassword = <ThrowOnError extends boolean = false>(options: Options<ResetPasswordData, ThrowOnError>): RequestResult<ResetPasswordResponses, ResetPasswordErrors, ThrowOnError> => (options.client ?? client).post<ResetPasswordResponses, ResetPasswordErrors, ThrowOnError>({ url: '/api/people/{person_id}/password', ...options });
+
+/**
+ * Projects
+ *
+ * An organization's projects, by name.
+ */
+export const projects = <ThrowOnError extends boolean = false>(options: Options<ProjectsData, ThrowOnError>): RequestResult<ProjectsResponses, ProjectsErrors, ThrowOnError> => (options.client ?? client).get<ProjectsResponses, ProjectsErrors, ThrowOnError>({ url: '/api/organizations/{organization_id}/projects', ...options });
+
+/**
+ * Add Project
+ *
+ * Adds a project to an organization, with its keywords and exclusions.
+ */
+export const addProject = <ThrowOnError extends boolean = false>(options: Options<AddProjectData, ThrowOnError>): RequestResult<AddProjectResponses, AddProjectErrors, ThrowOnError> => (options.client ?? client).post<AddProjectResponses, AddProjectErrors, ThrowOnError>({
+    url: '/api/organizations/{organization_id}/projects',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Project Details
+ *
+ * A project, with its keywords and exclusions.
+ */
+export const projectDetails = <ThrowOnError extends boolean = false>(options: Options<ProjectDetailsData, ThrowOnError>): RequestResult<ProjectDetailsResponses, ProjectDetailsErrors, ThrowOnError> => (options.client ?? client).get<ProjectDetailsResponses, ProjectDetailsErrors, ThrowOnError>({ url: '/api/projects/{project_id}', ...options });
+
+/**
+ * Change Project
+ *
+ * Renames a project, changes its keywords or exclusions, or disables or enables it.
+ */
+export const changeProject = <ThrowOnError extends boolean = false>(options: Options<ChangeProjectData, ThrowOnError>): RequestResult<ChangeProjectResponses, ChangeProjectErrors, ThrowOnError> => (options.client ?? client).patch<ChangeProjectResponses, ChangeProjectErrors, ThrowOnError>({
+    url: '/api/projects/{project_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Preview Project
+ *
+ * What keywords and exclusions find in the last 30 days, in Tashkent: Telegram's messages, YouTube's videos and
+ * their comments, each counted up to 1,000, with the newest 10, where the keywords are marked. Nothing is saved.
+ */
+export const previewProject = <ThrowOnError extends boolean = false>(options: Options<PreviewProjectData, ThrowOnError>): RequestResult<PreviewProjectResponses, PreviewProjectErrors, ThrowOnError> => (options.client ?? client).post<PreviewProjectResponses, PreviewProjectErrors, ThrowOnError>({
+    url: '/api/projects/preview',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Health

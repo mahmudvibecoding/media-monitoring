@@ -102,6 +102,43 @@ export type Me = {
 };
 
 /**
+ * Mention
+ */
+export type Mention = {
+    /**
+     * Published At
+     */
+    published_at: string | null;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Highlights
+     */
+    highlights: Array<[
+        number,
+        number
+    ]>;
+    /**
+     * Title
+     */
+    title: string | null;
+    /**
+     * Author
+     */
+    author: string | null;
+    /**
+     * Image
+     */
+    image: string | null;
+    /**
+     * Url
+     */
+    url: string;
+};
+
+/**
  * NewOrganization
  */
 export type NewOrganization = {
@@ -127,6 +164,24 @@ export type NewPerson = {
      * Locale
      */
     locale?: 'ru' | 'uz' | 'en';
+};
+
+/**
+ * NewProject
+ */
+export type NewProject = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Keywords
+     */
+    keywords: Array<string>;
+    /**
+     * Exclusions
+     */
+    exclusions?: Array<string>;
 };
 
 /**
@@ -247,6 +302,34 @@ export type PersonChange = {
 };
 
 /**
+ * Preview
+ */
+export type Preview = {
+    /**
+     * Days
+     */
+    days: number;
+    /**
+     * Sources
+     */
+    sources: Array<SourcePreview>;
+};
+
+/**
+ * PreviewRequest
+ */
+export type PreviewRequest = {
+    /**
+     * Keywords
+     */
+    keywords: Array<string>;
+    /**
+     * Exclusions
+     */
+    exclusions?: Array<string>;
+};
+
+/**
  * Problem
  */
 export type Problem = {
@@ -258,6 +341,62 @@ export type Problem = {
      * Message
      */
     message: string;
+};
+
+/**
+ * Project
+ */
+export type Project = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Organization Id
+     */
+    organization_id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Keywords
+     */
+    keywords: Array<string>;
+    /**
+     * Exclusions
+     */
+    exclusions: Array<string>;
+    /**
+     * Created At
+     */
+    created_at: string;
+    /**
+     * Disabled
+     */
+    disabled: boolean;
+};
+
+/**
+ * ProjectChange
+ */
+export type ProjectChange = {
+    /**
+     * Name
+     */
+    name?: string | null;
+    /**
+     * Keywords
+     */
+    keywords?: Array<string> | null;
+    /**
+     * Exclusions
+     */
+    exclusions?: Array<string> | null;
+    /**
+     * Disabled
+     */
+    disabled?: boolean | null;
 };
 
 /**
@@ -400,6 +539,28 @@ export type SignIn = {
      * Password
      */
     password: string;
+};
+
+/**
+ * SourcePreview
+ */
+export type SourcePreview = {
+    /**
+     * Source
+     */
+    source: 'telegram' | 'youtube_videos' | 'youtube_comments';
+    /**
+     * Count
+     */
+    count: number;
+    /**
+     * More Than
+     */
+    more_than: number | null;
+    /**
+     * Examples
+     */
+    examples: Array<Mention>;
 };
 
 /**
@@ -2091,6 +2252,277 @@ export type ResetPasswordResponses = {
 };
 
 export type ResetPasswordResponse = ResetPasswordResponses[keyof ResetPasswordResponses];
+
+export type ProjectsData = {
+    body?: never;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: number;
+    };
+    query?: never;
+    url: '/api/organizations/{organization_id}/projects';
+};
+
+export type ProjectsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such organization
+     */
+    404: Error;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type ProjectsError = ProjectsErrors[keyof ProjectsErrors];
+
+export type ProjectsResponses = {
+    /**
+     * Response Projects
+     *
+     * Successful Response
+     */
+    200: Array<Project>;
+};
+
+export type ProjectsResponse = ProjectsResponses[keyof ProjectsResponses];
+
+export type AddProjectData = {
+    body: NewProject;
+    path: {
+        /**
+         * Organization Id
+         */
+        organization_id: number;
+    };
+    query?: never;
+    url: '/api/organizations/{organization_id}/projects';
+};
+
+export type AddProjectErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such organization
+     */
+    404: Error;
+    /**
+     * project_name_taken: the organization has a project with that name
+     */
+    409: Error;
+    /**
+     * invalid_name: the name is empty; invalid_keyword: a keyword or exclusion has no words to find; no_keywords: there's no keyword
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type AddProjectError = AddProjectErrors[keyof AddProjectErrors];
+
+export type AddProjectResponses = {
+    /**
+     * Successful Response
+     */
+    201: Project;
+};
+
+export type AddProjectResponse = AddProjectResponses[keyof AddProjectResponses];
+
+export type ProjectDetailsData = {
+    body?: never;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: number;
+    };
+    query?: never;
+    url: '/api/projects/{project_id}';
+};
+
+export type ProjectDetailsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such project
+     */
+    404: Error;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type ProjectDetailsError = ProjectDetailsErrors[keyof ProjectDetailsErrors];
+
+export type ProjectDetailsResponses = {
+    /**
+     * Successful Response
+     */
+    200: Project;
+};
+
+export type ProjectDetailsResponse = ProjectDetailsResponses[keyof ProjectDetailsResponses];
+
+export type ChangeProjectData = {
+    body: ProjectChange;
+    path: {
+        /**
+         * Project Id
+         */
+        project_id: number;
+    };
+    query?: never;
+    url: '/api/projects/{project_id}';
+};
+
+export type ChangeProjectErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such project
+     */
+    404: Error;
+    /**
+     * project_name_taken: the organization has another project with that name
+     */
+    409: Error;
+    /**
+     * invalid_name: the name is empty; invalid_keyword: a keyword or exclusion has no words to find; no_keywords: there's no keyword
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type ChangeProjectError = ChangeProjectErrors[keyof ChangeProjectErrors];
+
+export type ChangeProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: Project;
+};
+
+export type ChangeProjectResponse = ChangeProjectResponses[keyof ChangeProjectResponses];
+
+export type PreviewProjectData = {
+    body: PreviewRequest;
+    path?: never;
+    query?: never;
+    url: '/api/projects/preview';
+};
+
+export type PreviewProjectErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins may do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_keyword: a keyword or exclusion has no words to find; no_keywords: there's no keyword
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type PreviewProjectError = PreviewProjectErrors[keyof PreviewProjectErrors];
+
+export type PreviewProjectResponses = {
+    /**
+     * Successful Response
+     */
+    200: Preview;
+};
+
+export type PreviewProjectResponse = PreviewProjectResponses[keyof PreviewProjectResponses];
 
 export type HealthData = {
     body?: never;

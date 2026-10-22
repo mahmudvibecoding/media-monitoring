@@ -18,6 +18,7 @@ import {
 import type { Person } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { StatusBadge } from "@/components/customers";
+import { Projects } from "@/components/projects";
 import { When } from "@/components/when";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -30,8 +31,8 @@ type Locale = Person["locale"];
 
 // One customer organization, for admins: its name (which can be changed), whether it's disabled (and the button that
 // disables or enables it, which signs its people out at once), then its people, each of whom can be given a new
-// temporary password or be disabled, and a form that adds one. A temporary password, a new person's or a new one,
-// shows once, above the people, to be passed on.
+// temporary password or be disabled, and a form that adds one, then its projects. A temporary password, a new
+// person's or a new one, shows once, above the people, to be passed on.
 export function Customer({ id }: { id: number }) {
   const t = useTranslations("customers");
   const queryClient = useQueryClient();
@@ -61,6 +62,7 @@ export function Customer({ id }: { id: number }) {
         )}
         <AddPerson id={id} refresh={refresh} show={setShown} />
       </section>
+      <Projects id={id} />
     </div>
   );
 }

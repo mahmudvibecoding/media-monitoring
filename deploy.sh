@@ -144,6 +144,12 @@ fi
 mkdir -p "$folder/web/.next/cache"
 chown -R "$WEB_USER:$WEB_USER" "$folder/web/.next/cache"
 
+# The letters app.sql's matching turns Cyrillic into (deploy/uzbek_latin.rules), where PostgreSQL reads its
+# dictionaries from: before app.sql, which makes the dictionary. The texts' word indexes hold what these rules gave
+# when they were built, so after a change to them, they're to be built again (see app.sql)
+sharedir=$(runuser -u postgres -- psql -Atc "SELECT setting FROM pg_config WHERE name = 'SHAREDIR'")
+install -m 644 "$folder/deploy/uzbek_latin.rules" "$sharedir/tsearch_data/uzbek_latin.rules"
+
 # The website's own tables, as this commit has them (app.sql adds only what's missing), before anything new runs: in
 # one transaction, so a change that fails partway leaves nothing behind
 echo "### updating the website's tables"

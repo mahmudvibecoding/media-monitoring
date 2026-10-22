@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addOrganization, addPerson, changeLocale, changeOrganization, changePassword, changePerson, health, me, type Options, organizationDetails, organizations, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, health, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -731,6 +731,104 @@ export const resetPasswordMutation = (options?: Partial<Options<ResetPasswordDat
     const mutationOptions: UseMutationOptions<ResetPasswordResponse, ResetPasswordError, Options<ResetPasswordData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await resetPassword({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const projectsQueryKey = (options: Options<ProjectsData>) => createQueryKey('projects', options);
+
+/**
+ * Projects
+ *
+ * An organization's projects, by name.
+ */
+export const projectsOptions = (options: Options<ProjectsData>) => queryOptions<ProjectsResponse, ProjectsError, ProjectsResponse, ReturnType<typeof projectsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await projects({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: projectsQueryKey(options)
+});
+
+/**
+ * Add Project
+ *
+ * Adds a project to an organization, with its keywords and exclusions.
+ */
+export const addProjectMutation = (options?: Partial<Options<AddProjectData>>): UseMutationOptions<AddProjectResponse, AddProjectError, Options<AddProjectData>> => {
+    const mutationOptions: UseMutationOptions<AddProjectResponse, AddProjectError, Options<AddProjectData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addProject({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const projectDetailsQueryKey = (options: Options<ProjectDetailsData>) => createQueryKey('projectDetails', options);
+
+/**
+ * Project Details
+ *
+ * A project, with its keywords and exclusions.
+ */
+export const projectDetailsOptions = (options: Options<ProjectDetailsData>) => queryOptions<ProjectDetailsResponse, ProjectDetailsError, ProjectDetailsResponse, ReturnType<typeof projectDetailsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await projectDetails({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: projectDetailsQueryKey(options)
+});
+
+/**
+ * Change Project
+ *
+ * Renames a project, changes its keywords or exclusions, or disables or enables it.
+ */
+export const changeProjectMutation = (options?: Partial<Options<ChangeProjectData>>): UseMutationOptions<ChangeProjectResponse, ChangeProjectError, Options<ChangeProjectData>> => {
+    const mutationOptions: UseMutationOptions<ChangeProjectResponse, ChangeProjectError, Options<ChangeProjectData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await changeProject({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Preview Project
+ *
+ * What keywords and exclusions find in the last 30 days, in Tashkent: Telegram's messages, YouTube's videos and
+ * their comments, each counted up to 1,000, with the newest 10, where the keywords are marked. Nothing is saved.
+ */
+export const previewProjectMutation = (options?: Partial<Options<PreviewProjectData>>): UseMutationOptions<PreviewProjectResponse, PreviewProjectError, Options<PreviewProjectData>> => {
+    const mutationOptions: UseMutationOptions<PreviewProjectResponse, PreviewProjectError, Options<PreviewProjectData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await previewProject({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

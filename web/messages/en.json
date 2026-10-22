@@ -326,6 +326,36 @@
     "copied": "Copied",
     "close": "Close"
   },
+  "projects": {
+    "title": "Projects",
+    "add": "Add project",
+    "empty": "No projects yet: add the first one.",
+    "newProject": "New project",
+    "name": "Name",
+    "namePlaceholder": "Project name",
+    "keywords": "Keywords",
+    "keywordsHint": "One per line. A keyword is found at the start of words, in Latin or Cyrillic: Toshkent also finds Toshkentda and Тошкент. In double quotes, only as a whole word: \"IT\".",
+    "exclusions": "Exclusions",
+    "exclusionsHint": "One per line. A text with any of these is left out.",
+    "noWords": "Line {line} has no letters or digits",
+    "keywordCount": "{count, plural, one {# keyword} other {# keywords}}",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "status": "Status",
+    "disable": "Disable",
+    "enable": "Enable",
+    "confirmDisable": "Disable the project “{name}”?",
+    "preview": "In the last 30 days",
+    "previewHint": "Type keywords to see what they find.",
+    "noMatches": "Nothing found in the last 30 days.",
+    "more": "{count}+",
+    "telegram": "Telegram",
+    "youtube_videos": "YouTube videos",
+    "youtube_comments": "YouTube comments",
+    "open": "Open"
+  },
   "common": {
     "loading": "Loading…",
     "more": "Show more",
@@ -380,7 +410,10 @@
     "name_taken": "An organization with this name already exists",
     "email_taken": "An account with this email already exists",
     "invalid_name": "Enter a name",
-    "invalid_email": "That isn't an email address"
+    "invalid_email": "That isn't an email address",
+    "project_name_taken": "A project with this name already exists",
+    "invalid_keyword": "A keyword has no letters or digits",
+    "no_keywords": "Add at least one keyword"
   },
   "notFound": {
     "title": "Page not found",

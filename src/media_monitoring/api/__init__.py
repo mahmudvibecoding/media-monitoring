@@ -1,8 +1,8 @@
 """The web API: "uv run api" serves it on 127.0.0.1:8000, which only the server itself can reach (see settings.py).
 Every path starts with /api, and /api/docs lists them, for admins. Failures are answered as errors.py says, and the logs
 are JSON (see logs.py). Accounts and signing in are in accounts.py, customers' organizations and their people in
-organizations.py. "uv run api openapi" writes the API's description to openapi.json instead, and "uv run api add-admin
-<email> <name>" adds an admin."""
+organizations.py, and the projects they're monitored for in projects.py. "uv run api openapi" writes the API's
+description to openapi.json instead, and "uv run api add-admin <email> <name>" adds an admin."""
 
 import asyncio
 import json
@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from psycopg_pool import AsyncConnectionPool
 from pydantic import BaseModel
 
-from media_monitoring.api import accounts, activity, errors, logs, organizations, status, telegram, youtube
+from media_monitoring.api import accounts, activity, errors, logs, organizations, projects, status, telegram, youtube
 from media_monitoring.api.settings import load
 
 CONNECTIONS = 2  # database connections kept open
@@ -71,6 +71,7 @@ app.include_router(youtube.router)
 app.include_router(telegram.router)
 app.include_router(activity.router)
 app.include_router(organizations.router)
+app.include_router(projects.router)
 
 
 class Health(BaseModel):

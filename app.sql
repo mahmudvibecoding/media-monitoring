@@ -1,7 +1,8 @@
 -- The website's own tables, in a schema of their own, apart from the collected data: customers' organizations,
--- accounts, their sessions and failed sign-ins. The API's database user may read and change these, and nothing else
--- (the collected data stays read-only to it). Then the indexes the site's pages need on the collected data. Safe to run
--- again: it only adds what's missing. deploy.sh runs it before starting a new release.
+-- accounts, their sessions and failed sign-ins, and the projects customers are monitored for. The API's database user
+-- may read and change these, and nothing else (the collected data stays read-only to it). Then the indexes the site's
+-- pages need on the collected data, and the texts' word indexes projects find keywords with. Safe to run again: it
+-- only adds what's missing. deploy.sh runs it before starting a new release.
 SET client_min_messages = warning;  -- don't list everything that already exists
 
 CREATE SCHEMA IF NOT EXISTS app;
@@ -62,6 +63,21 @@ CREATE TABLE IF NOT EXISTS app.sign_in_failures (
 );
 CREATE INDEX IF NOT EXISTS sign_in_failures_email ON app.sign_in_failures (lower(email), at);
 CREATE INDEX IF NOT EXISTS sign_in_failures_ip ON app.sign_in_failures (ip, at);
+
+-- Customers' projects: what an organization is monitored for. A text is a project's when it has one of its keywords
+-- and none of its exclusions (each a search, app.any_keyword below). Admins set them up; a project once added stays,
+-- disabled.
+CREATE TABLE IF NOT EXISTS app.projects (
+    id               bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    organization_id  bigint NOT NULL REFERENCES app.organizations,
+    name             text NOT NULL,
+    keywords         text[] NOT NULL DEFAULT '{}',
+    exclusions       text[] NOT NULL DEFAULT '{}',
+    created_at       timestamptz NOT NULL DEFAULT now(),
+    disabled_at      timestamptz                             -- NULL while it's monitored
+);
+-- One project per name in an organization, whatever the case of its letters
+CREATE UNIQUE INDEX IF NOT EXISTS projects_name ON app.projects (organization_id, lower(name));
 
 -- What the site's pages look the collected data up by, which the collectors don't: columns and indexes on schema.sql's
 -- tables
@@ -134,6 +150,74 @@ CREATE INDEX IF NOT EXISTS telegram_channels_listed_latest
 -- which PostgreSQL keeps together, a few bytes each. For 298,169 channels it's 2 MB, counted in 40 ms, against 180 ms
 -- through an order's index, whose entries hold the search column too
 CREATE INDEX IF NOT EXISTS telegram_channels_listed_count ON telegram_channels (has_messages) WHERE has_messages;
+
+-- Finding keywords in the collected texts (Telegram messages, YouTube videos' titles and descriptions, and their
+-- comments) for the customers' projects. A keyword is found at the start of words (Toshkent finds Toshkentda), in
+-- whichever script and spelling a text uses: texts and keywords are compared in their matching form, in Uzbek Latin.
+-- The form is lowercase, without apostrophes (Uzbek writes oʻ and gʻ with seven different ones), with е written ye at
+-- the start of a word or after a vowel, as Uzbek Latin writes it (Европа, Yevropa), and anything that isn't a letter
+-- or a digit a space, so that g.Toshkent and kun.uz are words apart. Its words then go through app.matching, which
+-- turns Cyrillic into Latin letters by deploy/uzbek_latin.rules (deploy.sh installs them where PostgreSQL reads its
+-- dictionaries): Тошкент and Toshkent, Ўзбекистон and Oʻzbekiston, Қўқон and Qoʻqon are the same words, and Russian
+-- comes out in the same letters (Ташкент, Tashkent). The texts' word indexes below hold the words these gave when
+-- they were built: after a change to the form, the configuration or the rules, they're to be built again (REINDEX).
+CREATE EXTENSION IF NOT EXISTS unaccent WITH SCHEMA public;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_ts_dict WHERE dictname = 'uzbek_latin' AND dictnamespace = 'app'::regnamespace) THEN
+        CREATE TEXT SEARCH DICTIONARY app.uzbek_latin (TEMPLATE = public.unaccent, RULES = 'uzbek_latin');
+    END IF;
+    IF NOT EXISTS (SELECT FROM pg_ts_config WHERE cfgname = 'matching' AND cfgnamespace = 'app'::regnamespace) THEN
+        CREATE TEXT SEARCH CONFIGURATION app.matching (COPY = pg_catalog.simple);
+    END IF;
+END
+$$;
+ALTER TEXT SEARCH CONFIGURATION app.matching ALTER MAPPING FOR word, numword WITH app.uzbek_latin, simple;
+
+CREATE OR REPLACE FUNCTION app.matching_form(value text) RETURNS text
+    LANGUAGE sql IMMUTABLE PARALLEL SAFE
+    RETURN regexp_replace(
+        regexp_replace(regexp_replace(lower(value), '[''ʻʼ‘’`´]', '', 'g'), '(\mе|(?<=[аеёиоуэюяўaeiou])е)', 'ye', 'g'),
+        '[^[:alnum:]]+', ' ', 'g');
+
+-- A keyword as a search: its words in a row, each found at the start of a word, or as whole words when it's in double
+-- quotes ("IT" doesn't find "item"); NULL when it has no words
+CREATE OR REPLACE FUNCTION app.keyword_query(keyword text) RETURNS tsquery
+    LANGUAGE sql IMMUTABLE PARALLEL SAFE
+    RETURN (SELECT CASE WHEN numnode(q) = 0 THEN NULL
+                        WHEN keyword ~ '^\s*".*"\s*$' THEN q
+                        ELSE regexp_replace(q::text, '''([^'']+)''', '''\1'':*', 'g')::tsquery END
+            FROM phraseto_tsquery('app.matching', app.matching_form(keyword)) AS q);
+
+-- Keywords as one search that finds any of them; NULL when none has words
+CREATE OR REPLACE FUNCTION app.any_keyword(keywords text[]) RETURNS tsquery
+    LANGUAGE sql IMMUTABLE PARALLEL SAFE
+    RETURN (SELECT string_agg('(' || q::text || ')', ' | ')::tsquery
+            FROM unnest(keywords) AS k, app.keyword_query(k) AS q WHERE q IS NOT NULL);
+DROP FUNCTION IF EXISTS app.project_query(text[], text[]);  -- keywords and exclusions in one, which no search reads now
+
+-- The texts' words, in an index per table, with the day each text was published (in Tashkent): a search over recent
+-- days reads only their texts' entries. Not quite for a word found at the start of words, though: the entries of every
+-- word it starts are gathered first, whatever their day (4.7 s for Tashkent in a day of Telegram's messages, over
+-- their eleven years). So Telegram's index holds only the messages from September 2026 on, and its queries say so, for
+-- PostgreSQL to read it (api/projects.py): 85 ms for that day. Building them reads every text, and while one is built
+-- its table takes no new rows, so on a big database they're built by hand, with collection stopped and many parallel
+-- workers (docs/website.md), rather than by a deploy. On October 22, 2026, with 44 workers: YouTube videos' (8
+-- million, titles and descriptions) in 2 minutes, 1.2 GB; their comments' (194 million) in 14.5 minutes, 8.1 GB;
+-- Telegram's (10 million of its 469 million messages) in 4 minutes, 1.7 GB, where all of them took 1 hour 47 minutes
+-- and 44 GB.
+CREATE EXTENSION IF NOT EXISTS btree_gin WITH SCHEMA public;  -- for the days' part of these indexes
+CREATE OR REPLACE FUNCTION app.day_of(value timestamptz) RETURNS date
+    LANGUAGE sql IMMUTABLE PARALLEL SAFE
+    RETURN (value AT TIME ZONE 'Asia/Tashkent')::date;
+CREATE INDEX IF NOT EXISTS youtube_videos_words ON youtube_videos USING gin (
+    app.day_of(published_at),
+    to_tsvector('app.matching', app.matching_form(coalesce(title, '') || ' ' || coalesce(description, ''))));
+CREATE INDEX IF NOT EXISTS youtube_comments_words ON youtube_comments
+    USING gin (app.day_of(published_at), to_tsvector('app.matching', app.matching_form(text)));
+CREATE INDEX IF NOT EXISTS telegram_messages_words ON telegram_messages
+    USING gin (app.day_of(published_at), to_tsvector('app.matching', app.matching_form(text)))
+    WHERE published_at >= '2026-09-01 00:00:00+05';
 
 -- Indexes the lists no longer read: by name (no list is ordered so any more, nor sorted with app.names), and over
 -- every channel, listed or not

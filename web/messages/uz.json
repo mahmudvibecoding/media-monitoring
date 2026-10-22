@@ -167,6 +167,36 @@
     "copied": "Nusxalandi",
     "close": "Yopish"
   },
+  "projects": {
+    "title": "Loyihalar",
+    "add": "Loyiha qoʻshish",
+    "empty": "Hozircha loyihalar yoʻq: birinchisini qoʻshing.",
+    "newProject": "Yangi loyiha",
+    "name": "Nomi",
+    "namePlaceholder": "Loyiha nomi",
+    "keywords": "Kalit soʻzlar",
+    "keywordsHint": "Har qatorda bittadan. Kalit soʻz soʻzlar boshidan, lotin va kirill yozuvida topiladi: Toshkent soʻzi Toshkentda va Тошкент soʻzlarini ham topadi. Qoʻshtirnoq ichida — faqat butun soʻz sifatida: \"IT\".",
+    "exclusions": "Istisno soʻzlar",
+    "exclusionsHint": "Har qatorda bittadan. Ulardan birortasi bor matn hisobga olinmaydi.",
+    "noWords": "{line}-qatorda harf yoki raqam yoʻq",
+    "keywordCount": "{count} ta kalit soʻz",
+    "save": "Saqlash",
+    "saving": "Saqlanmoqda…",
+    "cancel": "Bekor qilish",
+    "edit": "Tahrirlash",
+    "status": "Holati",
+    "disable": "Oʻchirish",
+    "enable": "Yoqish",
+    "confirmDisable": "«{name}» loyihasi oʻchirilsinmi?",
+    "preview": "Soʻnggi 30 kunda",
+    "previewHint": "Nimani topishini koʻrish uchun kalit soʻzlarni yozing.",
+    "noMatches": "Soʻnggi 30 kunda hech narsa topilmadi.",
+    "more": "{count}+",
+    "telegram": "Telegram",
+    "youtube_videos": "YouTube videolari",
+    "youtube_comments": "YouTube izohlari",
+    "open": "Ochish"
+  },
   "common": {
     "loading": "Yuklanmoqda…",
     "more": "Toʻliq koʻrsatish",
@@ -221,7 +251,10 @@
     "name_taken": "Bunday nomli tashkilot allaqachon bor",
     "email_taken": "Bu pochta bilan hisob allaqachon bor",
     "invalid_name": "Nomini kiriting",
-    "invalid_email": "Bu pochta manzili emas"
+    "invalid_email": "Bu pochta manzili emas",
+    "project_name_taken": "Bunday nomli loyiha allaqachon bor",
+    "invalid_keyword": "Kalit soʻzda harf yoki raqam yoʻq",
+    "no_keywords": "Kamida bitta kalit soʻz qoʻshing"
   },
   "notFound": {
     "title": "Sahifa topilmadi",

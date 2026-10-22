@@ -1,5 +1,5 @@
 // The codes the site has a message for (messages/*.json, "errors"): the API's own (see the API's errors.py,
-// accounts.py and organizations.py), and "unavailable" for when the API didn't answer at all
+// accounts.py, organizations.py and projects.py), and "unavailable" for when the API didn't answer at all
 const API_CODES = [
   "database_unavailable",
   "database_timeout",
@@ -19,6 +19,9 @@ const API_CODES = [
   "email_taken",
   "invalid_name",
   "invalid_email",
+  "project_name_taken",
+  "invalid_keyword",
+  "no_keywords",
 ] as const;
 export type ErrorCode = "unavailable" | (typeof API_CODES)[number];
 
@@ -42,6 +45,9 @@ export const REQUEST_ERRORS: ReadonlySet<string> = new Set([
   "email_taken",
   "invalid_name",
   "invalid_email",
+  "project_name_taken",
+  "invalid_keyword",
+  "no_keywords",
 ]);
 
 // What a failed request gave back, as a code, and the request's ID if the API gave one. The API answers a failure

@@ -56,6 +56,37 @@ to change at their first sign-in. `/api/people/{id}` renames, disables or enable
 taken out; organizations' names and emails can't repeat, whatever the case of their letters; nothing is deleted. The
 organizations are in `app.organizations`, and each customer's row in `app.users` names theirs.
 
+### Projects
+
+Each organization has projects, what it's monitored for: each with keywords, any of which a text is to have, and
+exclusions, none of which it may have. `/api/organizations/{id}/projects` lists an organization's projects, by name, and
+adds one; `/api/projects/{id}` gives one, and renames it, changes its keywords or exclusions, or disables or enables it.
+Admins set them up, and nothing is deleted. Keywords have their extra spaces taken out and repeat only once, whatever
+the case of their letters; one with no letter or digit to find is refused, and so is a project without keywords, or with
+another one's name in its organization. They're in `app.projects`.
+
+A keyword is found at the start of words, in whichever script a text writes it: Toshkent finds Toshkentda, Тошкент and
+Тошкентда; a keyword of several words finds them in a row; in double quotes, it finds only whole words ("IT" doesn't
+find "item"). Before a project is saved, `/api/projects/preview` shows what its keywords and exclusions find in the last
+30 days, in Tashkent: Telegram's messages, YouTube's videos (their title and description) and comments, each counted up
+to 1,000, with the newest 10 of each, where the keywords are marked (counted in UTF-16 units, as the browser counts
+letters). Its queries may take 15 s, not the 5 s other requests may.
+
+Texts and keywords are compared in a matching form (`app.sql`): lowercase, without apostrophes (Uzbek writes oʻ and gʻ
+with seven different ones), with е written ye where Uzbek Latin writes it (Европа, Yevropa), and anything that isn't a
+letter or a digit a space, so that g.Toshkent and kun.uz are words apart. Its words then turn Cyrillic into Uzbek Latin
+letters, by `deploy/uzbek_latin.rules`, which `deploy.sh` installs where PostgreSQL reads its dictionaries: Тошкент and
+Toshkent, Қўқон and Qoʻqon are the same words, and Russian comes out in the same letters (Ташкент, Tashkent). Each table
+of texts has an index of these words, with the day each text was published: `telegram_messages_words`,
+`youtube_comments_words` and `youtube_videos_words`. A search over some days reads only those days' entries for its
+words, and the newest examples are read a day at a time, from today back, so a common word reads only its last day's.
+A keyword found at the start of words gathers the entries of every word it starts first, though, whatever their day:
+Tashkent in a day of Telegram's messages took 4.7 s over all their eleven years, so Telegram's index holds only the
+messages from September 2026 on (10 of 469 million, 1.7 GB rather than 44), and its queries say so: 85 ms. Exclusions
+aren't searched in the indexes but checked on each text the keywords find, as ob-havo's "ob" starts obuna too: a rare
+keyword's newest messages took 2 s with it searched, 49 ms with it checked. A preview of Tashkent and Ташкент without
+ob-havo takes 2.7 s.
+
 ### YouTube
 
 `/api/youtube/channels` gives admins the channels a page at a time, the biggest first, and how many match: as many to a
@@ -170,9 +201,16 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   was added and whether it's disabled, under a field that adds one and opens its page. There, its name (renamed in
   place) and its state, with the button that disables or enables it (after a confirmation); its people, with their
   language, their last sign-in and whether they still have a temporary password, each with a button for a new temporary
-  password and one that disables or enables them; and a form that adds a person. A temporary password shows once, above
-  the people, with a button that copies it. A customer sees only a greeting for now, with their organization's name
-  beside theirs at the top.
+  password and one that disables or enables them; a form that adds a person; and its projects, each with its keywords
+  and state, opening its page, under a button to the page that adds one. A temporary password shows once, above the
+  people, with a button that copies it. A customer sees only a greeting for now, with their organization's name beside
+  theirs at the top.
+- A project's page (`/users/{id}/projects/{project}`, and `/users/{id}/projects/new` for a new one): its name, and its
+  keywords and exclusions, one per line, beside what they find in the last 30 days, asked again 0.6 s after each change:
+  how many Telegram messages, YouTube videos and YouTube comments each found, as tabs, and the chosen kind's newest,
+  with the keywords marked, each with a link to it (a message's on Telegram, a video's or a comment's on the site's
+  YouTube pages). A line with nothing to find is pointed out at once. Saving goes back to the organization's page; an
+  existing project can also be disabled or enabled there.
 - Anything in a list (a channel, a video, a run) opens its page wherever it's clicked, not only on its name; a Ctrl- or
   middle-click opens it in a new tab, as a link does.
 - YouTube's channel list keeps its search, order and page in the address, so Back, Forward and a copied link bring it
@@ -314,6 +352,14 @@ builds the site there; if that fails, what runs isn't touched. Then it points `/
 release, restarts both services, and checks that they answer within 30 s, or goes back to the release before. It
 keeps 3 releases, about 92 MB each (packages are hard-linked from uv's and pnpm's stores), and takes about 27 s.
 Building in place would change files the running site serves; a new folder also leaves the one before to go back to.
+
+The texts' word indexes (`app.sql`, see Projects) are built by hand on a big database, before the deploy that would
+make them: each reads its whole table, which takes no new rows meanwhile. With collection stopped, as postgres in
+`psql`: `SET max_parallel_workers = 48`, `SET max_parallel_maintenance_workers = 44`,
+`SET maintenance_work_mem = '24GB'`, `ALTER TABLE … SET (parallel_workers = 44)`, the index's `CREATE INDEX` from
+`app.sql`, and `ALTER TABLE … RESET (parallel_workers)`; `max_worker_processes` is 52 for this (it takes a restart).
+The workers read the table and make the entries together; one process then merges their lists, on one core, which
+was most of the 1 hour 47 minutes all of Telegram's messages took. The deploy then finds the indexes made.
 
 Python is in `/opt/media-monitoring/python` because the services' users can't read `/root`, where uv puts it. The
 services start with the machine and come back 2 s after they stop. The site runs as `media_monitoring_web`, which has
