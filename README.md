@@ -46,7 +46,7 @@ and the rest continues next run. `uv run youtube` or `uv run telegram` alone lis
 | `uv run youtube details [all]` | fetches the original title and description, exact publish time, length and kind (video or Short) of new videos (`all`: again for saved videos without an exact publish time) |
 | `uv run youtube stats [all\|days]` | refreshes views and likes (every video by default; with a number of days, only the videos published in them) |
 | `uv run youtube comments [all\|days\|unread]` | collects new comments (every video by default; with a number of days, only the videos published in them) |
-| `uv run telegram channels` | refreshes every Telegram channel's title, description, photo and subscriber count from its public page, and notes its newest message the first time |
+| `uv run telegram channels` | refreshes every Telegram channel's title, description, photo and subscriber count from its public page, saves the photo itself (its links last less than two days), and notes its newest message the first time |
 | `uv run telegram messages` | reads every Telegram channel's new messages, and keeps those with text |
 | `uv run telegram history [letters\|all]` | reads back every Telegram channel's older messages, the channels with the fewest letters first, until its saved messages hold 10,000 letters (or the number given) and 100 messages, its first message, or 10,000 messages before its last one (`all`: every channel back to its first message, the most left first) |
 | `uv run telegram languages` | finds every Telegram channel's main language from its title, description and saved messages, with CLD2 |

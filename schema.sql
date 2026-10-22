@@ -100,6 +100,16 @@ ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS photo_url text;  -- for d
 ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS history_from integer;
 ALTER TABLE telegram_channels ADD COLUMN IF NOT EXISTS language text;
 
+-- Each channel's photo itself, which the website shows: Telegram's links to it (photo_url) last less than two days, so
+-- "uv run telegram channels" downloads it as soon as the channel's page shows a link it hasn't downloaded from yet
+CREATE TABLE IF NOT EXISTS telegram_channel_photos (
+    channel_id  bigint PRIMARY KEY REFERENCES telegram_channels ON DELETE CASCADE,
+    photo       bytea NOT NULL,                     -- JPEG, 160 × 160, about 10 KB
+    hash        text NOT NULL,                      -- md5(photo), the version in the website's address for it
+    url         text NOT NULL,                      -- the link it was last downloaded from
+    saved_at    timestamptz NOT NULL DEFAULT now()  -- when it was last downloaded
+);
+
 -- Messages of the Telegram channels that have text: the message's own text, or the caption of its photo, video or
 -- album. Messages without text aren't kept. Telegram counts each item of an album as a message of its own; here an
 -- album is one row, under its first item's message ID.

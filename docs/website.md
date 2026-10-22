@@ -141,8 +141,11 @@ index, an index for each order holding the search column, the page picked from t
 orders are the biggest first and the latest to post first, 50 to a page, each channel with the first 200 characters of
 its latest saved message, which the messages table's key gives at once (10 ms for a page). Counting the 298,169
 channels with a saved message takes 40 ms, from an index of their own that holds nothing else (2 MB); through an
-order's index, it took 180 ms. `/api/telegram/channels/{id}` is a channel's details, with how many of its messages
-have been saved, and `/api/telegram/channels/{id}/messages` a page of its messages, newest first, by the messages
+order's index, it took 180 ms. A channel's photo is the one the channels step saved (docs/monitoring.md), at
+`/api/telegram/channels/{id}/photo?v=<its md5>`: the address changes with the photo, so browsers keep it a year;
+while none is saved, it's Telegram's own address, which lasts less than two days. `/api/telegram/channels/{id}` is a
+channel's details, with how many of its messages have been saved, and `/api/telegram/channels/{id}/messages` a page of
+its messages, newest first, by the messages
 table's key: a few milliseconds, even for the channel with the most; with a search, those whose text has it in them
 (lowercase, apostrophes aside, as the lists' searches), which reads all the channel's messages: 50 ms for the one with
 the most (7,000).

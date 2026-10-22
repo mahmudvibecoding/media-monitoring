@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, health, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, health, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -470,6 +470,28 @@ export const telegramChannelOptions = (options: Options<TelegramChannelData>) =>
         return data;
     },
     queryKey: telegramChannelQueryKey(options)
+});
+
+export const telegramChannelPhotoQueryKey = (options: Options<TelegramChannelPhotoData>) => createQueryKey('telegramChannelPhoto', options);
+
+/**
+ * Telegram Channel Photo
+ *
+ * A channel's photo (JPEG, 160 × 160), as the channels step saved it from Telegram, whose links to it last less
+ * than two days. The address the channels' details give carries the photo's fingerprint (v), so a browser keeps it
+ * for a year, and a new photo comes with a new address.
+ */
+export const telegramChannelPhotoOptions = (options: Options<TelegramChannelPhotoData>) => queryOptions<unknown, TelegramChannelPhotoError, unknown, ReturnType<typeof telegramChannelPhotoQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await telegramChannelPhoto({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: telegramChannelPhotoQueryKey(options)
 });
 
 export const telegramChannelMessagesQueryKey = (options: Options<TelegramChannelMessagesData>) => createQueryKey('telegramChannelMessages', options);

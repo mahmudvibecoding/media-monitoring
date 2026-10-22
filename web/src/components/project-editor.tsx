@@ -259,7 +259,8 @@ function PreviewLoading() {
 }
 
 // One text the keywords found: who wrote it and when, the text with its keywords marked, and where it is. The picture
-// is a plain circle without one, or when it doesn't load: a channel's photo link from Telegram lasts some days.
+// is a plain circle without one, or when it doesn't load (Telegram's own link to a photo not saved yet lasts less than
+// two days).
 function Example({ mention }: { mention: Mention }) {
   const t = useTranslations("projects");
   const [broken, setBroken] = useState(false);

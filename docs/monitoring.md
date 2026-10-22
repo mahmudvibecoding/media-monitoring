@@ -190,10 +190,13 @@ photo and subscriber count from its public page. It doesn't save the messages th
   messages. It rounds subscriber counts of 1,000 and more to three digits (1.14M). Only the channel's plain page,
   `t.me/<username>`, has the exact count, but Telegram answers about 10 of those a second per address, against
   hundreds of public pages.
-- **The photo's address, not the photo.** The page shows the channel's photo, 160 × 160 (about 10 KB), on Telegram's
-  image server (cdn1.telesco.pe, ...); the website loads it from there. The address is the same from one request to
-  the next, and the step saves whatever address the page shows, so a new photo replaces the old. A channel without a
-  photo has Telegram's stand-in there, its initials, which isn't kept.
+- **The photo itself.** The page shows the channel's photo, 160 × 160 (about 10 KB), on Telegram's image server
+  (cdn1.telesco.pe, ...), at an address that lasts less than two days: two days after the last round, all of them
+  answered 404. So as soon as the page shows an address the saved photo didn't come from (a new channel's, a new
+  photo's, or a new address of the same photo), the step downloads it, through the proxies like the pages, into
+  `telegram_channel_photos`, which the website shows it from; the same photo again keeps the bytes saved. The address
+  is kept as well (`photo_url`). A channel without a photo has Telegram's stand-in there, its initials, which isn't
+  kept.
 - **The newest message, once.** A channel without a last message yet gets the newest one on its page (for an album,
   its last item), so reading its messages can start there. While the page's newest message is still that one, its time
   is taken from the page again: a time is the message's date link's, and one read wrong, like a scheduled stream's

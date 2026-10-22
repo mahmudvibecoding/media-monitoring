@@ -1247,6 +1247,103 @@
         }
       }
     },
+    "/api/telegram/channels/{channel_id}/photo": {
+      "get": {
+        "summary": "Telegram Channel Photo",
+        "description": "A channel's photo (JPEG, 160 × 160), as the channels step saved it from Telegram, whose links to it last less\nthan two days. The address the channels' details give carries the photo's fingerprint (v), so a browser keeps it\nfor a year, and a new photo comes with a new address.",
+        "operationId": "telegram_channel_photo",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Channel Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The photo",
+            "content": {
+              "image/jpeg": {}
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: no photo of that channel is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a channel's ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/telegram/channels/{channel_id}/messages": {
       "get": {
         "summary": "Telegram Channel Messages",

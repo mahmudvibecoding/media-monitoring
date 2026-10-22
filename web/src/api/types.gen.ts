@@ -1708,6 +1708,58 @@ export type TelegramChannelResponses = {
 
 export type TelegramChannelResponse = TelegramChannelResponses[keyof TelegramChannelResponses];
 
+export type TelegramChannelPhotoData = {
+    body?: never;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: number;
+    };
+    query?: never;
+    url: '/api/telegram/channels/{channel_id}/photo';
+};
+
+export type TelegramChannelPhotoErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no photo of that channel is saved
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a channel's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type TelegramChannelPhotoError = TelegramChannelPhotoErrors[keyof TelegramChannelPhotoErrors];
+
+export type TelegramChannelPhotoResponses = {
+    /**
+     * The photo
+     */
+    200: unknown;
+};
+
 export type TelegramChannelMessagesData = {
     body?: never;
     path: {

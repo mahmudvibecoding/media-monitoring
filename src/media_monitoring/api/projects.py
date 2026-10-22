@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from media_monitoring.api.accounts import Admin
 from media_monitoring.api.errors import Failure, failures
 from media_monitoring.api.organizations import ADMINS_ONLY, Id, clean_name, organization
+from media_monitoring.api.telegram import PHOTO, SAVED_PHOTO
 
 NAME_MAX = 200
 KEYWORD_MAX = 200  # letters in a keyword
@@ -326,9 +327,9 @@ COUNTS: dict[Source, str] = {
 }
 NEWEST: dict[Source, str] = {
     "telegram": f"""SELECT m.* FROM generate_series(0, %(days)s - 1) AS d(back), LATERAL (
-            SELECT m.published_at, m.text, c.title, NULL AS author, c.photo_url AS image,
+            SELECT m.published_at, m.text, c.title, NULL AS author, {PHOTO} AS image,
                 'https://t.me/' || c.username || '/' || m.message_id AS url
-            FROM telegram_messages m JOIN telegram_channels c USING (channel_id)
+            FROM telegram_messages m JOIN telegram_channels c USING (channel_id) {SAVED_PHOTO}
             WHERE app.day_of(m.published_at) = app.day_of(now()) - d.back AND m.{TELEGRAM_INDEXED} AND {MESSAGE}
             ORDER BY m.published_at DESC LIMIT %(examples)s) AS m
         LIMIT %(examples)s""",

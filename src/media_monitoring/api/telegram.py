@@ -1,14 +1,14 @@
 """The collected Telegram data, for admins: the monitored channels a page at a time, searched and in the order the
 site's channels page asks for, each with its latest message (GET /api/telegram/channels), a channel's details
-(.../{channel_id}), and its saved messages, newest first, all of them or those a search finds
-(.../{channel_id}/messages). The column and the indexes the channel list reads them by are in app.sql; a channel's
-messages come by the messages table's key."""
+(.../{channel_id}), its photo (.../{channel_id}/photo), and its saved messages, newest first, all of them or those a
+search finds (.../{channel_id}/messages). The column and the indexes the channel list reads them by are in app.sql; a
+channel's messages come by the messages table's key."""
 
 import asyncio
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Path, Query, Request
+from fastapi import APIRouter, Path, Query, Request, Response
 from psycopg import sql
 from psycopg.rows import class_row, dict_row
 from pydantic import BaseModel
@@ -27,7 +27,7 @@ class TelegramChannel(BaseModel):
     subscribers: int | None  # exact below 1,000; Telegram's page rounds bigger counts to three digits (1.14M)
     last_message_at: datetime | None  # when its latest message came out
     last_message: str | None  # its latest saved message's text, the first 200 characters, for a chat list's line
-    photo_url: str | None  # its photo, 160 × 160, on Telegram's image server; None without one
+    photo_url: str | None  # its photo, 160 × 160 (see PHOTO); None without one
 
 
 class TelegramChannels(BaseModel):
@@ -52,8 +52,17 @@ class TelegramMessages(BaseModel):
     page_size: int
 
 
+# A channel's photo, for the site's pages: the one the channels step saved, from this API (see telegram_channel_photo),
+# with its fingerprint in the address, so a browser keeps it until the photo changes; Telegram's own link while none
+# is saved (it lasts less than two days); NULL for a channel without a photo. It reads c, the channel, and photo, the
+# saved photo SAVED_PHOTO joins on, of which only the fingerprint, not the image.
+PHOTO = """CASE WHEN c.photo_url IS NULL THEN NULL
+        WHEN photo.hash IS NULL THEN c.photo_url
+        ELSE '/api/telegram/channels/' || c.channel_id || '/photo?v=' || photo.hash END"""
+SAVED_PHOTO = "LEFT JOIN telegram_channel_photos AS photo USING (channel_id)"
 # As for YouTube's channels: the page's channels are picked from the order's index alone, and only those are read,
-# each with its latest saved message, which the messages table's key gives at once: 10 ms for a page of 50
+# each with its latest saved message, which the messages table's key gives at once, and its photo's fingerprint, by
+# the photos' key: 10 ms for a page of 50
 LAST = """
     LEFT JOIN LATERAL (
         SELECT left(m.text, 200) AS last_message FROM telegram_messages AS m
@@ -61,11 +70,12 @@ LAST = """
     ) AS last ON true
 """
 CHANNELS = sql.SQL(
-    """
+    f"""
     SELECT c.channel_id AS id, c.username, c.title, c.subscriber_count AS subscribers, c.last_message_at,
-        last.last_message, c.photo_url
-    FROM (SELECT channel_id FROM telegram_channels {where} ORDER BY {order} LIMIT %(limit)s OFFSET %(offset)s) AS page
+        last.last_message, {PHOTO} AS photo_url
+    FROM (SELECT channel_id FROM telegram_channels {{where}} ORDER BY {{order}} LIMIT %(limit)s OFFSET %(offset)s) AS page
     JOIN telegram_channels AS c USING (channel_id)
+    {SAVED_PHOTO}
 """
     + LAST
     + """
@@ -126,10 +136,11 @@ async def telegram_channels(
 
 
 CHANNEL = (
-    """
+    f"""
     SELECT c.channel_id AS id, c.username, c.title, c.description, c.subscriber_count AS subscribers,
-        c.last_message_at, last.last_message, c.photo_url
+        c.last_message_at, last.last_message, {PHOTO} AS photo_url
     FROM telegram_channels AS c
+    {SAVED_PHOTO}
 """
     + LAST
     + """
@@ -169,6 +180,34 @@ async def telegram_channel(
     if channel is None:
         raise Failure(404, "not_found", "No channel with that ID is monitored")
     return TelegramChannelDetails(**channel, messages=count)
+
+
+SAVED_IMAGE = "SELECT photo FROM telegram_channel_photos WHERE channel_id = %(channel)s"
+KEEP = "private, max-age=31536000, immutable"  # a year: a new photo comes with a new address (see PHOTO)
+
+
+@router.get(
+    "/api/telegram/channels/{channel_id}/photo",
+    response_class=Response,
+    responses={200: {"content": {"image/jpeg": {}}, "description": "The photo"}}
+    | failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            404: "not_found: no photo of that channel is saved",
+            422: "invalid_request: that isn't a channel's ID",
+        }
+    ),
+)
+async def telegram_channel_photo(request: Request, _: Admin, channel_id: Annotated[int, Path(ge=1)]) -> Response:
+    """A channel's photo (JPEG, 160 × 160), as the channels step saved it from Telegram, whose links to it last less
+    than two days. The address the channels' details give carries the photo's fingerprint (v), so a browser keeps it
+    for a year, and a new photo comes with a new address."""
+    async with request.state.pool.connection() as conn:
+        row = await (await conn.execute(SAVED_IMAGE, {"channel": channel_id})).fetchone()
+    if row is None:
+        raise Failure(404, "not_found", "No photo of that channel is saved")
+    return Response(row[0], media_type="image/jpeg", headers={"Cache-Control": KEEP})
 
 
 # Newest first: a channel's messages are numbered as they come out, and the table's key keeps them in that order. A

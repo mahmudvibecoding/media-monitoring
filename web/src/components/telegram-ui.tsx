@@ -29,8 +29,8 @@ function initialOf(name: string): string {
   return first.done ? "" : first.value.segment.toUpperCase();
 }
 
-// A channel's round picture: its photo from Telegram's image server, or, without one (or until it loads, or if it
-// fails), its letter in bold on one of Telegram's colors
+// A channel's round picture: its photo (the saved one, from the API, or Telegram's own link while none is saved), or,
+// without one (or until it loads, or if it fails), its letter in bold on one of Telegram's colors
 export function ChannelPhoto({
   id,
   name,
@@ -56,8 +56,8 @@ export function ChannelPhoto({
     >
       <span aria-hidden="true">{initialOf(name)}</span>
       {url && !failed && (
-        // Straight from Telegram's image server: Next's image optimizer would fetch it through the site's server,
-        // which can't reach the internet
+        // A plain image: Next's image optimizer would fetch it through the site's server, which can't reach Telegram's
+        // image server
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={url}
