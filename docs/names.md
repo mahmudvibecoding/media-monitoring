@@ -1,6 +1,6 @@
 # Names in the texts
 
-The website marks the names of people, organizations and places in Telegram's messages: those labelled by hand in 1,000
+The website marks the names of people, organizations, places and events in Telegram's messages: those labelled by hand in 1,000
 posts that name finders are scored on, which admins correct there, and those models found in the same posts, compared
 with them.
 
@@ -14,13 +14,18 @@ with them.
   Arena, airports, stations, power plants, factories, hotels, theatres, museums, parks, residential complexes).
 - **Place**: where on the map: continents, countries, regions, cities, districts, villages, mahallas, streets, squares,
   roads, rivers, lakes, seas, mountains.
+- **Event**: something that happens at a time and has a name: forums, summits, conferences, exhibitions; festivals and
+  holidays (Navro'z); competitions, tournaments, championships, leagues as competitions (Chempionlar ligasi, Olimpiya
+  o'yinlari); elections and referendums as a particular one; wars, battles, operations; expeditions, campaigns,
+  marathons («Голиаф экспедицияси»). Not prizes (Nobel mukofoti), programmes (FLEX), nor a generic word without a name
+  (forum, saylov).
 
-Events, laws, titles of works, languages, religions, dates and money aren't names, but a person, organization or place
-named in them is (Toshkent xalqaro investitsiya forumi: Toshkent, a place). A name is whole words, its ending included
-(Toshkentda, Mirziyoyevning); an administrative word after a place's name is part of it (Samarqand viloyati); the
-longest name wins (Toshkent shahar hokimligi is one organization), and a role isn't part of one (AQSH davlat kotibi:
-AQSH, a place). Names in links, @usernames and #hashtags, and in a channel's own signature and subscription lines,
-aren't labelled.
+Laws, titles of works, languages, religions, dates and money aren't names, but a person, organization or place named in
+them is (AQSH dollari: AQSH, a place). A name is whole words, its ending included (Toshkentda, Mirziyoyevning); an
+administrative word after a place's name is part of it (Samarqand viloyati); the longest name wins (Toshkent shahar
+hokimligi is one organization, Toshkent xalqaro investitsiya forumi one event), and a role isn't part of one (AQSH
+davlat kotibi: AQSH, a place). Names in links, @usernames and #hashtags, and in a channel's own signature and
+subscription lines, aren't labelled.
 
 ## The labelled posts
 
@@ -33,12 +38,13 @@ about sport, in a set number for each script: first the 300 the models disagree 
 with the most names not yet in the set. 1,000 posts: 501 in Uzbek Latin, 290 in Uzbek Cyrillic, 209 in Russian, from 534
 channels.
 
-Claude labelled them by the rules above (9,610 names: 2,601 people, 3,569 organizations, 3,440 places), each placed in
-the text wherever it's written, as whole words, but not in links, @usernames and #hashtags, nor in the post's signature
-lines when it's in the rest of it; where two overlap, the longer. 18 posts have none. They're in
-`app.telegram_message_labels` twice: as admins correct them on the website (`hand`), and as Claude labelled them
-(`claude`), to see what was corrected; a message an admin marks checked keeps when (`checked_at`), so that what's left
-to check shows. The chat list's labelled folder has their 534 channels, the posts without names too.
+Claude labelled them by the rules above (9,809 names: 2,587 people, 3,497 organizations, 3,323 places and 402 events,
+the events in a pass of their own), each placed in the text wherever it's written, as whole words, but not in links,
+@usernames and #hashtags, nor in the post's signature lines when it's in the rest of it; where two overlap, the longer.
+18 posts have none. They're in `app.telegram_message_labels` twice: as admins correct them on the website (`hand`), and
+as Claude labelled them (`claude`), to see what was corrected; a message an admin marks checked keeps when
+(`checked_at`), so that what's left to check shows. The chat list's labelled folder has their 534 channels, the posts
+without names too.
 
 ## The models' names
 

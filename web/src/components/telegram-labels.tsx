@@ -16,7 +16,7 @@ import { NAME_KINDS } from "@/components/telegram-ui";
 import { cn } from "@/lib/utils";
 
 // Correcting the names labelled by hand in a chat's messages, as admins do: a selection of a message's text is
-// labelled a person, an organization or a place from the toolbar that comes up under it (or with 1, 2, 3), and a name
+// labelled a person, an organization, a place or an event from the toolbar that comes up under it (or with 1 to 4), and a name
 // clicked gets another kind, or is removed (Delete). Each change is saved at once, and shows before it's saved; Ctrl+Z
 // takes the last ones back, one at a time. A message whose names are right is marked checked, so that what's left to
 // check shows in the chat list, and where to go on from.
@@ -28,13 +28,18 @@ type Query = TelegramChannelMessagesData["query"];
 type Picked = { message: number; start: number; end: number; index: number | null; top: number; left: number };
 export type Pick = (message: TelegramMessage, start: number, end: number, index: number | null, rect: DOMRect) => void;
 
-const KEYS: Record<string, Kind> = { "1": "person", "2": "organization", "3": "location" };
-const DOTS = { person: "bg-tg-person", organization: "bg-tg-organization", location: "bg-tg-location" };
+const KEYS: Record<string, Kind> = { "1": "person", "2": "organization", "3": "location", "4": "event" };
+const DOTS = {
+  person: "bg-tg-person",
+  organization: "bg-tg-organization",
+  location: "bg-tg-location",
+  event: "bg-tg-event",
+};
 const WORD = /[\p{L}\p{N}\p{M}'ʻʼ‘’`´]/u; // what words are made of: letters, digits, Uzbek's apostrophes
 const EDGE = /[\s.,;:!?()[\]{}'ʻʼ‘’`´—–-]/u; // what's left off a name's ends
 const QUOTES: Record<string, string> = { "«": "»", '"': '"', "“": "”", "„": "“" };
 const TOOLBAR_HEIGHT = 44; // px, about: above the selection when there's no room under it
-const TOOLBAR_HALF = 215; // px, about half its width with its Remove: it's kept that far from the column's sides
+const TOOLBAR_HALF = 260; // px, about half its width with its Remove: it's kept that far from the column's sides
 
 // A selection made a name: out to whole words (a name takes its endings: Toshkentda), without spaces and punctuation at
 // its ends, nor quote marks around the whole of it («Artel» → Artel)
@@ -176,7 +181,7 @@ export function useLabelEditing({
     setPicked({ message: m.id, start, end, index, top, left });
   };
 
-  // Keys, before the chat's own (capture): 1, 2, 3, Delete and Esc for what's picked; Ctrl+Z (⌘Z) anywhere but a field
+  // Keys, before the chat's own (capture): 1 to 4, Delete and Esc for what's picked; Ctrl+Z (⌘Z) anywhere but a field
   useEffect(() => {
     if (!on) return;
     function key(event: KeyboardEvent) {

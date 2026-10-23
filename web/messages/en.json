@@ -140,6 +140,7 @@
     "person": "Person",
     "organization": "Organization",
     "location": "Place",
+    "event": "Event",
     "allMessages": "All messages",
     "notMarked": "Not marked in the text:",
     "noNames": "No names in it",

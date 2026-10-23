@@ -140,6 +140,7 @@
     "person": "Человек",
     "organization": "Организация",
     "location": "Место",
+    "event": "Событие",
     "allMessages": "Все сообщения",
     "notMarked": "Не отмечены в тексте:",
     "noNames": "Имён в нём нет",

@@ -246,22 +246,22 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   for itself, as in Telegram; Esc closes the search, then the info, then the chat. A click on the channel's link in its
   info copies it, and a message's round button (under the mouse, or always on a touch screen) opens it on Telegram.
 - In a labelled message, the names are marked by their kind, on a light shade of its color and underlined with it:
-  people violet, organizations orange, places green; under the mouse, a name shows its kind. A chat opened from the
-  labelled folder (`?labelled` in its address) shows only its messages labelled by hand (one with none says so), as name
-  finders read them (the text as saved, without links: a link hidden behind words has its address after them), under a
-  card that says what the colors are, with a link to all its messages and a switch between the names labelled by hand
-  and another labeller's (`?labelled=gemma`): Claude's as first labelled, Gemma, Glot500, XLM-V or MiniLM, which the
-  folder's other chats then open with. With the names labelled by hand, admins correct them there: a selection of a
-  message's text, made whole words (a name takes its ending, Toshkentda), gets a kind from the toolbar that comes up
-  under it (or 1, 2, 3) and takes the place of the names it overlaps; a click on a name changes its kind or removes it
-  (Delete). Each change shows at once and is saved at once (`src/components/telegram-labels.tsx`), and Ctrl+Z takes the
-  last ones back. The round button with ✓ beside a message marks it checked, which its time then shows with ✓✓, as
-  Telegram shows a message read; the labelled folder counts each channel's messages still to check as Telegram counts a
-  chat's unread ones, under a row with how many are checked of all of them, which opens the first channel with one still
-  to check, and a chat's card says how many of its own are checked, with the way on to the next channel. Another
-  labeller's names compare with the hand's: a mistake (a name not labelled by hand, or of another kind) is underlined
-  red and wavy, as a misspelt word; a name it missed is framed, dashed, where it was labelled, and listed under the
-  text, with those it gave that aren't written so in it; under the mouse, each says which.
+  people violet, organizations orange, places green, events pink; under the mouse, a name shows its kind. A chat opened
+  from the labelled folder (`?labelled` in its address) shows only its messages labelled by hand (one with none says
+  so), as name finders read them (the text as saved, without links: a link hidden behind words has its address after
+  them), under a card that says what the colors are, with a link to all its messages and a switch between the names
+  labelled by hand and another labeller's (`?labelled=gemma`): Claude's as first labelled, Gemma, Glot500, XLM-V or
+  MiniLM, which the folder's other chats then open with. With the names labelled by hand, admins correct them there: a
+  selection of a message's text, made whole words (a name takes its ending, Toshkentda), gets a kind from the toolbar
+  that comes up under it (or 1 to 4) and takes the place of the names it overlaps; a click on a name changes its kind or
+  removes it (Delete). Each change shows at once and is saved at once (`src/components/telegram-labels.tsx`), and Ctrl+Z
+  takes the last ones back. The round button with ✓ beside a message marks it checked, which its time then shows with
+  ✓✓, as Telegram shows a message read; the labelled folder counts each channel's messages still to check as Telegram
+  counts a chat's unread ones, under a row with how many are checked of all of them, which opens the first channel with
+  one still to check, and a chat's card says how many of its own are checked, with the way on to the next channel.
+  Another labeller's names compare with the hand's: a mistake (a name not labelled by hand, or of another kind) is
+  underlined red and wavy, as a misspelt word; a name it missed is framed, dashed, where it was labelled, and listed
+  under the text, with those it gave that aren't written so in it; under the mouse, each says which.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. One the player can't
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,

@@ -3666,7 +3666,8 @@
             "enum": [
               "person",
               "organization",
-              "location"
+              "location",
+              "event"
             ],
             "title": "Kind"
           },
@@ -4823,7 +4824,8 @@
             "enum": [
               "person",
               "organization",
-              "location"
+              "location",
+              "event"
             ],
             "title": "Kind"
           },
@@ -4874,7 +4876,8 @@
                 "enum": [
                   "person",
                   "organization",
-                  "location"
+                  "location",
+                  "event"
                 ]
               },
               {

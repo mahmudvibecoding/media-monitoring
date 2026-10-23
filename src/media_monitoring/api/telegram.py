@@ -48,7 +48,7 @@ class TelegramChannelDetails(TelegramChannel):
     messages: int  # how many of its messages have been saved (those with text)
 
 
-Kind = Literal["person", "organization", "location"]
+Kind = Literal["person", "organization", "location", "event"]
 # Whose names: labelled by hand (corrected by admins), Claude's as first made, or a model's: Gemma 4 26B, or one trained
 # on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384
 Labeller = Literal["hand", "claude", "gemma", "glot500", "xlmv", "minilm"]

@@ -82,7 +82,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS projects_name ON app.projects (organization_id
 -- Names labelled in Telegram messages, a row a message and labeller: the posts name finders are scored on, labelled by
 -- hand ('hand': Claude's labels as admins correct them on the website; 'claude': Claude's as first made, to see what
 -- was corrected), and the names models found in them ('gemma', 'glot500', 'xlmv', 'minilm'). names is a list of
--- {"name" (as written), "kind" (person, organization or location), "start", "end"}: where it is in the text, in
+-- {"name" (as written), "kind" (person, organization, location or event), "start", "end"}: where it is in the text, in
 -- characters (end not included), or null for a model's name not written so in it; an empty list for a message with
 -- none. A labeller's names are compared with the hand's as they're read (api/telegram.py). checked_at, on a 'hand' row,
 -- is when an admin marked its names checked, so that what's left to check shows. Before admins could correct them, the

@@ -155,7 +155,7 @@ export type NameSpan = {
     /**
      * Kind
      */
-    kind: 'person' | 'organization' | 'location';
+    kind: 'person' | 'organization' | 'location' | 'event';
     /**
      * Start
      */
@@ -786,7 +786,7 @@ export type TelegramName = {
     /**
      * Kind
      */
-    kind: 'person' | 'organization' | 'location';
+    kind: 'person' | 'organization' | 'location' | 'event';
     /**
      * Start
      */
@@ -802,7 +802,7 @@ export type TelegramName = {
     /**
      * Labelled As
      */
-    labelled_as?: 'person' | 'organization' | 'location' | null;
+    labelled_as?: 'person' | 'organization' | 'location' | 'event' | null;
 };
 
 /**

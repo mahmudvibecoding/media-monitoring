@@ -193,14 +193,30 @@ function Marked({ text, at, found, names }: { text: string; at: number; found?: 
 
 // The kinds of names labelled in messages, in the order they're listed, each marked on a light shade of its color,
 // underlined with the color itself; a name a model missed, framed with the color, dashed
-export const NAME_KINDS = ["person", "organization", "location"] as const satisfies readonly TelegramName["kind"][];
-const FILLS = { person: "bg-tg-person/14", organization: "bg-tg-organization/18", location: "bg-tg-location/16" };
+export const NAME_KINDS = [
+  "person",
+  "organization",
+  "location",
+  "event",
+] as const satisfies readonly TelegramName["kind"][];
+const FILLS = {
+  person: "bg-tg-person/14",
+  organization: "bg-tg-organization/18",
+  location: "bg-tg-location/16",
+  event: "bg-tg-event/16",
+};
 const LINES = {
   person: "shadow-[inset_0_-2px_0_var(--color-tg-person)]",
   organization: "shadow-[inset_0_-2px_0_var(--color-tg-organization)]",
   location: "shadow-[inset_0_-2px_0_var(--color-tg-location)]",
+  event: "shadow-[inset_0_-2px_0_var(--color-tg-event)]",
 };
-const FRAMES = { person: "border-tg-person", organization: "border-tg-organization", location: "border-tg-location" };
+const FRAMES = {
+  person: "border-tg-person",
+  organization: "border-tg-organization",
+  location: "border-tg-location",
+  event: "border-tg-event",
+};
 // A model's mistake (a name not labelled by hand, or of another kind): red and wavy underneath, as a misspelt word
 export const MISTAKE =
   "underline decoration-tg-wrong decoration-wavy decoration-1 underline-offset-[3px] [text-decoration-skip-ink:none]";

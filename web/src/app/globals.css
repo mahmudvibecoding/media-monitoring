@@ -111,10 +111,11 @@
   --color-tg-meta: rgb(104 108 114 / 0.75); /* a message's time */
   --color-tg-placeholder: #a2acb4;
   --color-tg-highlight: #cae3f7; /* what a search found, in a message */
-  /* A name labelled in a message, by its kind: three of Telegram's colors for pictures (violet, orange, green) */
+  /* A name labelled in a message, by its kind: four of Telegram's colors for pictures (violet, orange, green, pink) */
   --color-tg-person: #665fff;
   --color-tg-organization: #ff8a3d;
   --color-tg-location: #3fb950;
+  --color-tg-event: #d669ed;
   --color-tg-wrong: #e53935; /* under a model's mistake: Telegram's red */
   --color-tg-checked: #4fae4e; /* a labelled message checked, as Telegram's ticks of a message read */
   --color-tg-tab: rgb(80 162 233 / 0.118); /* under the chosen folder */
