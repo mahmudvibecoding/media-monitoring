@@ -7,14 +7,7 @@ type TelegramMessagesQuery = NonNullable<TelegramChannelMessagesData["query"]>;
 export type TelegramFolder = TelegramSort | "labelled";
 // Whose names a labelled chat marks: those labelled by hand, or Claude's as first made, or a model's, compared with them
 export type Labeller = NonNullable<TelegramMessagesQuery["source"]>;
-export const LABELLERS = [
-  "hand",
-  "claude",
-  "gemma",
-  "glot500",
-  "xlmv",
-  "minilm",
-] as const satisfies readonly Labeller[];
+export const LABELLERS = ["hand", "claude", "gemma"] as const satisfies readonly Labeller[];
 
 // The labeller in a chat's address: ?labelled for the names labelled by hand, ?labelled=gemma for a model's; null for
 // a chat with all its messages

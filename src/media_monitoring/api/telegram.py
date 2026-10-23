@@ -49,9 +49,8 @@ class TelegramChannelDetails(TelegramChannel):
 
 
 Kind = Literal["person", "organization", "location", "event"]
-# Whose names: labelled by hand (corrected by admins), Claude's as first made, or a model's: Gemma 4 26B, or one trained
-# on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384
-Labeller = Literal["hand", "claude", "gemma", "glot500", "xlmv", "minilm"]
+# Whose names: labelled by hand (corrected by admins), Claude's as first made, or Gemma 4 26B's
+Labeller = Literal["hand", "claude", "gemma"]
 
 
 class TelegramName(BaseModel):
@@ -331,8 +330,7 @@ async def telegram_channel_messages(
         Labeller,
         Query(
             description="Whose names come with the messages: labelled by hand (as admins correct them), Claude's as "
-            "first made, or a model's (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: "
-            "Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384"
+            "first made, or Gemma 4 26B's (in the posts labelled by hand)"
         ),
     ] = "hand",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} messages to a page")] = 1,

@@ -148,10 +148,7 @@
     "labellers": {
       "hand": "qoʻlda",
       "claude": "Claude",
-      "gemma": "Gemma",
-      "glot500": "Glot500",
-      "xlmv": "XLM-V",
-      "minilm": "MiniLM"
+      "gemma": "Gemma"
     },
     "mistake": "xato",
     "notFound": "topilmagan",

@@ -46,11 +46,10 @@ as Claude labelled them (`claude`), to see what was corrected; a message an admi
 (`checked_at`), so that what's left to check shows. The chat list's labelled folder has their 534 channels, the posts
 without names too.
 
-## The models' names
+## Gemma's names
 
-Beside them, in the same table, the names models found in the same posts: Gemma 4 26B (INT8, on vLLM), told the rules
-above; and Glot500, XLM-V and MiniLM, trained on the names Gemma found by the rules before these (organizations without
-brands and facilities, which were places). The website compares each with the names labelled by hand as it shows them,
-by where they are: the same words of the same kind are right; overlapping a name of the same kind, but not the same
-words, the boundaries differ; overlapping only a name of another kind, the kind is wrong; overlapping none, it's extra;
-and a name labelled by hand that none of the model's overlaps is missed.
+Beside them, in the same table, the names Gemma 4 26B (INT8, on vLLM) found in the same posts, told the rules above. The
+website compares them with the names labelled by hand as it shows them, by where they are: the same words of the same
+kind are right; overlapping a name of the same kind, but not the same words, the boundaries differ; overlapping only a
+name of another kind, the kind is wrong; overlapping none, it's extra; and a name labelled by hand that none of Gemma's
+overlaps is missed.

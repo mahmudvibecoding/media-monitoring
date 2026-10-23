@@ -1902,9 +1902,9 @@ export type TelegramChannelMessagesData = {
         /**
          * Source
          *
-         * Whose names come with the messages: labelled by hand (as admins correct them), Claude's as first made, or a model's (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384
+         * Whose names come with the messages: labelled by hand (as admins correct them), Claude's as first made, or Gemma 4 26B's (in the posts labelled by hand)
          */
-        source?: 'hand' | 'claude' | 'gemma' | 'glot500' | 'xlmv' | 'minilm';
+        source?: 'hand' | 'claude' | 'gemma';
         /**
          * Page
          *
