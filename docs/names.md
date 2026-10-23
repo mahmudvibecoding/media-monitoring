@@ -67,7 +67,7 @@ name finders make names up. No text twice; at most 2 videos, 1 Short and 3 comme
 comments of 20 to 600 characters in Uzbek or Russian, without links, phones, betting or calls to subscribe. They come
 from 522 channels.
 
-Claude labelled them by the rules above (3,698 names: 1,597 people, 892 organizations, 1,116 places and 93 events; 189
+Claude labelled them by the rules above (3,698 names: 1,597 people, 892 organizations, 1,116 places and 93 events; 187
 texts have none), placed as the posts' names are, and where a comment glues words together (MenGijduvondan), where the
 name is written. They're in `app.youtube_labels` ('claude'), with the names Gemma found in them, told the rules for
 YouTube too ('gemma').
