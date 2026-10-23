@@ -123,8 +123,9 @@ CREATE TABLE IF NOT EXISTS telegram_messages (
 );
 
 -- Names labelled in messages, a row a message and labeller: by hand ('hand'), in the 220 posts that name finders are
--- scored on, and the names two of them found in those posts: 'gemma' (Gemma 4 26B, told to copy names as written) and
--- 'minilm' (Multilingual-MiniLM-L12-H384, trained on Gemma's names). names is a list of {"name", "kind" (person,
+-- scored on, and the names four of them found in those posts: 'gemma' (Gemma 4 26B, told to copy names as written),
+-- and three trained on Gemma's names: 'glot500' (Glot500 base), 'xlmv' (XLM-V base) and 'minilm'
+-- (Multilingual-MiniLM-L12-H384). names is a list of {"name", "kind" (person,
 -- organization or location), "start", "end"}: where it is in the text, in characters (end not included), or null for
 -- a name not written so in it; an empty list for a message labelled as having none. A model's names also say how each
 -- compares with the hand's, as the scoring matches them ("verdict": right, kind (another kind: "labelled_as" is the

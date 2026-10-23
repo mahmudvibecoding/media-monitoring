@@ -2,7 +2,7 @@
 site's channels page asks for, each with its latest message (GET /api/telegram/channels), a channel's details
 (.../{channel_id}), its photo (.../{channel_id}/photo), and its saved messages, newest first, all of them or those a
 search finds (.../{channel_id}/messages). Both lists can keep to the messages whose names were labelled by hand
-(telegram_message_labels), and the messages come with those names, or with the names two models found in them,
+(telegram_message_labels), and the messages come with those names, or with the names a model found in them,
 compared with the hand's. The column and the indexes the channel list reads them by are in app.sql; a channel's
 messages come by the messages table's key."""
 
@@ -281,10 +281,11 @@ async def telegram_channel_messages(
     search: Annotated[str, Query(max_length=SEARCH_MAX, description="Part of a message's text")] = "",
     labelled: Annotated[bool, Query(description="Only the messages whose names were labelled")] = False,
     source: Annotated[
-        Literal["hand", "gemma", "minilm"],
+        Literal["hand", "gemma", "glot500", "xlmv", "minilm"],
         Query(
-            description="Whose names come with the messages: labelled by hand, or found by a model, Gemma 4 26B or "
-            "Multilingual-MiniLM-L12-H384 trained on Gemma's names (in the posts labelled by hand)"
+            description="Whose names come with the messages: labelled by hand, or found by a model (in the posts "
+            "labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, "
+            "Multilingual-MiniLM-L12-H384"
         ),
     ] = "hand",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} messages to a page")] = 1,

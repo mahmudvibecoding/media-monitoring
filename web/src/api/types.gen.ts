@@ -1824,9 +1824,9 @@ export type TelegramChannelMessagesData = {
         /**
          * Source
          *
-         * Whose names come with the messages: labelled by hand, or found by a model, Gemma 4 26B or Multilingual-MiniLM-L12-H384 trained on Gemma's names (in the posts labelled by hand)
+         * Whose names come with the messages: labelled by hand, or found by a model (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384
          */
-        source?: 'hand' | 'gemma' | 'minilm';
+        source?: 'hand' | 'gemma' | 'glot500' | 'xlmv' | 'minilm';
         /**
          * Page
          *

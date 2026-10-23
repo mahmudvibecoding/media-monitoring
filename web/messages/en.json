@@ -144,6 +144,8 @@
     "labellers": {
       "hand": "by hand",
       "gemma": "Gemma",
+      "glot500": "Glot500",
+      "xlmv": "XLM-V",
       "minilm": "MiniLM"
     },
     "mistake": "a mistake",
