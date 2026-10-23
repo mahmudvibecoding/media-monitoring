@@ -3,13 +3,19 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 
-import { youtubeChannelQueryKey, youtubeChannelVideosInfiniteOptions } from "@/api/@tanstack/react-query.gen";
+import {
+  youtubeChannelQueryKey,
+  youtubeChannelVideosInfiniteOptions,
+  youtubeLabelledTextsOptions,
+} from "@/api/@tanstack/react-query.gen";
 import { youtubeChannel } from "@/api/sdk.gen";
 import { ChannelDetails, ChannelVideos } from "@/components/youtube-channel";
+import { YouTubeLabelled } from "@/components/youtube-labels";
 import { toSearchParams } from "@/lib/address";
 import { serverClient, signedInUser } from "@/lib/api-server";
 import { FIRST_PAGE } from "@/lib/pages";
 import { getQueryClient } from "@/lib/query-client";
+import { labellerOf } from "@/lib/telegram";
 import { firstKind, videosQuery } from "@/lib/youtube";
 
 // The channel, asked for once per page load though both the tab's title and the page need it: null when there's no
@@ -26,27 +32,37 @@ export async function generateMetadata({ params }: PageProps<"/youtube/channels/
 }
 
 // A monitored YouTube channel, for admins: its details, and its videos of the kind and in the order the address asks
-// for (by default, its videos, or its Shorts when it has only those, newest first). The page arrives with both (the
-// first 50 videos), and the browser takes over from there.
+// for (by default, its videos, or its Shorts when it has only those, newest first); or, with ?labelled, its labelled
+// texts, to check (see YouTubeLabelled). The page arrives with both (the first 50 videos, or the labelled texts), and
+// the browser takes over from there.
 export default async function YouTubeChannelPage({ params, searchParams }: PageProps<"/youtube/channels/[id]">) {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();
   const { id } = await params;
   const channel = await loadChannel(id);
   if (channel === null) notFound();
-  const query = videosQuery(toSearchParams(await searchParams), firstKind(channel?.videos));
+  const values = await searchParams;
+  const labelled = labellerOf(values.labelled);
   const queryClient = getQueryClient();
   if (channel) queryClient.setQueryData(youtubeChannelQueryKey({ path: { channel_id: id } }), channel);
-  await queryClient.prefetchInfiniteQuery({
-    ...youtubeChannelVideosInfiniteOptions({ client: serverClient, path: { channel_id: id }, query }),
-    ...FIRST_PAGE,
-  });
+  if (labelled) {
+    const query = labelled === "hand" ? undefined : { source: labelled };
+    await queryClient.prefetchQuery(
+      youtubeLabelledTextsOptions({ client: serverClient, path: { channel_id: id }, query }),
+    );
+  } else {
+    const query = videosQuery(toSearchParams(values), firstKind(channel?.videos));
+    await queryClient.prefetchInfiniteQuery({
+      ...youtubeChannelVideosInfiniteOptions({ client: serverClient, path: { channel_id: id }, query }),
+      ...FIRST_PAGE,
+    });
+  }
   return (
     // As wide as YouTube's channel pages at most
     <div className="mx-auto max-w-[1284px] space-y-4 px-4 pb-10 sm:px-6">
       <HydrationBoundary state={dehydrate(queryClient)}>
         <ChannelDetails id={id} />
-        <ChannelVideos id={id} />
+        {labelled ? <YouTubeLabelled id={id} labelled={labelled} /> : <ChannelVideos id={id} />}
       </HydrationBoundary>
     </div>
   );

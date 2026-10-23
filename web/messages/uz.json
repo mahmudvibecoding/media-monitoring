@@ -66,7 +66,13 @@
     "found": "Topildi: {formatted} ta",
     "hidden": "yashirin",
     "none": "Hozircha kanallar yoʻq.",
-    "noMatch": "«{search}» boʻyicha kanal topilmadi."
+    "noMatch": "«{search}» boʻyicha kanal topilmadi.",
+    "all": "Hammasi",
+    "labelled": "Belgilangan",
+    "checked": "Tekshirilgan: {total} tadan {checked} ta",
+    "continue": "Tekshirishni davom ettirish",
+    "allChecked": "Hammasi tekshirildi",
+    "toCheck": "Tekshirish kerak: {count}"
   },
   "youtubeChannel": {
     "subscribers": "{formatted} ta obunachi",
@@ -88,7 +94,14 @@
     "description": "Tavsif",
     "details": "Kanal maʼlumotlari",
     "noResults": "Hech narsa topilmadi",
-    "new": "Yangi"
+    "new": "Yangi",
+    "allVideos": "Barcha videolar",
+    "noneLabelled": "Belgilangan matnlar yoʻq.",
+    "labelledKinds": {
+      "video": "Video: nomi va tavsifi",
+      "short": "Short: nomi va tavsifi",
+      "comment": "Video ostidagi izoh"
+    }
   },
   "youtubeVideo": {
     "unavailable": "Mavjud emas",

@@ -3,7 +3,7 @@
 The website marks the names of people, organizations, places and events in Telegram's messages: those labelled by hand
 in 1,000 posts that name finders are scored on, which admins correct there, and those models found in the same posts,
 compared with them. Name finders are scored on 1,000 YouTube texts too, videos and comments, labelled the same way,
-which the website doesn't show.
+which admins check on the website's YouTube pages as they do the posts.
 
 ## The kinds
 
@@ -69,8 +69,9 @@ from 522 channels.
 
 Claude labelled them by the rules above (3,698 names: 1,597 people, 892 organizations, 1,116 places and 93 events; 187
 texts have none), placed as the posts' names are, and where a comment glues words together (MenGijduvondan), where the
-name is written. They're in `app.youtube_labels` ('claude'), with the names Gemma found in them, told the rules for
-YouTube too ('gemma').
+name is written. They're in `app.youtube_labels` twice, as the posts' are: as admins correct them on the website
+(`hand`, with `checked_at`), and as Claude labelled them (`claude`); and with them the names Gemma found in them, told
+the rules for YouTube too (`gemma`).
 
 ## Gemma's names
 

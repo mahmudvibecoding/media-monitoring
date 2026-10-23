@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, checkMessage, health, labelledProgress, labelMessage, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, CheckMessageData, CheckMessageError, CheckMessageResponse, HealthData, HealthError, HealthResponse, LabelledProgressData, LabelledProgressError, LabelledProgressResponse, LabelMessageData, LabelMessageError, LabelMessageResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, checkComment, checkMessage, checkVideo, health, labelComment, labelledProgress, labelMessage, labelVideo, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeLabelledProgress, youtubeLabelledTexts, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, CheckCommentData, CheckCommentError, CheckCommentResponse, CheckMessageData, CheckMessageError, CheckMessageResponse, CheckVideoData, CheckVideoError, CheckVideoResponse, HealthData, HealthError, HealthResponse, LabelCommentData, LabelCommentError, LabelCommentResponse, LabelledProgressData, LabelledProgressError, LabelledProgressResponse, LabelMessageData, LabelMessageError, LabelMessageResponse, LabelVideoData, LabelVideoError, LabelVideoResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeLabelledProgressData, YoutubeLabelledProgressError, YoutubeLabelledProgressResponse, YoutubeLabelledTextsData, YoutubeLabelledTextsError, YoutubeLabelledTextsResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -164,7 +164,7 @@ export const youtubeChannelsQueryKey = (options?: Options<YoutubeChannelsData>) 
  *
  * The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the
  * channels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds
- * Zo‘r.
+ * Zo‘r. Labelled, only those with texts labelled by hand.
  */
 export const youtubeChannelsOptions = (options?: Options<YoutubeChannelsData>) => queryOptions<YoutubeChannelsResponse, YoutubeChannelsError, YoutubeChannelsResponse, ReturnType<typeof youtubeChannelsQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -215,7 +215,7 @@ export const youtubeChannelsInfiniteQueryKey = (options?: Options<YoutubeChannel
  *
  * The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the
  * channels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds
- * Zo‘r.
+ * Zo‘r. Labelled, only those with texts labelled by hand.
  */
 export const youtubeChannelsInfiniteOptions = (options?: Options<YoutubeChannelsData>) => {
     const opts = infiniteQueryOptions<YoutubeChannelsResponse, YoutubeChannelsError, InfiniteData<YoutubeChannelsResponse>, QueryKey<Options<YoutubeChannelsData>>, number | Pick<QueryKey<Options<YoutubeChannelsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -392,6 +392,162 @@ export const youtubeVideoCommentsInfiniteOptions = (options: Options<YoutubeVide
             return data;
         },
         queryKey: youtubeVideoCommentsInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const youtubeLabelledTextsQueryKey = (options: Options<YoutubeLabelledTextsData>) => createQueryKey('youtubeLabelledTexts', options);
+
+/**
+ * Youtube Labelled Texts
+ *
+ * A channel's labelled texts, its videos' and the comments under them (a few, at most a dozen), with the names
+ * labelled by hand in them, or another labeller's, compared with the hand's; none for a channel with no labelled
+ * text.
+ */
+export const youtubeLabelledTextsOptions = (options: Options<YoutubeLabelledTextsData>) => queryOptions<YoutubeLabelledTextsResponse, YoutubeLabelledTextsError, YoutubeLabelledTextsResponse, ReturnType<typeof youtubeLabelledTextsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await youtubeLabelledTexts({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: youtubeLabelledTextsQueryKey(options)
+});
+
+/**
+ * Label Video
+ *
+ * Sets the names labelled by hand in a video's text (its title and description), all of them at once: each its
+ * kind and where it is in the text, as the labelled texts give them (in UTF-16 units). Gives the names back as saved,
+ * in order.
+ */
+export const labelVideoMutation = (options?: Partial<Options<LabelVideoData>>): UseMutationOptions<LabelVideoResponse, LabelVideoError, Options<LabelVideoData>> => {
+    const mutationOptions: UseMutationOptions<LabelVideoResponse, LabelVideoError, Options<LabelVideoData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await labelVideo({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Label Comment
+ *
+ * Sets the names labelled by hand in a comment, as in a video's text.
+ */
+export const labelCommentMutation = (options?: Partial<Options<LabelCommentData>>): UseMutationOptions<LabelCommentResponse, LabelCommentError, Options<LabelCommentData>> => {
+    const mutationOptions: UseMutationOptions<LabelCommentResponse, LabelCommentError, Options<LabelCommentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await labelComment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Check Video
+ *
+ * Marks the names labelled by hand in a video's text checked (or not any more), so that what's left shows.
+ */
+export const checkVideoMutation = (options?: Partial<Options<CheckVideoData>>): UseMutationOptions<CheckVideoResponse, CheckVideoError, Options<CheckVideoData>> => {
+    const mutationOptions: UseMutationOptions<CheckVideoResponse, CheckVideoError, Options<CheckVideoData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await checkVideo({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Check Comment
+ *
+ * Marks the names labelled by hand in a comment checked (or not any more).
+ */
+export const checkCommentMutation = (options?: Partial<Options<CheckCommentData>>): UseMutationOptions<CheckCommentResponse, CheckCommentError, Options<CheckCommentData>> => {
+    const mutationOptions: UseMutationOptions<CheckCommentResponse, CheckCommentError, Options<CheckCommentData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await checkComment({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const youtubeLabelledProgressQueryKey = (options?: Options<YoutubeLabelledProgressData>) => createQueryKey('youtubeLabelledProgress', options);
+
+/**
+ * Youtube Labelled Progress
+ *
+ * How far the checking of the names labelled by hand in YouTube texts has got: the texts with them, how many are
+ * checked, and the next channel with a text still to check (after the one given, in the labelled list's order,
+ * round to the first).
+ */
+export const youtubeLabelledProgressOptions = (options?: Options<YoutubeLabelledProgressData>) => queryOptions<YoutubeLabelledProgressResponse, YoutubeLabelledProgressError, YoutubeLabelledProgressResponse, ReturnType<typeof youtubeLabelledProgressQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await youtubeLabelledProgress({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: youtubeLabelledProgressQueryKey(options)
+});
+
+export const youtubeLabelledProgressInfiniteQueryKey = (options?: Options<YoutubeLabelledProgressData>): QueryKey<Options<YoutubeLabelledProgressData>> => createQueryKey('youtubeLabelledProgress', options, true);
+
+/**
+ * Youtube Labelled Progress
+ *
+ * How far the checking of the names labelled by hand in YouTube texts has got: the texts with them, how many are
+ * checked, and the next channel with a text still to check (after the one given, in the labelled list's order,
+ * round to the first).
+ */
+export const youtubeLabelledProgressInfiniteOptions = (options?: Options<YoutubeLabelledProgressData>) => {
+    const opts = infiniteQueryOptions<YoutubeLabelledProgressResponse, YoutubeLabelledProgressError, InfiniteData<YoutubeLabelledProgressResponse>, QueryKey<Options<YoutubeLabelledProgressData>>, string | null | Pick<QueryKey<Options<YoutubeLabelledProgressData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<YoutubeLabelledProgressData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await youtubeLabelledProgress({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: youtubeLabelledProgressInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };

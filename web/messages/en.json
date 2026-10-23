@@ -66,7 +66,13 @@
     "found": "Found: {formatted}",
     "hidden": "hidden",
     "none": "No channels yet.",
-    "noMatch": "No channels match “{search}”."
+    "noMatch": "No channels match “{search}”.",
+    "all": "All",
+    "labelled": "Labelled",
+    "checked": "Checked {checked} of {total}",
+    "continue": "Continue checking",
+    "allChecked": "All checked",
+    "toCheck": "{count} to check"
   },
   "youtubeChannel": {
     "subscribers": "{count, plural, one {{formatted} subscriber} other {{formatted} subscribers}}",
@@ -88,7 +94,14 @@
     "description": "Description",
     "details": "Channel details",
     "noResults": "No results found",
-    "new": "New"
+    "new": "New",
+    "allVideos": "All videos",
+    "noneLabelled": "No labelled texts.",
+    "labelledKinds": {
+      "video": "Video: title and description",
+      "short": "Short: title and description",
+      "comment": "Comment under the video"
+    }
   },
   "youtubeVideo": {
     "unavailable": "Unavailable",

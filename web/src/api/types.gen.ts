@@ -68,6 +68,94 @@ export type Health = {
 };
 
 /**
+ * LabelCheck
+ */
+export type LabelCheck = {
+    /**
+     * Checked At
+     */
+    checked_at: string | null;
+};
+
+/**
+ * LabelledName
+ */
+export type LabelledName = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Kind
+     */
+    kind: 'person' | 'organization' | 'location' | 'event';
+    /**
+     * Start
+     */
+    start: number | null;
+    /**
+     * End
+     */
+    end: number | null;
+    /**
+     * Verdict
+     */
+    verdict?: 'right' | 'part' | 'kind' | 'extra' | 'missed' | null;
+    /**
+     * Labelled As
+     */
+    labelled_as?: 'person' | 'organization' | 'location' | 'event' | null;
+};
+
+/**
+ * LabelledText
+ */
+export type LabelledText = {
+    /**
+     * Video Id
+     */
+    video_id: string;
+    /**
+     * Comment Id
+     */
+    comment_id: string | null;
+    /**
+     * Kind
+     */
+    kind: 'video' | 'short' | 'comment';
+    /**
+     * Video Title
+     */
+    video_title: string | null;
+    /**
+     * Published At
+     */
+    published_at: string | null;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Names
+     */
+    names: Array<LabelledName>;
+    /**
+     * Checked At
+     */
+    checked_at: string | null;
+};
+
+/**
+ * LabelledTexts
+ */
+export type LabelledTexts = {
+    /**
+     * Texts
+     */
+    texts: Array<LabelledText>;
+};
+
+/**
  * LocaleChange
  */
 export type LocaleChange = {
@@ -712,16 +800,6 @@ export type TelegramChannels = {
 };
 
 /**
- * TelegramCheck
- */
-export type TelegramCheck = {
-    /**
-     * Checked At
-     */
-    checked_at: string | null;
-};
-
-/**
  * TelegramCounts
  */
 export type TelegramCounts = {
@@ -754,7 +832,7 @@ export type TelegramMessage = {
     /**
      * Names
      */
-    names: Array<TelegramName> | null;
+    names: Array<LabelledName> | null;
     /**
      * Checked At
      */
@@ -773,36 +851,6 @@ export type TelegramMessages = {
      * Page Size
      */
     page_size: number;
-};
-
-/**
- * TelegramName
- */
-export type TelegramName = {
-    /**
-     * Name
-     */
-    name: string;
-    /**
-     * Kind
-     */
-    kind: 'person' | 'organization' | 'location' | 'event';
-    /**
-     * Start
-     */
-    start: number | null;
-    /**
-     * End
-     */
-    end: number | null;
-    /**
-     * Verdict
-     */
-    verdict?: 'right' | 'part' | 'kind' | 'extra' | 'missed' | null;
-    /**
-     * Labelled As
-     */
-    labelled_as?: 'person' | 'organization' | 'location' | 'event' | null;
 };
 
 /**
@@ -903,6 +951,10 @@ export type YouTubeChannel = {
      * Subscribers
      */
     subscribers: number | null;
+    /**
+     * Unchecked
+     */
+    unchecked?: number | null;
 };
 
 /**
@@ -929,6 +981,10 @@ export type YouTubeChannelDetails = {
      * Subscribers
      */
     subscribers: number | null;
+    /**
+     * Unchecked
+     */
+    unchecked?: number | null;
     /**
      * Description
      */
@@ -1018,6 +1074,24 @@ export type YouTubeCounts = {
      * Comments
      */
     comments: number;
+};
+
+/**
+ * YouTubeLabelProgress
+ */
+export type YouTubeLabelProgress = {
+    /**
+     * Texts
+     */
+    texts: number;
+    /**
+     * Checked
+     */
+    checked: number;
+    /**
+     * Next
+     */
+    next: string | null;
 };
 
 /**
@@ -1420,6 +1494,12 @@ export type YoutubeChannelsData = {
          * Channels to a page: as many as fit the screen
          */
         size?: number;
+        /**
+         * Labelled
+         *
+         * Only the channels with texts labelled by hand, each with how many are left to check
+         */
+        labelled?: boolean;
     };
     url: '/api/youtube/channels';
 };
@@ -1701,6 +1781,343 @@ export type YoutubeVideoCommentsResponses = {
 };
 
 export type YoutubeVideoCommentsResponse = YoutubeVideoCommentsResponses[keyof YoutubeVideoCommentsResponses];
+
+export type YoutubeLabelledTextsData = {
+    body?: never;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: string;
+    };
+    query?: {
+        /**
+         * Source
+         *
+         * Whose names come with the texts: labelled by hand (as admins correct them), Claude's as first made, or Gemma 4 26B's
+         */
+        source?: 'hand' | 'claude' | 'gemma';
+    };
+    url: '/api/youtube/channels/{channel_id}/labelled';
+};
+
+export type YoutubeLabelledTextsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: that isn't a channel's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type YoutubeLabelledTextsError = YoutubeLabelledTextsErrors[keyof YoutubeLabelledTextsErrors];
+
+export type YoutubeLabelledTextsResponses = {
+    /**
+     * Successful Response
+     */
+    200: LabelledTexts;
+};
+
+export type YoutubeLabelledTextsResponse = YoutubeLabelledTextsResponses[keyof YoutubeLabelledTextsResponses];
+
+export type LabelVideoData = {
+    body: NamesChange;
+    path: {
+        /**
+         * Video Id
+         */
+        video_id: string;
+    };
+    query?: never;
+    url: '/api/youtube/videos/{video_id}/names';
+};
+
+export type LabelVideoErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such video or comment is saved
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a video's or a comment's ID; invalid_names: a name is out of the text, splits a character, has no letters, or overlaps another
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type LabelVideoError = LabelVideoErrors[keyof LabelVideoErrors];
+
+export type LabelVideoResponses = {
+    /**
+     * Response Label Video
+     *
+     * Successful Response
+     */
+    200: Array<LabelledName>;
+};
+
+export type LabelVideoResponse = LabelVideoResponses[keyof LabelVideoResponses];
+
+export type LabelCommentData = {
+    body: NamesChange;
+    path: {
+        /**
+         * Video Id
+         */
+        video_id: string;
+        /**
+         * Comment Id
+         */
+        comment_id: string;
+    };
+    query?: never;
+    url: '/api/youtube/videos/{video_id}/comments/{comment_id}/names';
+};
+
+export type LabelCommentErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such video or comment is saved
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a video's or a comment's ID; invalid_names: a name is out of the text, splits a character, has no letters, or overlaps another
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type LabelCommentError = LabelCommentErrors[keyof LabelCommentErrors];
+
+export type LabelCommentResponses = {
+    /**
+     * Response Label Comment
+     *
+     * Successful Response
+     */
+    200: Array<LabelledName>;
+};
+
+export type LabelCommentResponse = LabelCommentResponses[keyof LabelCommentResponses];
+
+export type CheckVideoData = {
+    body: CheckChange;
+    path: {
+        /**
+         * Video Id
+         */
+        video_id: string;
+    };
+    query?: never;
+    url: '/api/youtube/videos/{video_id}/checked';
+};
+
+export type CheckVideoErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: the text isn't labelled by hand
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a video's or a comment's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type CheckVideoError = CheckVideoErrors[keyof CheckVideoErrors];
+
+export type CheckVideoResponses = {
+    /**
+     * Successful Response
+     */
+    200: LabelCheck;
+};
+
+export type CheckVideoResponse = CheckVideoResponses[keyof CheckVideoResponses];
+
+export type CheckCommentData = {
+    body: CheckChange;
+    path: {
+        /**
+         * Video Id
+         */
+        video_id: string;
+        /**
+         * Comment Id
+         */
+        comment_id: string;
+    };
+    query?: never;
+    url: '/api/youtube/videos/{video_id}/comments/{comment_id}/checked';
+};
+
+export type CheckCommentErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: the text isn't labelled by hand
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a video's or a comment's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type CheckCommentError = CheckCommentErrors[keyof CheckCommentErrors];
+
+export type CheckCommentResponses = {
+    /**
+     * Successful Response
+     */
+    200: LabelCheck;
+};
+
+export type CheckCommentResponse = CheckCommentResponses[keyof CheckCommentResponses];
+
+export type YoutubeLabelledProgressData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * After
+         *
+         * The channel open: the next one is after it, else from the first
+         */
+        after?: string | null;
+    };
+    url: '/api/youtube/labelled';
+};
+
+export type YoutubeLabelledProgressErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: that isn't a channel's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type YoutubeLabelledProgressError = YoutubeLabelledProgressErrors[keyof YoutubeLabelledProgressErrors];
+
+export type YoutubeLabelledProgressResponses = {
+    /**
+     * Successful Response
+     */
+    200: YouTubeLabelProgress;
+};
+
+export type YoutubeLabelledProgressResponse = YoutubeLabelledProgressResponses[keyof YoutubeLabelledProgressResponses];
 
 export type TelegramChannelsData = {
     body?: never;
@@ -2008,7 +2425,7 @@ export type LabelMessageResponses = {
      *
      * Successful Response
      */
-    200: Array<TelegramName>;
+    200: Array<LabelledName>;
 };
 
 export type LabelMessageResponse = LabelMessageResponses[keyof LabelMessageResponses];
@@ -2066,7 +2483,7 @@ export type CheckMessageResponses = {
     /**
      * Successful Response
      */
-    200: TelegramCheck;
+    200: LabelCheck;
 };
 
 export type CheckMessageResponse = CheckMessageResponses[keyof CheckMessageResponses];

@@ -125,6 +125,14 @@ asks for. A Short's page asks for its details, its channel's, and its channel's 
 opened from: the Shorts after it in its feed are in that list, and only each one's details and comments are asked for as
 it comes.
 
+With `labelled`, `/api/youtube/channels` keeps to the channels with texts labelled by hand (`app.youtube_labels`, see
+docs/names.md), each with how many of them are left to check. `/api/youtube/channels/{id}/labelled` gives a channel's
+labelled texts, its videos' titles and descriptions and the comments under its videos, newest video first, each with its
+names as Telegram's messages come with theirs: those labelled by hand, or another labeller's (`source`), compared with
+the hand's. `PUT /api/youtube/videos/{id}/names` and `.../comments/{comment_id}/names` set a text's names labelled by
+hand, `.../checked` marks them checked, and `/api/youtube/labelled` says how far the checking has got, as Telegram's do;
+the label models and the comparing are `api/labels.py`, which both use.
+
 ### Which channels are listed
 
 Both lists show only the channels with something collected, and count only those: a YouTube channel with a video, a
@@ -255,7 +263,7 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   message's text, made whole words (a name takes its ending, Toshkentda) without quote marks around it ("Сити"нинг:
   Сити), gets a kind from the toolbar that comes up under it (or 1 to 4) and takes the place of the names it overlaps; a
   click on a name changes its kind or removes it (Delete). Each change shows at once and is saved at once
-  (`src/components/telegram-labels.tsx`), and Ctrl+Z takes the last ones back. The round button with ✓ beside a message
+  (`src/components/name-labels.tsx`), and Ctrl+Z takes the last ones back. The round button with ✓ beside a message
   marks it checked, which its time then shows with ✓✓, as Telegram shows a message read; the labelled folder counts each
   channel's messages still to check as Telegram counts a chat's unread ones, under a row with how many are checked of
   all of them, which opens the first channel with one still to check, and a chat's card says how many of its own are
@@ -263,6 +271,15 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   labelled by hand, or of another kind) is underlined red and wavy, as a misspelt word; a name it missed is framed,
   dashed, where it was labelled, and listed under the text, with those it gave that aren't written so in it; under the
   mouse, each says which.
+- YouTube's channel list has YouTube's chips above it: all the channels, or the labelled ones (`?labelled`), those with
+  texts labelled by hand, each with how many are left to check by its picture (✓✓ when none is), beside a line with how
+  many are checked of all of them and the way on to the next channel to check. A labelled channel's page (`?labelled` in
+  its address) shows under its details its labelled texts as name finders read them, each beside its video's cover: a
+  video's title and description, a Short's, or a comment under a video, with the video's title; above them, a card as
+  the labelled chats' has the switch between the names labelled by hand and another labeller's, what the colors are, how
+  many are checked, here and in all, with the way on to the next channel, and the way to the channel's videos. The names
+  are corrected and checked there as in the labelled chats (`src/components/youtube-labels.tsx`), with the ✓ beside each
+  text; a change that wasn't saved says so in YouTube's dark note at the bottom left.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. One the player can't
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,

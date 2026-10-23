@@ -32,6 +32,8 @@ class YouTubeChannel(BaseModel):
     handle: str | None  # with its @
     avatar_url: str | None
     subscribers: int | None  # None when the channel hides the count
+    # In the labelled list: how many of its texts labelled by hand aren't marked checked yet (youtube_labels.py)
+    unchecked: int | None = None
 
 
 class YouTubeChannels(BaseModel):
@@ -71,7 +73,7 @@ class YouTubeVideos(BaseModel):
 # The page's channels are picked from the order's index alone, which holds their IDs, and only those are read from the
 # table: a page far down then takes milliseconds, not the 0.4 s of reading and sorting every channel
 PAGE = sql.SQL("""
-    SELECT c.channel_id AS id, c.title, c.handle, c.avatar_url, c.subscriber_count AS subscribers
+    SELECT c.channel_id AS id, c.title, c.handle, c.avatar_url, c.subscriber_count AS subscribers {unchecked}
     FROM (SELECT channel_id FROM youtube_channels {where} ORDER BY {order} LIMIT %(limit)s OFFSET %(offset)s) AS page
     JOIN youtube_channels AS c USING (channel_id)
     ORDER BY {order}
@@ -80,6 +82,11 @@ COUNT = sql.SQL("SELECT count(*) FROM youtube_channels {where}")
 # Only the channels with a video (app.sql), and with a search, those it matches: lowercase, apostrophes left out
 LISTED = sql.SQL("WHERE has_videos")
 SEARCHED = sql.SQL("WHERE has_videos AND search_text LIKE app.searchable(%(pattern)s)")
+# Only the channels with a text labelled by hand (app.youtube_labels), and how many of those aren't checked yet
+LABELLED = sql.SQL(""" AND channel_id IN (
+    SELECT v.channel_id FROM app.youtube_labels AS l JOIN youtube_videos AS v USING (video_id) WHERE l.source = 'hand')""")
+UNCHECKED = sql.SQL(""", (SELECT count(*) FROM app.youtube_labels AS l JOIN youtube_videos AS v USING (video_id)
+    WHERE v.channel_id = c.channel_id AND l.source = 'hand' AND l.checked_at IS NULL) AS unchecked""")
 # The biggest first; the channel's ID last, so that channels that tie keep their places from one page to the next
 ORDER = sql.SQL("subscriber_count DESC NULLS LAST, channel_id")
 MOST_TO_A_PAGE = 100  # the site asks for as many channels as fit its grid on the screen
@@ -103,12 +110,15 @@ async def youtube_channels(
     size: Annotated[
         int, Query(ge=1, le=MOST_TO_A_PAGE, description="Channels to a page: as many as fit the screen")
     ] = (PAGE_SIZE),
+    labelled: Annotated[
+        bool, Query(description="Only the channels with texts labelled by hand, each with how many are left to check")
+    ] = False,
 ) -> YouTubeChannels:
     """The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the
     channels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds
-    Zo‘r."""
+    Zo‘r. Labelled, only those with texts labelled by hand."""
     search = " ".join(search.split())
-    where = SEARCHED if search else LISTED
+    where = sql.SQL("{}{}").format(SEARCHED if search else LISTED, LABELLED if labelled else sql.SQL(""))
     values = {"pattern": anywhere(search), "limit": size, "offset": (page - 1) * size}
 
     # Both queries are planned for the search they're given (prepare=False): a plan made once for any search would
@@ -116,7 +126,7 @@ async def youtube_channels(
     async def channels() -> list[YouTubeChannel]:
         async with request.state.pool.connection() as conn:
             cursor = conn.cursor(row_factory=class_row(YouTubeChannel))
-            query = PAGE.format(where=where, order=ORDER)
+            query = PAGE.format(where=where, order=ORDER, unchecked=UNCHECKED if labelled else sql.SQL(""))
             return await (await cursor.execute(query, values, prepare=False)).fetchall()
 
     async def total() -> int:

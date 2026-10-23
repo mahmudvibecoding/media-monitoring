@@ -66,7 +66,13 @@
     "found": "Найдено: {formatted}",
     "hidden": "скрыто",
     "none": "Каналов пока нет.",
-    "noMatch": "По запросу «{search}» каналов нет."
+    "noMatch": "По запросу «{search}» каналов нет.",
+    "all": "Все",
+    "labelled": "Размеченные",
+    "checked": "Проверено {checked} из {total}",
+    "continue": "Продолжить проверку",
+    "allChecked": "Всё проверено",
+    "toCheck": "Осталось проверить: {count}"
   },
   "youtubeChannel": {
     "subscribers": "{count, plural, one {{formatted} подписчик} few {{formatted} подписчика} many {{formatted} подписчиков} other {{formatted} подписчика}}",
@@ -88,7 +94,14 @@
     "description": "Описание",
     "details": "Сведения о канале",
     "noResults": "Ничего не найдено",
-    "new": "Новое"
+    "new": "Новое",
+    "allVideos": "Все видео",
+    "noneLabelled": "Размеченных текстов нет.",
+    "labelledKinds": {
+      "video": "Видео: название и описание",
+      "short": "Short: название и описание",
+      "comment": "Комментарий под видео"
+    }
   },
   "youtubeVideo": {
     "unavailable": "Недоступно",

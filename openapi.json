@@ -441,7 +441,7 @@
     "/api/youtube/channels": {
       "get": {
         "summary": "Youtube Channels",
-        "description": "The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the\nchannels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds\nZo‘r.",
+        "description": "The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the\nchannels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds\nZo‘r. Labelled, only those with texts labelled by hand.",
         "operationId": "youtube_channels",
         "parameters": [
           {
@@ -482,6 +482,18 @@
               "title": "Size"
             },
             "description": "Channels to a page: as many as fit the screen"
+          },
+          {
+            "name": "labelled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only the channels with texts labelled by hand, each with how many are left to check",
+              "default": false,
+              "title": "Labelled"
+            },
+            "description": "Only the channels with texts labelled by hand, each with how many are left to check"
           }
         ],
         "responses": {
@@ -991,6 +1003,686 @@
           },
           "422": {
             "description": "invalid_request: that isn't a video's ID, or a parameter is out of its range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/youtube/channels/{channel_id}/labelled": {
+      "get": {
+        "summary": "Youtube Labelled Texts",
+        "description": "A channel's labelled texts, its videos' and the comments under them (a few, at most a dozen), with the names\nlabelled by hand in them, or another labeller's, compared with the hand's; none for a channel with no labelled\ntext.",
+        "operationId": "youtube_labelled_texts",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^UC[A-Za-z0-9_-]{22}$",
+              "title": "Channel Id"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "hand",
+                "claude",
+                "gemma"
+              ],
+              "type": "string",
+              "description": "Whose names come with the texts: labelled by hand (as admins correct them), Claude's as first made, or Gemma 4 26B's",
+              "default": "hand",
+              "title": "Source"
+            },
+            "description": "Whose names come with the texts: labelled by hand (as admins correct them), Claude's as first made, or Gemma 4 26B's"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelledTexts"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a channel's ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/youtube/videos/{video_id}/names": {
+      "put": {
+        "summary": "Label Video",
+        "description": "Sets the names labelled by hand in a video's text (its title and description), all of them at once: each its\nkind and where it is in the text, as the labelled texts give them (in UTF-16 units). Gives the names back as saved,\nin order.",
+        "operationId": "label_video",
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{11}$",
+              "title": "Video Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NamesChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LabelledName"
+                  },
+                  "title": "Response Label Video"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins do this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: no such video or comment is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a video's or a comment's ID; invalid_names: a name is out of the text, splits a character, has no letters, or overlaps another",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/youtube/videos/{video_id}/comments/{comment_id}/names": {
+      "put": {
+        "summary": "Label Comment",
+        "description": "Sets the names labelled by hand in a comment, as in a video's text.",
+        "operationId": "label_comment",
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{11}$",
+              "title": "Video Id"
+            }
+          },
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]{1,100}$",
+              "title": "Comment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NamesChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LabelledName"
+                  },
+                  "title": "Response Label Comment"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins do this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: no such video or comment is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a video's or a comment's ID; invalid_names: a name is out of the text, splits a character, has no letters, or overlaps another",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/youtube/videos/{video_id}/checked": {
+      "put": {
+        "summary": "Check Video",
+        "description": "Marks the names labelled by hand in a video's text checked (or not any more), so that what's left shows.",
+        "operationId": "check_video",
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{11}$",
+              "title": "Video Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelCheck"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins do this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: the text isn't labelled by hand",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a video's or a comment's ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/youtube/videos/{video_id}/comments/{comment_id}/checked": {
+      "put": {
+        "summary": "Check Comment",
+        "description": "Marks the names labelled by hand in a comment checked (or not any more).",
+        "operationId": "check_comment",
+        "parameters": [
+          {
+            "name": "video_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{11}$",
+              "title": "Video Id"
+            }
+          },
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]{1,100}$",
+              "title": "Comment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabelCheck"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins do this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: the text isn't labelled by hand",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a video's or a comment's ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/youtube/labelled": {
+      "get": {
+        "summary": "Youtube Labelled Progress",
+        "description": "How far the checking of the names labelled by hand in YouTube texts has got: the texts with them, how many are\nchecked, and the next channel with a text still to check (after the one given, in the labelled list's order,\nround to the first).",
+        "operationId": "youtube_labelled_progress",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^UC[A-Za-z0-9_-]{22}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The channel open: the next one is after it, else from the first",
+              "title": "After"
+            },
+            "description": "The channel open: the next one is after it, else from the first"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YouTubeLabelProgress"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a channel's ID",
             "content": {
               "application/json": {
                 "schema": {
@@ -1548,7 +2240,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/TelegramName"
+                    "$ref": "#/components/schemas/LabelledName"
                   },
                   "title": "Response Label Message"
                 }
@@ -1671,7 +2363,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TelegramCheck"
+                  "$ref": "#/components/schemas/LabelCheck"
                 }
               }
             }
@@ -3495,6 +4187,212 @@
         ],
         "title": "Health"
       },
+      "LabelCheck": {
+        "properties": {
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checked_at"
+        ],
+        "title": "LabelCheck"
+      },
+      "LabelledName": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person",
+              "organization",
+              "location",
+              "event"
+            ],
+            "title": "Kind"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "right",
+                  "part",
+                  "kind",
+                  "extra",
+                  "missed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
+          "labelled_as": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "person",
+                  "organization",
+                  "location",
+                  "event"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labelled As"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "start",
+          "end"
+        ],
+        "title": "LabelledName"
+      },
+      "LabelledText": {
+        "properties": {
+          "video_id": {
+            "type": "string",
+            "title": "Video Id"
+          },
+          "comment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "video",
+              "short",
+              "comment"
+            ],
+            "title": "Kind"
+          },
+          "video_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Title"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "names": {
+            "items": {
+              "$ref": "#/components/schemas/LabelledName"
+            },
+            "type": "array",
+            "title": "Names"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "video_id",
+          "comment_id",
+          "kind",
+          "video_title",
+          "published_at",
+          "text",
+          "names",
+          "checked_at"
+        ],
+        "title": "LabelledText"
+      },
+      "LabelledTexts": {
+        "properties": {
+          "texts": {
+            "items": {
+              "$ref": "#/components/schemas/LabelledText"
+            },
+            "type": "array",
+            "title": "Texts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "texts"
+        ],
+        "title": "LabelledTexts"
+      },
       "LocaleChange": {
         "properties": {
           "locale": {
@@ -4699,27 +5597,6 @@
         ],
         "title": "TelegramChannels"
       },
-      "TelegramCheck": {
-        "properties": {
-          "checked_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Checked At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "checked_at"
-        ],
-        "title": "TelegramCheck"
-      },
       "TelegramCounts": {
         "properties": {
           "channels": {
@@ -4757,7 +5634,7 @@
             "anyOf": [
               {
                 "items": {
-                  "$ref": "#/components/schemas/TelegramName"
+                  "$ref": "#/components/schemas/LabelledName"
                 },
                 "type": "array"
               },
@@ -4809,89 +5686,6 @@
           "page_size"
         ],
         "title": "TelegramMessages"
-      },
-      "TelegramName": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "kind": {
-            "type": "string",
-            "enum": [
-              "person",
-              "organization",
-              "location",
-              "event"
-            ],
-            "title": "Kind"
-          },
-          "start": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Start"
-          },
-          "end": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "End"
-          },
-          "verdict": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "right",
-                  "part",
-                  "kind",
-                  "extra",
-                  "missed"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Verdict"
-          },
-          "labelled_as": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "person",
-                  "organization",
-                  "location",
-                  "event"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Labelled As"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "kind",
-          "start",
-          "end"
-        ],
-        "title": "TelegramName"
       },
       "TelegramProgress": {
         "properties": {
@@ -5048,6 +5842,17 @@
               }
             ],
             "title": "Subscribers"
+          },
+          "unchecked": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unchecked"
           }
         },
         "type": "object",
@@ -5109,6 +5914,17 @@
               }
             ],
             "title": "Subscribers"
+          },
+          "unchecked": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unchecked"
           },
           "description": {
             "anyOf": [
@@ -5294,6 +6110,36 @@
           "comments"
         ],
         "title": "YouTubeCounts"
+      },
+      "YouTubeLabelProgress": {
+        "properties": {
+          "texts": {
+            "type": "integer",
+            "title": "Texts"
+          },
+          "checked": {
+            "type": "integer",
+            "title": "Checked"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next"
+          }
+        },
+        "type": "object",
+        "required": [
+          "texts",
+          "checked",
+          "next"
+        ],
+        "title": "YouTubeLabelProgress"
       },
       "YouTubeVideo": {
         "properties": {

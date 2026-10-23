@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type ComponentProps, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 
-import type { TelegramName } from "@/api/types.gen";
+import type { LabelledName } from "@/api/types.gen";
 import { cn } from "@/lib/utils";
 
 // The pieces Telegram's pages here are made of, looking like Telegram Web's own
@@ -89,7 +89,7 @@ const LINKED = new RegExp(`${TEXT_LINK}|(${URL})|(${DOMAIN})|(${MENTION})|(${HAS
 
 const LINK = "text-tg-blue [overflow-wrap:anywhere] hover:underline";
 
-type Placed = TelegramName & { start: number; end: number; index: number };
+type Placed = LabelledName & { start: number; end: number; index: number };
 
 // A message's (or a description's) text with its links, the names labelled in it marked by their kind, and what a search
 // found in it marked as Telegram marks it. With names, each piece of the text says where it starts in it (data-at, in
@@ -105,7 +105,7 @@ export function TelegramText({
 }: {
   text: string;
   found?: string;
-  names?: TelegramName[] | null;
+  names?: LabelledName[] | null;
   raw?: boolean;
   onHashtag?: (tag: string) => void;
 }) {
@@ -198,7 +198,7 @@ export const NAME_KINDS = [
   "organization",
   "location",
   "event",
-] as const satisfies readonly TelegramName["kind"][];
+] as const satisfies readonly LabelledName["kind"][];
 const FILLS = {
   person: "bg-tg-person/14",
   organization: "bg-tg-organization/18",
@@ -223,7 +223,7 @@ export const MISTAKE =
 export const MISSED = "border border-dashed [box-decoration-break:clone]";
 
 // A name labelled by hand, or by another labeller, marked by its kind (and another's by how it compares with the
-// hand's, see TelegramName), which, with the name, shows under the mouse; without a name, the mark alone. In a text,
+// hand's, see LabelledName), which, with the name, shows under the mouse; without a name, the mark alone. In a text,
 // index is which of its names it is.
 export function NameMark({
   kind,
@@ -233,10 +233,10 @@ export function NameMark({
   index,
   children,
 }: {
-  kind: TelegramName["kind"];
+  kind: LabelledName["kind"];
   name?: string;
-  verdict?: TelegramName["verdict"];
-  labelledAs?: TelegramName["labelled_as"];
+  verdict?: LabelledName["verdict"];
+  labelledAs?: LabelledName["labelled_as"];
   index?: number;
   children: ReactNode;
 }) {
@@ -400,5 +400,38 @@ export function ShareIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
       <path d="M13.2 4.6c-.6-.5-1.5-.1-1.5.7v3.4C6.1 9.3 3.2 13 3 18.7c0 .5.6.7.9.3 1.8-2.7 4.3-4 7.8-4.2v3.6c0 .8.9 1.2 1.5.7l7.6-6.6c.4-.4.4-1 0-1.4z" />
     </svg>
+  );
+}
+
+// Under a labelled text: the names labelled by hand that a model missed, the names that couldn't be marked in the text,
+// or that it has none
+export function NameNotes({ names }: { names: LabelledName[] }) {
+  const t = useTranslations("telegramChannel");
+  if (names.length === 0) return <span className="mt-1 block text-sm leading-5 text-tg-muted">{t("noNames")}</span>;
+  // A missed name once, wherever the hand placed it
+  const missed = [...new Map(names.filter((name) => name.verdict === "missed").map((n) => [n.kind + n.name, n]))];
+  const unmarked = names.filter((name) => name.start === null && name.verdict !== "missed");
+  if (missed.length === 0 && unmarked.length === 0) return null;
+  return (
+    <span className="mt-1 block text-sm leading-5 text-tg-muted">
+      {missed.length > 0 && <NameList label={t("missed")} names={missed.map(([, name]) => name)} />}
+      {unmarked.length > 0 && <NameList label={t("notMarked")} names={unmarked} />}
+    </span>
+  );
+}
+
+function NameList({ label, names }: { label: string; names: LabelledName[] }) {
+  return (
+    <span className="block">
+      {label}{" "}
+      {names.map((name, index) => (
+        <Fragment key={index}>
+          {index > 0 && ", "}
+          <NameMark kind={name.kind} name={name.name} verdict={name.verdict} labelledAs={name.labelled_as}>
+            <span className="text-black">{name.name}</span>
+          </NameMark>
+        </Fragment>
+      ))}
+    </span>
   );
 }

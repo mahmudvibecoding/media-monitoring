@@ -1,11 +1,12 @@
 "use client";
 
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCheckIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { youtubeChannelsOptions } from "@/api/@tanstack/react-query.gen";
+import { youtubeChannelsOptions, youtubeLabelledProgressOptions } from "@/api/@tanstack/react-query.gen";
 import type { YouTubeChannel } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { Pages } from "@/components/pages";
@@ -15,7 +16,7 @@ import { go } from "@/lib/address";
 import { formatCompact, formatCount, pluralOf } from "@/lib/format";
 import { DIMMED } from "@/lib/pages";
 import { cn } from "@/lib/utils";
-import { channelsAddress, channelsQuery } from "@/lib/youtube";
+import { channelsAddress, channelsQuery, labelledPath } from "@/lib/youtube";
 
 const TILE = { width: 160, height: 208, gap: 16 }; // pixels: a tile's least width, its height, the gaps between them
 const MOST = 100; // tiles to a page at most, as many as the API gives
@@ -24,7 +25,8 @@ const MOST = 100; // tiles to a page at most, as many as the API gives
 // each with its name, handle and subscribers, under YouTube's top bar, whose box searches them as one types. The grid
 // fills the screen and no more, so the page's buttons (or ← and →) are always in view: a page holds as many channels
 // as fit, so its size follows the window's. The address keeps the search and the page. While the next page loads, the
-// last one stays, dimmed.
+// last one stays, dimmed. YouTube's chips above it keep it to the channels with labelled texts (?labelled), each with how
+// many are left to check, and say how far the checking has got, with the way on to the next channel to check.
 export function YouTubeChannels() {
   const t = useTranslations("youtubeChannels");
   const locale = useLocale();
@@ -39,7 +41,7 @@ export function YouTubeChannels() {
   });
   const page = query.page ?? 1;
   const pages = data ? Math.max(1, Math.ceil(data.total / data.page_size)) : 1;
-  const { search } = query;
+  const { search, labelled } = query;
 
   // The pages either side, asked for once this one is shown, so that turning to them shows them at once
   const queryClient = useQueryClient();
@@ -48,16 +50,16 @@ export function YouTubeChannels() {
     if (!shown || size === undefined) return;
     for (const to of [page + 1, page - 1].filter((to) => to >= 1 && to <= pages)) {
       void queryClient.prefetchQuery(
-        youtubeChannelsOptions({ query: { search, page: to > 1 ? to : undefined, size } }),
+        youtubeChannelsOptions({ query: { search, labelled, page: to > 1 ? to : undefined, size } }),
       );
     }
-  }, [shown, size, page, pages, search, queryClient]);
+  }, [shown, size, page, pages, search, labelled, queryClient]);
 
   // Past the last page (an old link, a smaller window, or fewer channels since): the last page instead
   const pastTheEnd = !!data && !isPlaceholderData && data.total > 0 && data.channels.length === 0 && page > 1;
   useEffect(() => {
-    if (pastTheEnd) go(channelsAddress({ search, page: pages > 1 ? pages : undefined }), "replace");
-  }, [pastTheEnd, search, pages]);
+    if (pastTheEnd) go(channelsAddress({ search, labelled, page: pages > 1 ? pages : undefined }), "replace");
+  }, [pastTheEnd, search, labelled, pages]);
 
   let list;
   if (!data || !fit) {
@@ -71,7 +73,7 @@ export function YouTubeChannels() {
         style={{ gridTemplateColumns: `repeat(${fit.columns}, minmax(0, 1fr))` }}
       >
         {data.channels.map((channel) => (
-          <ChannelTile key={channel.id} channel={channel} />
+          <ChannelTile key={channel.id} channel={channel} labelled={!!labelled} />
         ))}
       </ul>
     );
@@ -87,6 +89,25 @@ export function YouTubeChannels() {
     // mouse)
     <div className="flex h-[calc(100svh-3.5rem)] flex-col gap-2.5 px-2.5 pt-1.5 pb-4 font-roboto text-yt-text sm:px-4.5">
       <h1 className="sr-only">{t("title")}</h1>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1.5">
+        <div className="flex gap-2">
+          {[false, true].map((on) => (
+            <button
+              key={String(on)}
+              type="button"
+              aria-pressed={!!labelled === on}
+              onClick={() => !!labelled !== on && go(channelsAddress({ search, labelled: on || undefined }), "push")}
+              className={cn(
+                "h-8 rounded-lg px-3 text-sm leading-5 font-medium",
+                !!labelled === on ? "bg-yt-text text-white" : "bg-yt-chip text-yt-text hover:bg-yt-chip-hover",
+              )}
+            >
+              {t(on ? "labelled" : "all")}
+            </button>
+          ))}
+        </div>
+        {labelled && <Progress />}
+      </div>
       <div ref={area} className="min-h-0 flex-1 overflow-hidden p-1.5">
         {list}
       </div>
@@ -99,13 +120,34 @@ export function YouTubeChannels() {
               before={count}
               page={page}
               pages={pages}
-              turn={(to) => go(channelsAddress({ search, page: to > 1 ? to : undefined }), "push")}
+              turn={(to) => go(channelsAddress({ search, labelled, page: to > 1 ? to : undefined }), "push")}
             />
           </div>
         ) : (
           <p className="px-1.5 text-sm text-yt-muted tabular-nums">{count}</p>
         ))}
     </div>
+  );
+}
+
+// How far the checking of the labelled texts has got, and the way on to the next channel with one still to check
+function Progress() {
+  const t = useTranslations("youtubeChannels");
+  const locale = useLocale();
+  const { data } = useQuery(youtubeLabelledProgressOptions());
+  if (!data) return null;
+  return (
+    <p className="text-sm text-yt-muted">
+      {t("checked", { checked: formatCount(data.checked, locale), total: formatCount(data.texts, locale) })}
+      {" · "}
+      {data.next ? (
+        <YouTubeLink href={labelledPath(data.next, "hand")} className="font-medium text-yt-blue hover:underline">
+          {t("continue")}
+        </YouTubeLink>
+      ) : (
+        t("allChecked")
+      )}
+    </p>
   );
 }
 
@@ -130,8 +172,9 @@ function useFit(area: RefObject<HTMLDivElement | null>) {
 
 // A channel as YouTube shows one among others: its picture, name, handle and subscribers, centered, in a tile of fixed
 // height (the name in up to two lines), so the grid knows how many fit; YouTube's blue comes round it under the mouse.
-// The whole tile opens the channel's page here (not fetched ahead: a page of tiles would mean as many requests).
-function ChannelTile({ channel }: { channel: YouTubeChannel }) {
+// The whole tile opens the channel's page here (not fetched ahead: a page of tiles would mean as many requests); in the
+// labelled list, its labelled texts, with how many are left to check by its picture, or ✓✓ when none is.
+function ChannelTile({ channel, labelled }: { channel: YouTubeChannel; labelled: boolean }) {
   const t = useTranslations("youtubeChannels");
   const channelTexts = useTranslations("youtubeChannel");
   const locale = useLocale();
@@ -143,8 +186,23 @@ function ChannelTile({ channel }: { channel: YouTubeChannel }) {
     >
       <Tint />
       <ChannelPicture url={channel.avatar_url} size={96} />
+      {labelled &&
+        channel.unchecked != null &&
+        (channel.unchecked > 0 ? (
+          <span
+            title={t("toCheck", { count: channel.unchecked })}
+            className="pointer-events-none absolute top-3 right-[calc(50%-56px)] z-10 min-w-5 rounded-full bg-yt-blue px-1.5 text-center text-xs leading-5 font-medium text-white tabular-nums"
+          >
+            {channel.unchecked}
+          </span>
+        ) : (
+          <CheckCheckIcon
+            aria-label={t("allChecked")}
+            className="pointer-events-none absolute top-3 right-[calc(50%-56px)] z-10 size-5 text-tg-checked"
+          />
+        ))}
       <YouTubeLink
-        href={`/youtube/channels/${channel.id}`}
+        href={labelled ? labelledPath(channel.id, "hand") : `/youtube/channels/${channel.id}`}
         prefetch={false}
         className={cn(
           "mt-3 line-clamp-2 text-sm leading-5 font-medium after:absolute after:inset-0",

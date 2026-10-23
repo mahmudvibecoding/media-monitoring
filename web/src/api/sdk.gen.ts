@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddOrganizationData, AddOrganizationErrors, AddOrganizationResponses, AddPersonData, AddPersonErrors, AddPersonResponses, AddProjectData, AddProjectErrors, AddProjectResponses, ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangeOrganizationData, ChangeOrganizationErrors, ChangeOrganizationResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, ChangePersonData, ChangePersonErrors, ChangePersonResponses, ChangeProjectData, ChangeProjectErrors, ChangeProjectResponses, CheckMessageData, CheckMessageErrors, CheckMessageResponses, HealthData, HealthErrors, HealthResponses, LabelledProgressData, LabelledProgressErrors, LabelledProgressResponses, LabelMessageData, LabelMessageErrors, LabelMessageResponses, MeData, MeErrors, MeResponses, OrganizationDetailsData, OrganizationDetailsErrors, OrganizationDetailsResponses, OrganizationsData, OrganizationsErrors, OrganizationsResponses, PreviewProjectData, PreviewProjectErrors, PreviewProjectResponses, ProjectDetailsData, ProjectDetailsErrors, ProjectDetailsResponses, ProjectsData, ProjectsErrors, ProjectsResponses, ReadyData, ReadyErrors, ReadyResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelPhotoData, TelegramChannelPhotoErrors, TelegramChannelPhotoResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
+import type { AddOrganizationData, AddOrganizationErrors, AddOrganizationResponses, AddPersonData, AddPersonErrors, AddPersonResponses, AddProjectData, AddProjectErrors, AddProjectResponses, ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangeOrganizationData, ChangeOrganizationErrors, ChangeOrganizationResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, ChangePersonData, ChangePersonErrors, ChangePersonResponses, ChangeProjectData, ChangeProjectErrors, ChangeProjectResponses, CheckCommentData, CheckCommentErrors, CheckCommentResponses, CheckMessageData, CheckMessageErrors, CheckMessageResponses, CheckVideoData, CheckVideoErrors, CheckVideoResponses, HealthData, HealthErrors, HealthResponses, LabelCommentData, LabelCommentErrors, LabelCommentResponses, LabelledProgressData, LabelledProgressErrors, LabelledProgressResponses, LabelMessageData, LabelMessageErrors, LabelMessageResponses, LabelVideoData, LabelVideoErrors, LabelVideoResponses, MeData, MeErrors, MeResponses, OrganizationDetailsData, OrganizationDetailsErrors, OrganizationDetailsResponses, OrganizationsData, OrganizationsErrors, OrganizationsResponses, PreviewProjectData, PreviewProjectErrors, PreviewProjectResponses, ProjectDetailsData, ProjectDetailsErrors, ProjectDetailsResponses, ProjectsData, ProjectsErrors, ProjectsResponses, ReadyData, ReadyErrors, ReadyResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelPhotoData, TelegramChannelPhotoErrors, TelegramChannelPhotoResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeLabelledProgressData, YoutubeLabelledProgressErrors, YoutubeLabelledProgressResponses, YoutubeLabelledTextsData, YoutubeLabelledTextsErrors, YoutubeLabelledTextsResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -88,7 +88,7 @@ export const status = <ThrowOnError extends boolean = false>(options?: Options<S
  *
  * The monitored channels that have a video collected, a page at a time, the biggest first. With a search, only the
  * channels whose name or handle has it in them, whatever the case of its letters, and apostrophes aside: zor finds
- * Zo‘r.
+ * Zo‘r. Labelled, only those with texts labelled by hand.
  */
 export const youtubeChannels = <ThrowOnError extends boolean = false>(options?: Options<YoutubeChannelsData, ThrowOnError>): RequestResult<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError> => (options?.client ?? client).get<YoutubeChannelsResponses, YoutubeChannelsErrors, ThrowOnError>({ url: '/api/youtube/channels', ...options });
 
@@ -125,6 +125,82 @@ export const youtubeVideo = <ThrowOnError extends boolean = false>(options: Opti
  * collected has none). How many there are is in the video's details, so that a page isn't counted again.
  */
 export const youtubeVideoComments = <ThrowOnError extends boolean = false>(options: Options<YoutubeVideoCommentsData, ThrowOnError>): RequestResult<YoutubeVideoCommentsResponses, YoutubeVideoCommentsErrors, ThrowOnError> => (options.client ?? client).get<YoutubeVideoCommentsResponses, YoutubeVideoCommentsErrors, ThrowOnError>({ url: '/api/youtube/videos/{video_id}/comments', ...options });
+
+/**
+ * Youtube Labelled Texts
+ *
+ * A channel's labelled texts, its videos' and the comments under them (a few, at most a dozen), with the names
+ * labelled by hand in them, or another labeller's, compared with the hand's; none for a channel with no labelled
+ * text.
+ */
+export const youtubeLabelledTexts = <ThrowOnError extends boolean = false>(options: Options<YoutubeLabelledTextsData, ThrowOnError>): RequestResult<YoutubeLabelledTextsResponses, YoutubeLabelledTextsErrors, ThrowOnError> => (options.client ?? client).get<YoutubeLabelledTextsResponses, YoutubeLabelledTextsErrors, ThrowOnError>({ url: '/api/youtube/channels/{channel_id}/labelled', ...options });
+
+/**
+ * Label Video
+ *
+ * Sets the names labelled by hand in a video's text (its title and description), all of them at once: each its
+ * kind and where it is in the text, as the labelled texts give them (in UTF-16 units). Gives the names back as saved,
+ * in order.
+ */
+export const labelVideo = <ThrowOnError extends boolean = false>(options: Options<LabelVideoData, ThrowOnError>): RequestResult<LabelVideoResponses, LabelVideoErrors, ThrowOnError> => (options.client ?? client).put<LabelVideoResponses, LabelVideoErrors, ThrowOnError>({
+    url: '/api/youtube/videos/{video_id}/names',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Label Comment
+ *
+ * Sets the names labelled by hand in a comment, as in a video's text.
+ */
+export const labelComment = <ThrowOnError extends boolean = false>(options: Options<LabelCommentData, ThrowOnError>): RequestResult<LabelCommentResponses, LabelCommentErrors, ThrowOnError> => (options.client ?? client).put<LabelCommentResponses, LabelCommentErrors, ThrowOnError>({
+    url: '/api/youtube/videos/{video_id}/comments/{comment_id}/names',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Check Video
+ *
+ * Marks the names labelled by hand in a video's text checked (or not any more), so that what's left shows.
+ */
+export const checkVideo = <ThrowOnError extends boolean = false>(options: Options<CheckVideoData, ThrowOnError>): RequestResult<CheckVideoResponses, CheckVideoErrors, ThrowOnError> => (options.client ?? client).put<CheckVideoResponses, CheckVideoErrors, ThrowOnError>({
+    url: '/api/youtube/videos/{video_id}/checked',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Check Comment
+ *
+ * Marks the names labelled by hand in a comment checked (or not any more).
+ */
+export const checkComment = <ThrowOnError extends boolean = false>(options: Options<CheckCommentData, ThrowOnError>): RequestResult<CheckCommentResponses, CheckCommentErrors, ThrowOnError> => (options.client ?? client).put<CheckCommentResponses, CheckCommentErrors, ThrowOnError>({
+    url: '/api/youtube/videos/{video_id}/comments/{comment_id}/checked',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Youtube Labelled Progress
+ *
+ * How far the checking of the names labelled by hand in YouTube texts has got: the texts with them, how many are
+ * checked, and the next channel with a text still to check (after the one given, in the labelled list's order,
+ * round to the first).
+ */
+export const youtubeLabelledProgress = <ThrowOnError extends boolean = false>(options?: Options<YoutubeLabelledProgressData, ThrowOnError>): RequestResult<YoutubeLabelledProgressResponses, YoutubeLabelledProgressErrors, ThrowOnError> => (options?.client ?? client).get<YoutubeLabelledProgressResponses, YoutubeLabelledProgressErrors, ThrowOnError>({ url: '/api/youtube/labelled', ...options });
 
 /**
  * Telegram Channels

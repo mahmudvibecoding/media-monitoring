@@ -14,19 +14,20 @@ import {
   XIcon,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { Fragment, type MouseEvent, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
 import {
   labelledProgressOptions,
   telegramChannelMessagesInfiniteOptions,
   telegramChannelOptions,
 } from "@/api/@tanstack/react-query.gen";
-import type { TelegramChannelDetails, TelegramMessage, TelegramName } from "@/api/types.gen";
+import type { TelegramChannelDetails, TelegramMessage } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { PageLink, PageLoadingLine, useGo } from "@/components/page-link";
 import { useTelegram } from "@/components/telegram-frame";
 import { BubblesGhost, ChatGhost } from "@/components/telegram-ghosts";
-import { type Pick, snapName, useLabelEditing } from "@/components/telegram-labels";
+import { type Pick, usePicking } from "@/components/name-labels";
+import { useLabelEditing } from "@/components/telegram-labels";
 import {
   ChannelPhoto,
   InfoRow,
@@ -34,7 +35,7 @@ import {
   MISTAKE,
   NAME_KINDS,
   NameMark,
-  placeOf,
+  NameNotes,
   Ripples,
   RoundButton,
   ShareIcon,
@@ -408,7 +409,7 @@ function Day({
   username: string;
   found: string;
   onHashtag: (tag: string) => void;
-  onPick?: Pick;
+  onPick?: Pick<number>;
   onCheck?: (message: TelegramMessage) => void;
   raw: boolean;
 }) {
@@ -554,7 +555,7 @@ function Bubble({
   username: string;
   found: string;
   onHashtag: (tag: string) => void;
-  onPick?: Pick;
+  onPick?: Pick<number>;
   onCheck?: (message: TelegramMessage) => void;
   raw: boolean;
   first: boolean;
@@ -563,26 +564,7 @@ function Bubble({
   const t = useTranslations("telegramChannel");
   const locale = useLocale();
   const box = useRef<HTMLParagraphElement>(null);
-
-  function selected() {
-    const selection = window.getSelection();
-    if (!onPick || !box.current || !selection || selection.isCollapsed || !selection.rangeCount) return;
-    const range = selection.getRangeAt(0);
-    const from = placeOf(box.current, range.startContainer, range.startOffset);
-    const to = placeOf(box.current, range.endContainer, range.endOffset);
-    if (from === null || to === null) return;
-    const [start, end] = snapName(message.text, Math.min(from, to), Math.max(from, to));
-    if (start < end) onPick(message, start, end, null, range.getBoundingClientRect());
-  }
-
-  function clicked(event: MouseEvent<HTMLParagraphElement>) {
-    if (!onPick || !window.getSelection()?.isCollapsed) return;
-    const mark = (event.target as Element).closest<HTMLElement>("mark[data-name]");
-    const name = mark && message.names?.[Number(mark.dataset.name)];
-    if (!mark || !name || name.start === null || name.end === null) return;
-    event.preventDefault(); // a name in a link is picked, the link not followed
-    onPick(message, name.start, name.end, Number(mark.dataset.name), mark.getBoundingClientRect());
-  }
+  const picking = usePicking(box, message.id, message.text, message.names, onPick);
   return (
     <div className={cn("group/message relative flex", last ? "mb-2.5 max-[600px]:mb-[7px]" : "mb-1.5")}>
       <div
@@ -594,10 +576,7 @@ function Bubble({
       >
         <p
           ref={box}
-          onMouseUp={onPick && (() => setTimeout(selected))}
-          onKeyUp={onPick && ((event) => event.shiftKey && selected())}
-          onTouchEnd={onPick && (() => setTimeout(selected, 300))}
-          onClick={onPick && clicked}
+          {...picking}
           className={cn(
             "text-(length:--tg-message) leading-[1.3125] break-words whitespace-pre-wrap",
             onPick && "[&_mark[data-name]]:cursor-pointer",
@@ -650,39 +629,6 @@ function Bubble({
         <ShareIcon className="size-6" />
       </a>
     </div>
-  );
-}
-
-// Under a labelled message's text: the names labelled by hand that a model missed, the names that couldn't be marked in
-// the text, or that it has none
-function NameNotes({ names }: { names: TelegramName[] }) {
-  const t = useTranslations("telegramChannel");
-  if (names.length === 0) return <span className="mt-1 block text-sm leading-5 text-tg-muted">{t("noNames")}</span>;
-  // A missed name once, wherever the hand placed it
-  const missed = [...new Map(names.filter((name) => name.verdict === "missed").map((n) => [n.kind + n.name, n]))];
-  const unmarked = names.filter((name) => name.start === null && name.verdict !== "missed");
-  if (missed.length === 0 && unmarked.length === 0) return null;
-  return (
-    <span className="mt-1 block text-sm leading-5 text-tg-muted">
-      {missed.length > 0 && <NameList label={t("missed")} names={missed.map(([, name]) => name)} />}
-      {unmarked.length > 0 && <NameList label={t("notMarked")} names={unmarked} />}
-    </span>
-  );
-}
-
-function NameList({ label, names }: { label: string; names: TelegramName[] }) {
-  return (
-    <span className="block">
-      {label}{" "}
-      {names.map((name, index) => (
-        <Fragment key={index}>
-          {index > 0 && ", "}
-          <NameMark kind={name.kind} name={name.name} verdict={name.verdict} labelledAs={name.labelled_as}>
-            <span className="text-black">{name.name}</span>
-          </NameMark>
-        </Fragment>
-      ))}
-    </span>
   );
 }
 

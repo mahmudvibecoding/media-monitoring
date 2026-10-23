@@ -1,5 +1,6 @@
 import type { VideoCounts, YoutubeChannelsData, YoutubeChannelVideosData } from "@/api/types.gen";
 import { addressOf, pageOf, searchOf } from "@/lib/address";
+import type { Labeller } from "@/lib/telegram";
 
 export type ChannelsQuery = NonNullable<YoutubeChannelsData["query"]>;
 export type VideosQuery = NonNullable<YoutubeChannelVideosData["query"]>;
@@ -7,19 +8,27 @@ export type VideosQuery = NonNullable<YoutubeChannelVideosData["query"]>;
 // The queries below come from a page's address: only values the API takes, and none that's its default, so the server
 // and the browser build the same query, and so the same key for TanStack Query's cache
 
-// The channel list's search and page (?search=…&page=2)
+// The channel list's search and page (?search=…&page=2), and whether it keeps to the channels with labelled texts
+// (?labelled)
 export function channelsQuery(params: URLSearchParams): ChannelsQuery {
   const query: ChannelsQuery = {};
   const search = searchOf(params);
   if (search) query.search = search;
   const page = pageOf(params);
   if (page) query.page = page;
+  if (params.has("labelled")) query.labelled = true;
   return query;
 }
 
 export function channelsAddress(query: ChannelsQuery): string {
-  return addressOf({ search: query.search, page: query.page });
+  const address = addressOf({ search: query.search, page: query.page });
+  if (!query.labelled) return address;
+  return address ? `${address}&labelled` : "?labelled";
 }
+
+// A channel's labelled texts, with the names labelled by hand (?labelled) or a model's (?labelled=gemma)
+export const labelledPath = (id: string, labeller: Labeller) =>
+  `/youtube/channels/${id}?labelled${labeller === "hand" ? "" : `=${labeller}`}`;
 
 export type Kind = "video" | "short";
 export type Sort = "newest" | "popular" | "oldest";

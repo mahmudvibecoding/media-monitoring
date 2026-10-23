@@ -15,10 +15,20 @@ from fastapi import APIRouter, Path, Query, Request, Response
 from psycopg import sql
 from psycopg.rows import class_row, dict_row
 from psycopg.types.json import Jsonb
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from media_monitoring.api.accounts import Admin
 from media_monitoring.api.errors import Failure, failures
+from media_monitoring.api.labels import (
+    CheckChange,
+    LabelCheck,
+    LabelledName,
+    Labeller,
+    NamesChange,
+    compared,
+    in_utf16,
+    placed,
+)
 from media_monitoring.api.lists import LAST_PAGE, PAGE_SIZE, SEARCH_MAX, anywhere
 
 log = logging.getLogger("media_monitoring.api")
@@ -48,33 +58,13 @@ class TelegramChannelDetails(TelegramChannel):
     messages: int  # how many of its messages have been saved (those with text)
 
 
-Kind = Literal["person", "organization", "location", "event"]
-# Whose names: labelled by hand (corrected by admins), Claude's as first made, or Gemma 4 26B's
-Labeller = Literal["hand", "claude", "gemma"]
-
-
-class TelegramName(BaseModel):
-    name: str  # as written in the text
-    kind: Kind
-    # Where it is in the text, in UTF-16 units, as a browser counts a string's characters (end not included); None for
-    # a model's name not written so in it
-    start: int | None
-    end: int | None
-    # Another labeller's name, as it compares with the names labelled by hand: one of them (right), overlapping one of
-    # the same kind, but not the same words (part), overlapping only names of another kind (kind: labelled_as is the
-    # hand's), or none (extra); or one of the hand's that no name of the labeller's overlaps (missed). None for the
-    # hand's own.
-    verdict: Literal["right", "part", "kind", "extra", "missed"] | None = None
-    labelled_as: Kind | None = None
-
-
 class TelegramMessage(BaseModel):
     id: int  # its number in the channel: t.me/<username>/<id>
     published_at: datetime  # to the second
     text: str  # as plain text, with links kept as addresses
     # The names labelled in it, by hand or by a model (see the messages' source), in order; None for a message that
     # wasn't labelled
-    names: list[TelegramName] | None
+    names: list[LabelledName] | None
     checked_at: datetime | None = None  # when an admin marked its names labelled by hand checked
 
 
@@ -270,44 +260,6 @@ FOUND = sql.SQL("AND app.searchable(m.text) LIKE app.searchable(%(pattern)s)")
 WITH_NAMES = sql.SQL("AND hand.names IS NOT NULL AND l.names IS NOT NULL")
 
 
-def compared(names: list[dict], hand: list[dict]) -> list[dict]:
-    """A labeller's names, each as it compares with the names labelled by hand (see TelegramName.verdict), by where
-    they are, and the hand's that none of its own overlaps, missed, in order"""
-    hand = [h for h in hand if h["start"] is not None]
-
-    def overlap(a: dict, b: dict) -> bool:
-        return a["start"] < b["end"] and b["start"] < a["end"]
-
-    out = []
-    for name in names:
-        if name["start"] is None:
-            out.append(name)
-            continue
-        over = [h for h in hand if overlap(h, name)]
-        if any((h["start"], h["end"], h["kind"]) == (name["start"], name["end"], name["kind"]) for h in over):
-            out.append(name | {"verdict": "right"})
-        elif any(h["kind"] == name["kind"] for h in over):
-            out.append(name | {"verdict": "part"})
-        elif over:
-            out.append(name | {"verdict": "kind", "labelled_as": over[0]["kind"]})
-        else:
-            out.append(name | {"verdict": "extra"})
-    placed = [name for name in names if name["start"] is not None]
-    out += [h | {"verdict": "missed"} for h in hand if not any(overlap(h, name) for name in placed)]
-    return sorted(out, key=lambda name: (name["start"] is None, name["start"] or 0))
-
-
-def in_utf16(text: str, names: list[dict]) -> list[dict]:
-    """Names placed in UTF-16 units, as a browser counts a string's characters, from the characters the labels count
-    (an emoji before a name counts twice in the browser)"""
-    return [
-        name | {edge: len(text[: name[edge]].encode("utf-16-le")) // 2 for edge in ("start", "end")}
-        if name["start"] is not None
-        else name
-        for name in names
-    ]
-
-
 @router.get(
     "/api/telegram/channels/{channel_id}/messages",
     responses=failures(
@@ -361,19 +313,6 @@ async def telegram_channel_messages(
     return TelegramMessages(messages=messages, page_size=PAGE_SIZE)
 
 
-NAMES_MAX = 300  # names in a message
-
-
-class NameSpan(BaseModel):
-    kind: Kind
-    start: int = Field(ge=0)  # where it is in the text, in UTF-16 units, as the messages give names
-    end: int = Field(ge=1)
-
-
-class NamesChange(BaseModel):
-    names: list[NameSpan] = Field(max_length=NAMES_MAX)
-
-
 MESSAGE_TEXT = "SELECT text FROM telegram_messages WHERE channel_id = %s AND message_id = %s"
 SAVE_NAMES = """
     INSERT INTO app.telegram_message_labels (channel_id, message_id, source, names) VALUES (%s, %s, 'hand', %s)
@@ -399,7 +338,7 @@ async def label_message(
     channel_id: Annotated[int, Path(ge=1)],
     message_id: Annotated[int, Path(ge=1)],
     body: NamesChange,
-) -> list[TelegramName]:
+) -> list[LabelledName]:
     """Sets the names labelled by hand in a message, all of them at once: each its kind and where it is in the text,
     as the messages give them (in UTF-16 units). A message not labelled yet becomes one of the labelled. Gives the names
     back as saved, in order."""
@@ -408,34 +347,13 @@ async def label_message(
         if row is None:
             raise Failure(404, "not_found", "No such message is saved")
         text = row[0]
-        # Each character's place in UTF-16 units, and the text's end: where a name may start or end
-        index, at = {}, 0
-        for i, character in enumerate(text):
-            index[at] = i
-            at += len(character.encode("utf-16-le")) // 2
-        index[at] = len(text)
-        names = []
-        for span in sorted(body.names, key=lambda span: span.start):
-            start, end = index.get(span.start), index.get(span.end)
-            if start is None or end is None or start >= end or not text[start:end].strip():
-                raise Failure(422, "invalid_names", "A name is out of the text, splits a character, or has no letters")
-            if names and start < names[-1]["end"]:
-                raise Failure(422, "invalid_names", "Two names overlap")
-            names.append({"name": text[start:end], "kind": span.kind, "start": start, "end": end})
+        names = placed(text, body.names)
         await conn.execute(SAVE_NAMES, [channel_id, message_id, Jsonb(names)])
     log.info(
         "message labelled",
         extra={"fields": {"channel": channel_id, "message": message_id, "names": len(names), "user": user.id}},
     )
-    return [TelegramName(**name) for name in in_utf16(text, names)]
-
-
-class CheckChange(BaseModel):
-    checked: bool
-
-
-class TelegramCheck(BaseModel):
-    checked_at: datetime | None  # when it was marked checked; None when it isn't
+    return [LabelledName(**name) for name in in_utf16(text, names)]
 
 
 CHECK = """
@@ -462,7 +380,7 @@ async def check_message(
     channel_id: Annotated[int, Path(ge=1)],
     message_id: Annotated[int, Path(ge=1)],
     body: CheckChange,
-) -> TelegramCheck:
+) -> LabelCheck:
     """Marks a message's names labelled by hand checked (or not any more), so that what's left to check shows."""
     async with request.state.pool.connection() as conn:
         values = {"checked": body.checked, "channel": channel_id, "message": message_id}
@@ -473,7 +391,7 @@ async def check_message(
         "message checked",
         extra={"fields": {"channel": channel_id, "message": message_id, "checked": body.checked, "user": user.id}},
     )
-    return TelegramCheck(checked_at=row[0])
+    return LabelCheck(checked_at=row[0])
 
 
 class TelegramProgress(BaseModel):
