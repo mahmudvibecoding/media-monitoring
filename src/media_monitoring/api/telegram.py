@@ -33,7 +33,7 @@ class TelegramChannel(BaseModel):
     last_message_at: datetime | None  # when its latest message came out
     last_message: str | None  # its latest saved message's text, the first 200 characters, for a chat list's line
     photo_url: str | None  # its photo, 160 × 160 (see PHOTO); None without one
-    # In the labelled list: how many of its messages with names labelled by hand aren't marked checked yet
+    # In the labelled list: how many of its messages labelled by hand aren't marked checked yet
     unchecked: int | None = None
 
 
@@ -118,14 +118,11 @@ COUNT = sql.SQL("SELECT count(*) FROM telegram_channels {where}")
 # Only the channels with a saved message (app.sql), and with a search, those it matches: lowercase, apostrophes left out
 LISTED = sql.SQL("WHERE has_messages")
 SEARCHED = sql.SQL("WHERE has_messages AND search_text LIKE app.searchable(%(pattern)s)")
-# Only the channels with a name labelled by hand in a message (not those whose labelled messages have none), a hundred
-# or so, each found by its key
-LABELLED = sql.SQL(
-    " AND channel_id IN (SELECT channel_id FROM app.telegram_message_labels WHERE source = 'hand' AND names <> '[]')"
-)
-# In the labelled list, each channel's messages with names labelled by hand that aren't checked yet, by the labels' key
+# Only the channels with a message labelled by hand (with names, or as having none), some 500, each found by its key
+LABELLED = sql.SQL(" AND channel_id IN (SELECT channel_id FROM app.telegram_message_labels WHERE source = 'hand')")
+# In the labelled list, each channel's messages labelled by hand that aren't checked yet, by the labels' key
 UNCHECKED = sql.SQL("""(SELECT count(*) FROM app.telegram_message_labels AS l
-    WHERE l.channel_id = c.channel_id AND l.source = 'hand' AND l.names <> '[]' AND l.checked_at IS NULL)""")
+    WHERE l.channel_id = c.channel_id AND l.source = 'hand' AND l.checked_at IS NULL)""")
 # Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
 ORDERS = {
     "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
@@ -150,12 +147,12 @@ async def telegram_channels(
     sort: Annotated[
         Literal["subscribers", "latest"], Query(description="The biggest first, or the latest to post")
     ] = "subscribers",
-    labelled: Annotated[bool, Query(description="Only the channels with a name labelled by hand")] = False,
+    labelled: Annotated[bool, Query(description="Only the channels with a message labelled by hand")] = False,
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} channels to a page")] = 1,
 ) -> TelegramChannels:
     """The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
     first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
-    apostrophes aside; labelled, only those with a name labelled by hand in a message."""
+    apostrophes aside; labelled, only those with a message labelled by hand."""
     search = " ".join(search.split())
     where = SEARCHED if search else LISTED
     if labelled:
@@ -269,8 +266,9 @@ MESSAGES = sql.SQL("""
 """)
 # Lowercase, apostrophes left out, as the channels' search
 FOUND = sql.SQL("AND app.searchable(m.text) LIKE app.searchable(%(pattern)s)")
-# The messages with a name labelled by hand, which the labeller labelled too, so that each shows the same ones
-WITH_NAMES = sql.SQL("AND hand.names <> '[]' AND l.names IS NOT NULL")
+# The messages labelled by hand (with names, or as having none), which the labeller labelled too, so that each shows the
+# same ones
+WITH_NAMES = sql.SQL("AND hand.names IS NOT NULL AND l.names IS NOT NULL")
 
 
 def compared(names: list[dict], hand: list[dict]) -> list[dict]:
@@ -327,7 +325,7 @@ async def telegram_channel_messages(
     channel_id: Annotated[int, Path(ge=1)],
     search: Annotated[str, Query(max_length=SEARCH_MAX, description="Part of a message's text")] = "",
     labelled: Annotated[
-        bool, Query(description="Only the messages with a name labelled by hand, which the source labelled too")
+        bool, Query(description="Only the messages labelled by hand, which the source labelled too")
     ] = False,
     source: Annotated[
         Labeller,
@@ -342,8 +340,8 @@ async def telegram_channel_messages(
     """A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
     the names labelled in it by hand, or another labeller's, compared with the hand's, if it was labelled; with a
     search, only those whose text has it in them, whatever the case of its letters, and apostrophes aside; labelled,
-    only those with a name labelled by hand. How many there are is in the channel's details, so that a page isn't
-    counted again."""
+    only those labelled by hand. How many there are is in the channel's details, so that a page isn't counted
+    again."""
     search = " ".join(search.split())
     values = {
         "channel": channel_id,
@@ -481,17 +479,17 @@ async def check_message(
 
 
 class TelegramProgress(BaseModel):
-    messages: int  # the messages with names labelled by hand
+    messages: int  # the messages labelled by hand (with names, or as having none)
     checked: int  # of them, those marked checked
     next: int | None  # the next channel with a message to check, in the labelled list's order; None when all are
 
 
-# Each channel with names labelled by hand, in the labelled list's order (the biggest first), with how many of its
-# messages have them and how many of those are checked: some 500 channels
+# Each channel with messages labelled by hand, in the labelled list's order (the biggest first), with how many of them
+# there are and how many are checked: some 500 channels
 PROGRESS = """
     SELECT l.channel_id, count(*) AS messages, count(l.checked_at) AS checked
     FROM app.telegram_message_labels AS l JOIN telegram_channels AS c USING (channel_id)
-    WHERE l.source = 'hand' AND l.names <> '[]'
+    WHERE l.source = 'hand'
     GROUP BY l.channel_id, c.subscriber_count
     ORDER BY c.subscriber_count DESC NULLS LAST, l.channel_id
 """

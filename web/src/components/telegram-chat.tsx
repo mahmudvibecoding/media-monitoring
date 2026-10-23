@@ -447,8 +447,8 @@ function Legend({ id, labelled, messages }: { id: number; labelled: Labeller; me
   const t = useTranslations("telegramChannel");
   const locale = useLocale();
   const progress = useQuery({ ...labelledProgressOptions({ query: { after: id } }), enabled: labelled === "hand" });
-  const named = messages.filter((m) => m.names && m.names.length > 0);
-  const checked = named.filter((m) => m.checked_at).length;
+  const labelledHere = messages.filter((m) => m.names);
+  const checked = labelledHere.filter((m) => m.checked_at).length;
   return (
     <div className="mt-2 mb-1 flex justify-center">
       <div className="max-w-[min(29rem,100%)] space-y-1 rounded-[15px] bg-white px-3 py-1.5 text-center text-sm leading-6 shadow-tg-bubble">
@@ -483,7 +483,7 @@ function Legend({ id, labelled, messages }: { id: number; labelled: Labeller; me
           <>
             <p className="text-tg-muted">{t("editHint")}</p>
             <p>
-              {t("checkedHere", { checked, total: named.length })}
+              {t("checkedHere", { checked, total: labelledHere.length })}
               {progress.data && (
                 <>
                   {" · "}

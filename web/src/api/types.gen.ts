@@ -1721,7 +1721,7 @@ export type TelegramChannelsData = {
         /**
          * Labelled
          *
-         * Only the channels with a name labelled by hand
+         * Only the channels with a message labelled by hand
          */
         labelled?: boolean;
         /**
@@ -1896,7 +1896,7 @@ export type TelegramChannelMessagesData = {
         /**
          * Labelled
          *
-         * Only the messages with a name labelled by hand, which the source labelled too
+         * Only the messages labelled by hand, which the source labelled too
          */
         labelled?: boolean;
         /**
