@@ -115,7 +115,8 @@
     "found": "Topildi: {formatted} ta",
     "none": "Hozircha kanallar yoʻq.",
     "noResults": "Natija yoʻq",
-    "noResultsFor": "«{search}» boʻyicha hech narsa topilmadi. Boshqacha qidirib koʻring."
+    "noResultsFor": "«{search}» boʻyicha hech narsa topilmadi. Boshqacha qidirib koʻring.",
+    "labelled": "Belgilangan"
   },
   "telegramChannel": {
     "back": "Orqaga",
@@ -131,7 +132,15 @@
     "link": "Havola",
     "linkCopied": "Havoladan nusxa olindi.",
     "lastPost": "Oxirgi post",
-    "savedMessages": "Saqlangan xabarlar"
+    "savedMessages": "Saqlangan xabarlar",
+    "noneLabelled": "Belgilangan xabarlar yoʻq.",
+    "labelledBy": "Qoʻlda belgilangan nomlar:",
+    "person": "Shaxs",
+    "organization": "Tashkilot",
+    "location": "Joy",
+    "allMessages": "Barcha xabarlar",
+    "notMarked": "Matnda belgilanmagan:",
+    "noNames": "Unda nomlar yoʻq"
   },
   "customers": {
     "title": "Foydalanuvchilar",

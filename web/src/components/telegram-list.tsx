@@ -16,19 +16,20 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatChatDate, formatCompact, formatCount, formatDateTime, pluralOf } from "@/lib/format";
 import { DIMMED, FIRST_PAGE, nextPage } from "@/lib/pages";
-import { channelsQuery, chatIdOf, chatPath, type TelegramSort } from "@/lib/telegram";
+import { channelsQuery, chatIdOf, chatPath, type TelegramFolder } from "@/lib/telegram";
 import { useLoadMore } from "@/lib/use-load-more";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
 
-const FOLDERS = ["subscribers", "latest"] as const satisfies readonly TelegramSort[];
+const FOLDERS = ["subscribers", "latest", "labelled"] as const satisfies readonly TelegramFolder[];
 
 // Telegram's chat list, in its floating panel at the left: Telegram's ☰ (which opens the site's menu) and search field
-// at the top, then the monitored channels as Telegram lists chats, more loading as they're scrolled. Two folders in
-// Telegram's floating tabs order them: the biggest first, and the latest to post first. Focusing the search turns ☰
-// into ← and the folders away, as in Telegram; the list is searched at each key, the last results staying until the
-// new ones come. The chat open beside is the blue row. The list is the layout's, so it stays as chats open and
-// close, scrolled where it was.
+// at the top, then the monitored channels as Telegram lists chats, more loading as they're scrolled. Three folders in
+// Telegram's floating tabs: the biggest first, the latest to post first, and the channels with messages labelled by
+// hand (the biggest first), whose chats open on those messages alone. Focusing the search turns ☰ into ← and the
+// folders away, as in Telegram; the list is searched at each key, the last results staying until the new ones come.
+// The chat open beside is the blue row. The list is the layout's, so it stays as chats open and close, scrolled where
+// it was.
 export function TelegramList() {
   const t = useTranslations("telegramChannels");
   const nav = useTranslations("nav");
@@ -38,7 +39,7 @@ export function TelegramList() {
   const [clicked, setClicked] = useState<{ id: number; on: number | null } | null>(null);
   const shownId = clicked?.on === openId ? clicked.id : openId;
   const { toggleSidebar } = useSidebar();
-  const [sort, setSort] = useState<TelegramSort>("subscribers");
+  const [folder, setFolder] = useState<TelegramFolder>("subscribers");
   const [searching, setSearching] = useState(false);
   const [typed, setTyped] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -47,35 +48,37 @@ export function TelegramList() {
   const search = searching ? searchOf(new URLSearchParams({ search: typed })) : "";
   const { data, error, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, refetch, isPlaceholderData } =
     useInfiniteQuery({
-      ...telegramChannelsInfiniteOptions({ query: channelsQuery(sort, search) }),
+      ...telegramChannelsInfiniteOptions({ query: channelsQuery(folder, search) }),
       ...FIRST_PAGE,
       getNextPageParam: nextPage("channels"),
       placeholderData: keepPreviousData,
     });
   const marker = useLoadMore({ more: !!hasNextPage, loading: isFetchingNextPage, load: fetchNextPage, root: scroller });
 
-  // The other folder's chats, asked for once the list is there, and a folder's once the pointer comes over it, so that
+  // The other folders' chats, asked for once the list is there, and a folder's once the pointer comes over it, so that
   // it shows them at once
   const queryClient = useQueryClient();
-  const ahead = (folder: TelegramSort) =>
-    void queryClient.prefetchInfiniteQuery({
-      ...telegramChannelsInfiniteOptions({ query: channelsQuery(folder, "") }),
-      ...FIRST_PAGE,
-    });
-  const other: TelegramSort = sort === "latest" ? "subscribers" : "latest";
-  const ready = !!data;
-  useEffect(() => {
-    if (!ready) return;
+  const ahead = (other: TelegramFolder) =>
     void queryClient.prefetchInfiniteQuery({
       ...telegramChannelsInfiniteOptions({ query: channelsQuery(other, "") }),
       ...FIRST_PAGE,
     });
-  }, [ready, other, queryClient]);
+  const ready = !!data;
+  useEffect(() => {
+    if (!ready) return;
+    for (const other of FOLDERS) {
+      if (other === folder) continue;
+      void queryClient.prefetchInfiniteQuery({
+        ...telegramChannelsInfiniteOptions({ query: channelsQuery(other, "") }),
+        ...FIRST_PAGE,
+      });
+    }
+  }, [ready, folder, queryClient]);
 
   // Another folder or search shows its list from the top
   useEffect(() => {
     scroller.current?.scrollTo({ top: 0 });
-  }, [sort, search]);
+  }, [folder, search]);
 
   function leave() {
     setSearching(false);
@@ -120,6 +123,7 @@ export function TelegramList() {
               current={channel.id === openId}
               onOpen={() => setClicked({ id: channel.id, on: openId })}
               searched={!!search}
+              labelled={folder === "labelled" && !search}
             />
           ))}
         </ul>
@@ -176,7 +180,7 @@ export function TelegramList() {
       <div className="relative min-h-0 flex-1">
         {!searching && (
           <>
-            <Folders sort={sort} choose={setSort} ahead={ahead} />
+            <Folders folder={folder} choose={setFolder} ahead={ahead} />
             <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] h-[70px] bg-linear-to-b from-white from-40% to-transparent" />
           </>
         )}
@@ -198,13 +202,13 @@ export function TelegramList() {
 // over the grey ones, cut to the chosen tab's shape (clip-path), so that as another is chosen, the cut slides there and
 // each letter turns blue as it passes under it, as in Telegram.
 function Folders({
-  sort,
+  folder,
   choose,
   ahead,
 }: {
-  sort: TelegramSort;
-  choose: (sort: TelegramSort) => void;
-  ahead: (sort: TelegramSort) => void;
+  folder: TelegramFolder;
+  choose: (folder: TelegramFolder) => void;
+  ahead: (folder: TelegramFolder) => void;
 }) {
   const t = useTranslations("telegramChannels");
   const locale = useLocale(); // the tabs' widths change with their words
@@ -216,7 +220,7 @@ function Folders({
     const blue = copy.current;
     if (!element || !blue) return;
     function place() {
-      const tab = element?.querySelector<HTMLElement>(`[data-folder="${sort}"]`);
+      const tab = element?.querySelector<HTMLElement>(`[data-folder="${folder}"]`);
       if (!element || !blue || !tab) return;
       const right = element.scrollWidth - tab.offsetLeft - tab.offsetWidth;
       blue.style.clipPath = `inset(6px ${right}px 6px ${tab.offsetLeft}px round 20px)`;
@@ -234,8 +238,8 @@ function Folders({
     const observer = new ResizeObserver(place);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [sort, locale]);
-  const labels = { subscribers: t("biggest"), latest: t("latest") };
+  }, [folder, locale]);
+  const labels = { subscribers: t("biggest"), latest: t("latest"), labelled: t("labelled") };
   const tab = "shrink-0 rounded-[20px] px-4 py-1.5 text-base leading-6 font-medium whitespace-nowrap";
   return (
     <div className="absolute inset-x-2 top-1 z-10">
@@ -245,19 +249,19 @@ function Folders({
         aria-label={t("folders")}
         className="relative flex [scrollbar-width:none] overflow-x-auto rounded-[1.5rem] bg-white px-1 py-1.5 text-tg-muted shadow-[0_1px_8px_0_rgb(0_0_0/0.1)]"
       >
-        {FOLDERS.map((folder) => (
+        {FOLDERS.map((each) => (
           <button
-            key={folder}
+            key={each}
             type="button"
             role="tab"
-            aria-selected={sort === folder}
-            data-folder={folder}
-            onClick={() => choose(folder)}
-            onPointerEnter={() => ahead(folder)}
-            onFocus={() => ahead(folder)}
+            aria-selected={folder === each}
+            data-folder={each}
+            onClick={() => choose(each)}
+            onPointerEnter={() => ahead(each)}
+            onFocus={() => ahead(each)}
             className={cn(tab, "hover:opacity-85")}
           >
-            {labels[folder]}
+            {labels[each]}
           </button>
         ))}
         <div
@@ -265,9 +269,9 @@ function Folders({
           aria-hidden="true"
           className="pointer-events-none absolute inset-y-0 left-0 flex min-w-full bg-white bg-[linear-gradient(var(--color-tg-tab),var(--color-tg-tab))] px-1 py-1.5 text-tg-blue transition-[clip-path] duration-300 ease-tg-slide [clip-path:inset(50%)]"
         >
-          {FOLDERS.map((folder) => (
-            <span key={folder} className={tab}>
-              {labels[folder]}
+          {FOLDERS.map((each) => (
+            <span key={each} className={tab}>
+              {labels[each]}
             </span>
           ))}
         </div>
@@ -278,28 +282,31 @@ function Folders({
 
 // A channel as Telegram lists a chat: its picture, its name with when it last posted at the right (the time today,
 // the weekday this week, the day before), and its latest message on one line below; in a search's results, its
-// @username and subscribers instead, as Telegram's search shows a channel. The whole row opens the channel's chat,
-// which is fetched ahead once the pointer comes over it (not for every row in view: that's dozens of requests); it's
-// the blue row (open) from the click, before its chat is there (current).
+// @username and subscribers instead, as Telegram's search shows a channel. The whole row opens the channel's chat (in
+// the labelled folder, with its labelled messages alone), which is fetched ahead once the pointer comes over it (not
+// for every row in view: that's dozens of requests); it's the blue row (open) from the click, before its chat is there
+// (current).
 function ChatRow({
   channel,
   open,
   current,
   onOpen,
   searched,
+  labelled,
 }: {
   channel: TelegramChannel;
   open: boolean;
   current: boolean;
   onOpen: () => void;
   searched: boolean;
+  labelled: boolean;
 }) {
   const t = useTranslations("telegramChannel");
   const locale = useLocale();
   const now = useNow();
   const router = useRouter();
   const name = channel.title?.trim() || `@${channel.username}`;
-  const href = chatPath(channel.id);
+  const href = chatPath(channel.id, labelled);
   let line = channel.last_message ? oneLine(channel.last_message) : "";
   if (searched) {
     line = `@${channel.username}`;

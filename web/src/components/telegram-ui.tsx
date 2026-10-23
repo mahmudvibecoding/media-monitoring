@@ -1,8 +1,10 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { type ComponentProps, Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 
+import type { TelegramName } from "@/api/types.gen";
 import { cn } from "@/lib/utils";
 
 // The pieces Telegram's pages here are made of, looking like Telegram Web's own
@@ -87,56 +89,110 @@ const LINKED = new RegExp(`${TEXT_LINK}|(${URL})|(${DOMAIN})|(${MENTION})|(${HAS
 
 const LINK = "text-tg-blue [overflow-wrap:anywhere] hover:underline";
 
-// A message's (or a description's) text with its links, and what a search found in it marked as Telegram marks it
+type Placed = TelegramName & { start: number; end: number };
+
+// A message's (or a description's) text with its links, the names labelled in it by hand marked by their kind, and
+// what a search found in it marked as Telegram marks it
 export function TelegramText({
   text,
   found,
+  names,
   onHashtag,
 }: {
   text: string;
   found?: string;
+  names?: TelegramName[] | null;
   onHashtag?: (tag: string) => void;
 }) {
+  const placed = (names ?? [])
+    .filter((name): name is Placed => name.start !== null && name.end !== null)
+    .sort((a, b) => a.start - b.start);
+  const mark = (piece: string, from: number) => (
+    <Marked key={from} text={piece} at={from} found={found} names={placed} />
+  );
   const parts: ReactNode[] = [];
   let at = 0;
   for (const match of text.matchAll(LINKED)) {
     const [whole, words, after, hidden, url, domain, mention, hashtag] = match;
     const start = match.index;
-    if (start > at) parts.push(<Marked key={at} text={text.slice(at, start)} found={found} />);
+    if (start > at) parts.push(mark(text.slice(at, start), at));
     if (words && hidden) {
       parts.push(
         <a key={start} href={hidden} target="_blank" rel="noreferrer" className={LINK}>
-          <Marked text={words} found={found} />
+          {mark(words, start)}
         </a>,
         after,
       );
     } else if (url || domain) {
       parts.push(
         <a key={start} href={url ?? `https://${domain}`} target="_blank" rel="noreferrer" className={LINK}>
-          <Marked text={whole} found={found} />
+          {mark(whole, start)}
         </a>,
       );
     } else if (mention) {
       parts.push(
         <a key={start} href={`https://t.me/${mention.slice(1)}`} target="_blank" rel="noreferrer" className={LINK}>
-          <Marked text={whole} found={found} />
+          {mark(whole, start)}
         </a>,
       );
     } else if (hashtag) {
       parts.push(
         <button key={start} type="button" onClick={() => onHashtag?.(hashtag)} className={cn(LINK, "inline")}>
-          <Marked text={whole} found={found} />
+          {mark(whole, start)}
         </button>,
       );
     }
     at = start + whole.length;
   }
-  if (at < text.length) parts.push(<Marked key={at} text={text.slice(at)} found={found} />);
+  if (at < text.length) parts.push(mark(text.slice(at), at));
   return <>{parts}</>;
 }
 
+// A piece of a text, which starts at at in it, with the names in it marked (a name split by a link is marked on each
+// side of it), and what a search found
+function Marked({ text, at, found, names }: { text: string; at: number; found?: string; names: Placed[] }) {
+  const end = at + text.length;
+  const parts: ReactNode[] = [];
+  let from = at;
+  for (const name of names) {
+    if (name.end <= from || name.start >= end) continue;
+    const start = Math.max(name.start, from);
+    const stop = Math.min(name.end, end);
+    if (start > from) parts.push(<Found key={from} text={text.slice(from - at, start - at)} found={found} />);
+    parts.push(
+      <NameMark key={start} kind={name.kind} name={name.name}>
+        <Found text={text.slice(start - at, stop - at)} found={found} />
+      </NameMark>,
+    );
+    from = stop;
+  }
+  if (parts.length === 0) return <Found text={text} found={found} />;
+  if (from < end) parts.push(<Found key={from} text={text.slice(from - at)} found={found} />);
+  return parts;
+}
+
+// The kinds of names labelled in messages, in the order they're listed, each marked on a light shade of its color,
+// underlined with the color itself
+export const NAME_KINDS = ["person", "organization", "location"] as const satisfies readonly TelegramName["kind"][];
+const KIND_MARKS = {
+  person: "bg-tg-person/14 shadow-[inset_0_-2px_0_var(--color-tg-person)]",
+  organization: "bg-tg-organization/18 shadow-[inset_0_-2px_0_var(--color-tg-organization)]",
+  location: "bg-tg-location/16 shadow-[inset_0_-2px_0_var(--color-tg-location)]",
+} as const;
+
+// A name labelled by hand, marked by its kind, which, with the name as it was labelled (its base form), shows under the
+// mouse; without a name, the kind's mark alone
+export function NameMark({ kind, name, children }: { kind: TelegramName["kind"]; name?: string; children: ReactNode }) {
+  const t = useTranslations("telegramChannel");
+  return (
+    <mark title={name && `${t(kind)}: ${name}`} className={cn("rounded-[3px] text-inherit", KIND_MARKS[kind])}>
+      {children}
+    </mark>
+  );
+}
+
 // A text with each place a search found in it (its letters' case aside) on Telegram's light blue
-function Marked({ text, found }: { text: string; found?: string }) {
+function Found({ text, found }: { text: string; found?: string }) {
   if (!found) return text;
   const pattern = new RegExp(`(${found.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "giu");
   return text.split(pattern).map((part, index) =>

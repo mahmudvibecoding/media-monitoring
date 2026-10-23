@@ -695,6 +695,10 @@ export type TelegramMessage = {
      * Text
      */
     text: string;
+    /**
+     * Names
+     */
+    names: Array<TelegramName> | null;
 };
 
 /**
@@ -709,6 +713,28 @@ export type TelegramMessages = {
      * Page Size
      */
     page_size: number;
+};
+
+/**
+ * TelegramName
+ */
+export type TelegramName = {
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Kind
+     */
+    kind: 'person' | 'organization' | 'location';
+    /**
+     * Start
+     */
+    start: number | null;
+    /**
+     * End
+     */
+    end: number | null;
 };
 
 /**
@@ -1607,6 +1633,12 @@ export type TelegramChannelsData = {
          */
         sort?: 'subscribers' | 'latest';
         /**
+         * Labelled
+         *
+         * Only the channels with a message labelled by hand
+         */
+        labelled?: boolean;
+        /**
          * Page
          *
          * 50 channels to a page
@@ -1775,6 +1807,12 @@ export type TelegramChannelMessagesData = {
          * Part of a message's text
          */
         search?: string;
+        /**
+         * Labelled
+         *
+         * Only the messages whose names were labelled by hand
+         */
+        labelled?: boolean;
         /**
          * Page
          *

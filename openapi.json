@@ -1025,7 +1025,7 @@
     "/api/telegram/channels": {
       "get": {
         "summary": "Telegram Channels",
-        "description": "The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post\nfirst. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and\napostrophes aside.",
+        "description": "The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post\nfirst. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and\napostrophes aside; labelled, only those with a message whose names were labelled by hand.",
         "operationId": "telegram_channels",
         "parameters": [
           {
@@ -1056,6 +1056,18 @@
               "title": "Sort"
             },
             "description": "The biggest first, or the latest to post"
+          },
+          {
+            "name": "labelled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only the channels with a message labelled by hand",
+              "default": false,
+              "title": "Labelled"
+            },
+            "description": "Only the channels with a message labelled by hand"
           },
           {
             "name": "page",
@@ -1347,7 +1359,7 @@
     "/api/telegram/channels/{channel_id}/messages": {
       "get": {
         "summary": "Telegram Channel Messages",
-        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none); with a\nsearch, only those whose text has it in them, whatever the case of its letters, and apostrophes aside. How many\nthere are is in the channel's details, so that a page isn't counted again.",
+        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with\nthe names labelled in it by hand, if it was labelled; with a search, only those whose text has it in them, whatever\nthe case of its letters, and apostrophes aside; labelled, only the labelled ones. How many there are is in the\nchannel's details, so that a page isn't counted again.",
         "operationId": "telegram_channel_messages",
         "parameters": [
           {
@@ -1372,6 +1384,18 @@
               "title": "Search"
             },
             "description": "Part of a message's text"
+          },
+          {
+            "name": "labelled",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Only the messages whose names were labelled by hand",
+              "default": false,
+              "title": "Labelled"
+            },
+            "description": "Only the messages whose names were labelled by hand"
           },
           {
             "name": "page",
@@ -4261,13 +4285,28 @@
           "text": {
             "type": "string",
             "title": "Text"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TelegramName"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names"
           }
         },
         "type": "object",
         "required": [
           "id",
           "published_at",
-          "text"
+          "text",
+          "names"
         ],
         "title": "TelegramMessage"
       },
@@ -4291,6 +4330,53 @@
           "page_size"
         ],
         "title": "TelegramMessages"
+      },
+      "TelegramName": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person",
+              "organization",
+              "location"
+            ],
+            "title": "Kind"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "kind",
+          "start",
+          "end"
+        ],
+        "title": "TelegramName"
       },
       "TemporaryPassword": {
         "properties": {

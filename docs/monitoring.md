@@ -288,6 +288,10 @@ couldn't be told (1,867).
   pages, in 4 minutes 36 seconds: 2.8 GB, about 10 KB each.
 - **`telegram_messages`:** each message with text: its ID (an album's first item), when it was published (to the
   second), the text, and when we first saw it.
+- **`telegram_message_labels`:** the names labelled in messages by hand: the 220 posts from news and big channels
+  that name finders are scored on (126 channels; 48 posts without a name), each with its people, organizations and
+  places in their base forms, placed in the text where their words are, with any ending (Тошкентда for Тошкент): 762
+  places for 602 names; 4 names have none (written otherwise, or inside a longer name). The website shows them.
 
 Not collected: messages' photos, videos and other media; views and reactions; where a forwarded message came from;
 replies and edits; and comments, which Telegram doesn't show without an account.

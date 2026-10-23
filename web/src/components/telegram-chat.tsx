@@ -12,19 +12,28 @@ import {
   XIcon,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
 import { telegramChannelMessagesInfiniteOptions, telegramChannelOptions } from "@/api/@tanstack/react-query.gen";
-import type { TelegramChannelDetails, TelegramMessage } from "@/api/types.gen";
+import type { TelegramChannelDetails, TelegramMessage, TelegramName } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { PageLink, PageLoadingLine, useGo } from "@/components/page-link";
 import { useTelegram } from "@/components/telegram-frame";
 import { BubblesGhost, ChatGhost } from "@/components/telegram-ghosts";
-import { ChannelPhoto, InfoRow, Ripples, RoundButton, ShareIcon, TelegramText } from "@/components/telegram-ui";
+import {
+  ChannelPhoto,
+  InfoRow,
+  NAME_KINDS,
+  NameMark,
+  Ripples,
+  RoundButton,
+  ShareIcon,
+  TelegramText,
+} from "@/components/telegram-ui";
 import { SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatClock, formatCompact, formatCount, formatDateTime, formatDay, pluralOf, sameDay } from "@/lib/format";
 import { DIMMED, FIRST_PAGE, nextPage } from "@/lib/pages";
-import { messageOnTelegram } from "@/lib/telegram";
+import { chatPath, messageOnTelegram, messagesQuery } from "@/lib/telegram";
 import { useLoadMore } from "@/lib/use-load-more";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
@@ -37,8 +46,8 @@ const SCROLLING_FOR = 1000; // ms after scrolling stops while the date stuck at 
 // subscribers, which open the channel's info; the search), and its saved messages as Telegram's bubbles on Telegram's
 // wallpaper, the newest at the bottom, each day under its date. Both take the chat's whole width, as in Telegram's
 // desktop app, the bubbles at its left: 32 px from the chat list beside it (16 px from the window's edge without it). As in Telegram, Ctrl+F (⌘F) opens the search, and Esc closes the search, then
-// the info, then the chat.
-export function TelegramChat({ id }: { id: number }) {
+// the info, then the chat. Labelled, the chat shows only the messages labelled by hand.
+export function TelegramChat({ id, labelled }: { id: number; labelled: boolean }) {
   const t = useTranslations("telegramChannel");
   const locale = useLocale();
   const [go, going] = useGo();
@@ -110,6 +119,7 @@ export function TelegramChat({ id }: { id: number }) {
           id={id}
           username={data.username}
           search={searching ? searchOf(new URLSearchParams({ search: typed })) : ""}
+          labelled={labelled}
           onHashtag={find}
         />
         {searching ? (
@@ -227,16 +237,19 @@ type ChatDay = { key: number; day: string; messages: TelegramMessage[] };
 // at the end come in above without moving what's in view. Each day's
 // messages are under its date, oldest first, which stays at the top as they go by; as in Telegram, it fades once the
 // scrolling stops, and comes back with it. Messages that came out within 10 minutes of each other make a group, whose
-// bubbles join, the last with the tail. Scrolled up, the round button at the bottom right goes back down.
+// bubbles join, the last with the tail. Scrolled up, the round button at the bottom right goes back down. Labelled,
+// only the messages labelled by hand, under a card that says what their names' marks are.
 function Messages({
   id,
   username,
   search,
+  labelled,
   onHashtag,
 }: {
   id: number;
   username: string;
   search: string;
+  labelled: boolean;
   onHashtag: (tag: string) => void;
 }) {
   const t = useTranslations("telegramChannel");
@@ -246,10 +259,7 @@ function Messages({
   const [down, setDown] = useState(false); // whether the button down to the newest shows
   const { data, error, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, refetch, isPlaceholderData } =
     useInfiniteQuery({
-      ...telegramChannelMessagesInfiniteOptions({
-        path: { channel_id: id },
-        query: search ? { search } : undefined,
-      }),
+      ...telegramChannelMessagesInfiniteOptions({ path: { channel_id: id }, query: messagesQuery(search, labelled) }),
       ...FIRST_PAGE,
       getNextPageParam: nextPage("messages"),
       placeholderData: search ? keepPreviousData : undefined,
@@ -314,7 +324,7 @@ function Messages({
   } else if (messages.length === 0) {
     content = (
       <div className="my-auto self-center">
-        <Pill>{search ? t("noneFound") : t("none")}</Pill>
+        <Pill>{search ? t("noneFound") : labelled ? t("noneLabelled") : t("none")}</Pill>
       </div>
     );
   } else {
@@ -338,6 +348,7 @@ function Messages({
           {content}
           <div ref={marker} />
           {isFetchingNextPage && <BubblesGhost rows={2} />}
+          {labelled && messages.length > 0 && <Legend id={id} />}
         </div>
       </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-end px-4 max-[600px]:px-2">
@@ -395,6 +406,31 @@ function Day({
   );
 }
 
+// Above the labelled messages, a card as Telegram's service messages are: what their names' marks are, and the way to
+// all the chat's messages
+function Legend({ id }: { id: number }) {
+  const t = useTranslations("telegramChannel");
+  return (
+    <div className="mt-2 mb-1 flex justify-center">
+      <p className="max-w-[min(29rem,100%)] rounded-[15px] bg-white px-3 py-1.5 text-center text-sm leading-6 shadow-tg-bubble">
+        {t("labelledBy")}{" "}
+        {NAME_KINDS.map((kind, index) => (
+          <Fragment key={kind}>
+            {index > 0 && " "}
+            <NameMark kind={kind}>
+              <span className="px-1">{t(kind)}</span>
+            </NameMark>
+          </Fragment>
+        ))}
+        <br />
+        <PageLink line="telegram" href={chatPath(id)} className="text-tg-blue hover:underline">
+          {t("allMessages")}
+        </PageLink>
+      </p>
+    </div>
+  );
+}
+
 // Telegram's small rounded label on the wallpaper: a day's date, or why the chat is empty
 function Pill({ children }: { children: ReactNode }) {
   return (
@@ -407,7 +443,9 @@ function Pill({ children }: { children: ReactNode }) {
 // A message as Telegram's bubble: white, 15 px corners but where it joins the bubbles of its group, and the last of a
 // group with the tail at the bottom left; the text with its links, and the time at the bottom right, after the last
 // line when it fits there, below it when not, as in Telegram (a float after the text). Under the mouse (always, on a
-// touch screen), the round button at its right opens the post on Telegram, where Telegram's forwards it.
+// touch screen), the round button at its right opens the post on Telegram, where Telegram's forwards it. A message
+// labelled by hand has its names marked, and under its text, those that couldn't be marked in it (written otherwise,
+// or inside another name), or that it has none.
 function Bubble({
   message,
   username,
@@ -435,7 +473,8 @@ function Bubble({
         )}
       >
         <p className="text-(length:--tg-message) leading-[1.3125] break-words whitespace-pre-wrap">
-          <TelegramText text={message.text.trimEnd()} found={found} onHashtag={onHashtag} />
+          <TelegramText text={message.text.trimEnd()} found={found} names={message.names} onHashtag={onHashtag} />
+          {message.names && <Unmarked names={message.names} />}
           <time
             dateTime={message.published_at}
             title={formatDateTime(message.published_at, locale)}
@@ -457,6 +496,32 @@ function Bubble({
         <ShareIcon className="size-6" />
       </a>
     </div>
+  );
+}
+
+// Under a labelled message's text: the names labelled in it that aren't marked in it, or that it has none
+function Unmarked({ names }: { names: TelegramName[] }) {
+  const t = useTranslations("telegramChannel");
+  const unmarked = names.filter((name) => name.start === null);
+  if (names.length > 0 && unmarked.length === 0) return null;
+  return (
+    <span className="mt-1 block text-sm leading-5 text-tg-muted">
+      {names.length === 0 ? (
+        t("noNames")
+      ) : (
+        <>
+          {t("notMarked")}{" "}
+          {unmarked.map((name, index) => (
+            <Fragment key={`${name.kind} ${name.name}`}>
+              {index > 0 && ", "}
+              <NameMark kind={name.kind} name={name.name}>
+                <span className="text-black">{name.name}</span>
+              </NameMark>
+            </Fragment>
+          ))}
+        </>
+      )}
+    </span>
   );
 }
 

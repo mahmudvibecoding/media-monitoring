@@ -111,6 +111,10 @@
   --color-tg-meta: rgb(104 108 114 / 0.75); /* a message's time */
   --color-tg-placeholder: #a2acb4;
   --color-tg-highlight: #cae3f7; /* what a search found, in a message */
+  /* A name labelled in a message, by its kind: three of Telegram's colors for pictures (violet, orange, green) */
+  --color-tg-person: #665fff;
+  --color-tg-organization: #ff8a3d;
+  --color-tg-location: #3fb950;
   --color-tg-tab: rgb(80 162 233 / 0.118); /* under the chosen folder */
   /* The date over a day's messages and the round buttons beside them: a darker green of the wallpaper's */
   --color-tg-on-wallpaper: rgb(106 161 90 / 0.85);

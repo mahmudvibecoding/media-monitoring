@@ -122,6 +122,19 @@ CREATE TABLE IF NOT EXISTS telegram_messages (
     PRIMARY KEY (channel_id, message_id)    -- a channel's messages sit together, so they load quickly
 );
 
+-- Names labelled in messages, a row a labelled message: by hand ('hand'), the 220 posts that name finders are scored
+-- on. names is a list of {"name", "kind" (person, organization or location), "start", "end"}: where it is in the text,
+-- in characters (end not included), or null for a name not written so in it; an empty list for a message labelled as
+-- having none. The website lists the channels with labelled messages, and marks the names in them.
+CREATE TABLE IF NOT EXISTS telegram_message_labels (
+    channel_id  bigint NOT NULL,
+    message_id  integer NOT NULL,
+    source      text NOT NULL,
+    names       jsonb NOT NULL,
+    PRIMARY KEY (channel_id, message_id, source),
+    FOREIGN KEY (channel_id, message_id) REFERENCES telegram_messages ON DELETE CASCADE
+);
+
 -- The letters in a text, its links left out: how much a channel has written, which "uv run telegram history" reads
 -- its history back up to
 CREATE OR REPLACE FUNCTION letters(value text) RETURNS integer LANGUAGE sql IMMUTABLE PARALLEL SAFE

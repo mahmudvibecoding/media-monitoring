@@ -148,7 +148,11 @@ channel's details, with how many of its messages have been saved, and `/api/tele
 its messages, newest first, by the messages
 table's key: a few milliseconds, even for the channel with the most; with a search, those whose text has it in them
 (lowercase, apostrophes aside, as the lists' searches), which reads all the channel's messages: 50 ms for the one with
-the most (7,000).
+the most (7,000). Each message comes with the names labelled in it by hand (`telegram_message_labels`, see
+docs/monitoring.md), if it was labelled: each name with its kind and where it is in the text, counted in UTF-16 units,
+as a browser counts a string's characters (an emoji counts twice), or none for a name that couldn't be placed in it.
+With `labelled`, both lists keep to what was labelled: the 126 channels with a labelled message, each found by its key
+(8 ms for a page, 2 ms to count them), and a channel's labelled messages (under a millisecond).
 
 ### Runs
 
@@ -178,13 +182,14 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   the browser's name tells: in Roboto, or in the system's font and Apple's sizes on a Mac or an iPhone. Its default
   wallpaper (its four colors blended as Telegram draws them, without its pattern) lies under its floating panels, with
   its corners rounder at the ends where the browser can draw them (squircles): the chat list at the left, with its ☰
-  (the site's menu) and its search field, its folders on a floating bar (the biggest channels, and the latest to post),
-  and its rows, each with its latest message and when, the open chat's blue; a chat's top bar floating over it, which,
-  as the chat, takes the chat's whole width, as in Telegram's desktop app (Telegram Web's keeps its chat to a column in
-  the middle), its bubbles at its left, in groups with their tails, its links as Telegram shows them (one hidden behind
-  words as the words), its dates, which stay at the top while it scrolls and fade once it stops, and its round button
-  back down to the newest messages; and its info panel, beside the chat or over it. A click ripples as in Telegram, and
-  dates are Telegram's words (14:05, Mon, Oct 9 in the list; Today, Yesterday, Thursday, October 9 over the messages).
+  (the site's menu) and its search field, its folders on a floating bar (the biggest channels, the latest to post, and
+  those with messages labelled by hand), and its rows, each with its latest message and when, the open chat's blue; a
+  chat's top bar floating over it, which, as the chat, takes the chat's whole width, as in Telegram's desktop app
+  (Telegram Web's keeps its chat to a column in the middle), its bubbles at its left, in groups with their tails, its
+  links as Telegram shows them (one hidden behind words as the words), its dates, which stay at the top while it scrolls
+  and fade once it stops, and its round button back down to the newest messages; and its info panel, beside the chat or
+  over it. A click ripples as in Telegram, and dates are Telegram's words (14:05, Mon, Oct 9 in the list; Today,
+  Yesterday, Thursday, October 9 over the messages).
 - Every page but `/sign-in` needs someone signed in. Before a page loads, `src/proxy.ts` asks the API who's signed in
   and answers with a plain redirect: to `/sign-in` (and back afterwards), to `/change-password` for a temporary
   password, or on from `/sign-in` for someone signed in already. It does this before the page, because a redirect from
@@ -234,6 +239,12 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   search (its magnifier, or Ctrl+F) shows only the messages with what's searched in them, marked, and a hashtag searches
   for itself, as in Telegram; Esc closes the search, then the info, then the chat. A click on the channel's link in its
   info copies it, and a message's round button (under the mouse, or always on a touch screen) opens it on Telegram.
+- In a message labelled by hand, the names are marked by their kind, on a light shade of its color and underlined with
+  it: people violet, organizations orange, places green; under the mouse, a name shows its kind and its base form as
+  labelled (Тошкент where the text has Тошкентда). Under the text are the names that couldn't be marked in it (written
+  otherwise, or inside another name), or that it has none. A chat opened from the labelled folder (`?labelled` in its
+  address) shows only its labelled messages, under a card that says what the colors are, with a link to all its
+  messages.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. One the player can't
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,

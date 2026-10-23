@@ -115,7 +115,8 @@
     "found": "Found: {formatted}",
     "none": "No channels yet.",
     "noResults": "No results",
-    "noResultsFor": "There were no results for “{search}”. Try a new search."
+    "noResultsFor": "There were no results for “{search}”. Try a new search.",
+    "labelled": "Labelled"
   },
   "telegramChannel": {
     "back": "Back",
@@ -131,7 +132,15 @@
     "link": "Link",
     "linkCopied": "Link copied to clipboard.",
     "lastPost": "Latest post",
-    "savedMessages": "Messages saved"
+    "savedMessages": "Messages saved",
+    "noneLabelled": "No labelled messages.",
+    "labelledBy": "Names labelled by hand:",
+    "person": "Person",
+    "organization": "Organization",
+    "location": "Place",
+    "allMessages": "All messages",
+    "notMarked": "Not marked in the text:",
+    "noNames": "No names in it"
   },
   "activity": {
     "title": "Activity",

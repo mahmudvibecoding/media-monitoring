@@ -1,8 +1,9 @@
 """The collected Telegram data, for admins: the monitored channels a page at a time, searched and in the order the
 site's channels page asks for, each with its latest message (GET /api/telegram/channels), a channel's details
 (.../{channel_id}), its photo (.../{channel_id}/photo), and its saved messages, newest first, all of them or those a
-search finds (.../{channel_id}/messages). The column and the indexes the channel list reads them by are in app.sql; a
-channel's messages come by the messages table's key."""
+search finds (.../{channel_id}/messages). Both lists can keep to the messages whose names were labelled by hand
+(telegram_message_labels), and the messages come with those names. The column and the indexes the channel list reads
+them by are in app.sql; a channel's messages come by the messages table's key."""
 
 import asyncio
 from datetime import datetime
@@ -41,10 +42,20 @@ class TelegramChannelDetails(TelegramChannel):
     messages: int  # how many of its messages have been saved (those with text)
 
 
+class TelegramName(BaseModel):
+    name: str  # as labelled: its base form (Самарканд where the text has Самарканде)
+    kind: Literal["person", "organization", "location"]
+    # Where it is in the text, in UTF-16 units, as a browser counts a string's characters (end not included); None for
+    # a name not written so in it, or overlapping another
+    start: int | None
+    end: int | None
+
+
 class TelegramMessage(BaseModel):
     id: int  # its number in the channel: t.me/<username>/<id>
     published_at: datetime  # to the second
     text: str  # as plain text, with links kept as addresses
+    names: list[TelegramName] | None  # the names labelled in it by hand, in order; None for a message not labelled
 
 
 class TelegramMessages(BaseModel):
@@ -86,6 +97,8 @@ COUNT = sql.SQL("SELECT count(*) FROM telegram_channels {where}")
 # Only the channels with a saved message (app.sql), and with a search, those it matches: lowercase, apostrophes left out
 LISTED = sql.SQL("WHERE has_messages")
 SEARCHED = sql.SQL("WHERE has_messages AND search_text LIKE app.searchable(%(pattern)s)")
+# Only the channels with a message labelled by hand, a hundred or so, each found by its key
+LABELLED = sql.SQL(" AND channel_id IN (SELECT channel_id FROM telegram_message_labels WHERE source = 'hand')")
 # Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
 ORDERS = {
     "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
@@ -110,13 +123,16 @@ async def telegram_channels(
     sort: Annotated[
         Literal["subscribers", "latest"], Query(description="The biggest first, or the latest to post")
     ] = "subscribers",
+    labelled: Annotated[bool, Query(description="Only the channels with a message labelled by hand")] = False,
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} channels to a page")] = 1,
 ) -> TelegramChannels:
     """The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
     first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
-    apostrophes aside."""
+    apostrophes aside; labelled, only those with a message whose names were labelled by hand."""
     search = " ".join(search.split())
     where = SEARCHED if search else LISTED
+    if labelled:
+        where += LABELLED
     values = {"pattern": anywhere(search), "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
 
     # Planned for the search they're given (prepare=False), as for YouTube's channels
@@ -210,14 +226,31 @@ async def telegram_channel_photo(request: Request, _: Admin, channel_id: Annotat
     return Response(row[0], media_type="image/jpeg", headers={"Cache-Control": KEEP})
 
 
-# Newest first: a channel's messages are numbered as they come out, and the table's key keeps them in that order. A
-# search reads all the channel's messages: 50 ms for the one with the most (7,000).
+# Newest first: a channel's messages are numbered as they come out, and the table's key keeps them in that order, each
+# with its names labelled by hand, by the labels' key. A search reads all the channel's messages: 50 ms for the one with
+# the most (7,000).
 MESSAGES = sql.SQL("""
-    SELECT message_id AS id, published_at, text FROM telegram_messages WHERE channel_id = %(channel)s {search}
-    ORDER BY message_id DESC LIMIT %(limit)s OFFSET %(offset)s
+    SELECT m.message_id AS id, m.published_at, m.text, l.names
+    FROM telegram_messages AS m
+    LEFT JOIN telegram_message_labels AS l
+        ON l.channel_id = m.channel_id AND l.message_id = m.message_id AND l.source = 'hand'
+    WHERE m.channel_id = %(channel)s {search} {labelled}
+    ORDER BY m.message_id DESC LIMIT %(limit)s OFFSET %(offset)s
 """)
 # Lowercase, apostrophes left out, as the channels' search
-FOUND = sql.SQL("AND app.searchable(text) LIKE app.searchable(%(pattern)s)")
+FOUND = sql.SQL("AND app.searchable(m.text) LIKE app.searchable(%(pattern)s)")
+WITH_NAMES = sql.SQL("AND l.names IS NOT NULL")
+
+
+def in_utf16(message: dict) -> dict:
+    """A message's names placed in UTF-16 units, as a browser counts a string's characters, from the characters the
+    labels count (an emoji before a name counts twice in the browser)"""
+    text = message["text"]
+    for name in message["names"] or []:
+        for edge in ("start", "end"):
+            if name[edge] is not None:
+                name[edge] = len(text[: name[edge]].encode("utf-16-le")) // 2
+    return message
 
 
 @router.get(
@@ -235,15 +268,17 @@ async def telegram_channel_messages(
     _: Admin,
     channel_id: Annotated[int, Path(ge=1)],
     search: Annotated[str, Query(max_length=SEARCH_MAX, description="Part of a message's text")] = "",
+    labelled: Annotated[bool, Query(description="Only the messages whose names were labelled by hand")] = False,
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} messages to a page")] = 1,
 ) -> TelegramMessages:
-    """A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none); with a
-    search, only those whose text has it in them, whatever the case of its letters, and apostrophes aside. How many
-    there are is in the channel's details, so that a page isn't counted again."""
+    """A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
+    the names labelled in it by hand, if it was labelled; with a search, only those whose text has it in them, whatever
+    the case of its letters, and apostrophes aside; labelled, only the labelled ones. How many there are is in the
+    channel's details, so that a page isn't counted again."""
     search = " ".join(search.split())
     values = {"channel": channel_id, "pattern": anywhere(search), "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
-    query = MESSAGES.format(search=FOUND if search else sql.SQL(""))
+    query = MESSAGES.format(search=FOUND if search else sql.SQL(""), labelled=WITH_NAMES if labelled else sql.SQL(""))
     async with request.state.pool.connection() as conn:
-        cursor = conn.cursor(row_factory=class_row(TelegramMessage))
-        messages = await (await cursor.execute(query, values, prepare=False if search else None)).fetchall()
-    return TelegramMessages(messages=messages, page_size=PAGE_SIZE)
+        cursor = conn.cursor(row_factory=dict_row)
+        rows = await (await cursor.execute(query, values, prepare=False if search else None)).fetchall()
+    return TelegramMessages(messages=[TelegramMessage(**in_utf16(row)) for row in rows], page_size=PAGE_SIZE)
