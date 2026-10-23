@@ -25,8 +25,8 @@ const FOLDERS = ["subscribers", "latest", "labelled"] as const satisfies readonl
 
 // Telegram's chat list, in its floating panel at the left: Telegram's ☰ (which opens the site's menu) and search field
 // at the top, then the monitored channels as Telegram lists chats, more loading as they're scrolled. Three folders in
-// Telegram's floating tabs: the biggest first, the latest to post first, and the channels with messages labelled by
-// hand (the biggest first), whose chats open on those messages alone, with the names of whoever the chat open shows
+// Telegram's floating tabs: the biggest first, the latest to post first, and the channels with names labelled by hand
+// (the biggest first), whose chats open on the messages with them alone, with the names of whoever the chat open shows
 // (by hand, or a model). Focusing the search turns ☰ into ← and the folders away, as in Telegram; the list is searched
 // at each key, the last results staying until the new ones come. The chat open beside is the blue row. The list is the
 // layout's, so it stays as chats open and close, scrolled where it was.

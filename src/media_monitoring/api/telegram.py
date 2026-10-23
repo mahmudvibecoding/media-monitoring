@@ -108,8 +108,11 @@ COUNT = sql.SQL("SELECT count(*) FROM telegram_channels {where}")
 # Only the channels with a saved message (app.sql), and with a search, those it matches: lowercase, apostrophes left out
 LISTED = sql.SQL("WHERE has_messages")
 SEARCHED = sql.SQL("WHERE has_messages AND search_text LIKE app.searchable(%(pattern)s)")
-# Only the channels with a message labelled by hand, a hundred or so, each found by its key
-LABELLED = sql.SQL(" AND channel_id IN (SELECT channel_id FROM telegram_message_labels WHERE source = 'hand')")
+# Only the channels with a name labelled by hand in a message (not those whose labelled messages have none), a hundred
+# or so, each found by its key
+LABELLED = sql.SQL(
+    " AND channel_id IN (SELECT channel_id FROM telegram_message_labels WHERE source = 'hand' AND names <> '[]')"
+)
 # Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
 ORDERS = {
     "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
@@ -134,12 +137,12 @@ async def telegram_channels(
     sort: Annotated[
         Literal["subscribers", "latest"], Query(description="The biggest first, or the latest to post")
     ] = "subscribers",
-    labelled: Annotated[bool, Query(description="Only the channels with a message labelled by hand")] = False,
+    labelled: Annotated[bool, Query(description="Only the channels with a name labelled by hand")] = False,
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} channels to a page")] = 1,
 ) -> TelegramChannels:
     """The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
     first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
-    apostrophes aside; labelled, only those with a message whose names were labelled by hand."""
+    apostrophes aside; labelled, only those with a name labelled by hand in a message."""
     search = " ".join(search.split())
     where = SEARCHED if search else LISTED
     if labelled:
@@ -250,7 +253,12 @@ MESSAGES = sql.SQL("""
 """)
 # Lowercase, apostrophes left out, as the channels' search
 FOUND = sql.SQL("AND app.searchable(m.text) LIKE app.searchable(%(pattern)s)")
-WITH_NAMES = sql.SQL("AND l.names IS NOT NULL")
+# The messages with a name labelled by hand, whoever's names come with them, so that each shows the same ones
+WITH_NAMES = sql.SQL("""AND EXISTS (
+    SELECT FROM telegram_message_labels AS hand
+    WHERE hand.channel_id = m.channel_id AND hand.message_id = m.message_id AND hand.source = 'hand'
+        AND hand.names <> '[]'
+)""")
 
 
 def in_utf16(message: dict) -> dict:
@@ -279,7 +287,7 @@ async def telegram_channel_messages(
     _: Admin,
     channel_id: Annotated[int, Path(ge=1)],
     search: Annotated[str, Query(max_length=SEARCH_MAX, description="Part of a message's text")] = "",
-    labelled: Annotated[bool, Query(description="Only the messages whose names were labelled")] = False,
+    labelled: Annotated[bool, Query(description="Only the messages with a name labelled by hand")] = False,
     source: Annotated[
         Literal["hand", "gemma", "glot500", "xlmv", "minilm"],
         Query(
@@ -292,8 +300,8 @@ async def telegram_channel_messages(
 ) -> TelegramMessages:
     """A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
     the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
-    text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only the labelled ones. How
-    many there are is in the channel's details, so that a page isn't counted again."""
+    text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only those with a name
+    labelled by hand. How many there are is in the channel's details, so that a page isn't counted again."""
     search = " ".join(search.split())
     values = {
         "channel": channel_id,

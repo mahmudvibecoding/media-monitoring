@@ -3,7 +3,7 @@ import type { TelegramChannelMessagesData, TelegramChannelsData } from "@/api/ty
 export type TelegramChannelsQuery = NonNullable<TelegramChannelsData["query"]>;
 export type TelegramSort = NonNullable<TelegramChannelsQuery["sort"]>;
 type TelegramMessagesQuery = NonNullable<TelegramChannelMessagesData["query"]>;
-// The chat list's folders: its two orders, and the channels with messages labelled by hand
+// The chat list's folders: its two orders, and the channels with names labelled by hand
 export type TelegramFolder = TelegramSort | "labelled";
 // Whose names a labelled chat marks: those labelled by hand, or a model's, compared with them
 export type Labeller = NonNullable<TelegramMessagesQuery["source"]>;

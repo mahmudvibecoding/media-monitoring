@@ -1025,7 +1025,7 @@
     "/api/telegram/channels": {
       "get": {
         "summary": "Telegram Channels",
-        "description": "The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post\nfirst. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and\napostrophes aside; labelled, only those with a message whose names were labelled by hand.",
+        "description": "The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post\nfirst. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and\napostrophes aside; labelled, only those with a name labelled by hand in a message.",
         "operationId": "telegram_channels",
         "parameters": [
           {
@@ -1063,11 +1063,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Only the channels with a message labelled by hand",
+              "description": "Only the channels with a name labelled by hand",
               "default": false,
               "title": "Labelled"
             },
-            "description": "Only the channels with a message labelled by hand"
+            "description": "Only the channels with a name labelled by hand"
           },
           {
             "name": "page",
@@ -1359,7 +1359,7 @@
     "/api/telegram/channels/{channel_id}/messages": {
       "get": {
         "summary": "Telegram Channel Messages",
-        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with\nthe names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose\ntext has it in them, whatever the case of its letters, and apostrophes aside; labelled, only the labelled ones. How\nmany there are is in the channel's details, so that a page isn't counted again.",
+        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with\nthe names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose\ntext has it in them, whatever the case of its letters, and apostrophes aside; labelled, only those with a name\nlabelled by hand. How many there are is in the channel's details, so that a page isn't counted again.",
         "operationId": "telegram_channel_messages",
         "parameters": [
           {
@@ -1391,11 +1391,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Only the messages whose names were labelled",
+              "description": "Only the messages with a name labelled by hand",
               "default": false,
               "title": "Labelled"
             },
-            "description": "Only the messages whose names were labelled"
+            "description": "Only the messages with a name labelled by hand"
           },
           {
             "name": "source",

@@ -152,9 +152,9 @@ the most (7,000). Each message comes with the names labelled in it by hand (`tel
 docs/monitoring.md), if it was labelled: each name with its kind and where it is in the text, counted in UTF-16 units,
 as a browser counts a string's characters (an emoji counts twice), or none for a name that couldn't be placed in it;
 with `source`, the names a model found in it instead (`gemma`, `glot500`, `xlmv` or `minilm`), each with how it compares
-with the hand's (`verdict`), and the hand's names it missed. With `labelled`, both lists keep to what was labelled: the
-126 channels with a labelled message, each found by its key (8 ms for a page, 2 ms to count them), and a channel's
-labelled messages (under a millisecond).
+with the hand's (`verdict`), and the hand's names it missed. With `labelled`, both lists keep to the messages with a
+name labelled by hand (not those labelled as having none): the 103 channels with one, each found by its key (8 ms for a
+page, 2 ms to count them), and a channel's messages with one (under a millisecond).
 
 ### Runs
 
@@ -185,7 +185,7 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   wallpaper (its four colors blended as Telegram draws them, without its pattern) lies under its floating panels, with
   its corners rounder at the ends where the browser can draw them (squircles): the chat list at the left, with its ☰
   (the site's menu) and its search field, its folders on a floating bar (the biggest channels, the latest to post, and
-  those with messages labelled by hand), and its rows, each with its latest message and when, the open chat's blue; a
+  those with names labelled by hand), and its rows, each with its latest message and when, the open chat's blue; a
   chat's top bar floating over it, which, as the chat, takes the chat's whole width, as in Telegram's desktop app
   (Telegram Web's keeps its chat to a column in the middle), its bubbles at its left, in groups with their tails, its
   links as Telegram shows them (one hidden behind words as the words), its dates, which stay at the top while it scrolls
@@ -245,12 +245,12 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   it: people violet, organizations orange, places green; under the mouse, a name shows its kind and its base form as
   labelled (Тошкент where the text has Тошкентда). Under the text are the names that couldn't be marked in it (written
   otherwise, or inside another name), or that it has none. A chat opened from the labelled folder (`?labelled` in its
-  address) shows only its labelled messages, under a card that says what the colors are, with a link to all its
-  messages, and a switch between the names labelled by hand and those a model found (`?labelled=gemma`): Gemma, Glot500,
-  XLM-V or MiniLM, which the folder's other chats then open with. A model's names compare with the hand's as the scoring
-  matches them: a mistake (a name not labelled by hand, or of another kind) is underlined red and wavy, as a misspelt
-  word; a name it missed is framed, dashed, where it was labelled, and listed under the text; under the mouse, each says
-  which.
+  address) shows only its messages with names labelled by hand, under a card that says what the colors are, with a link
+  to all its messages, and a switch between the names labelled by hand and those a model found (`?labelled=gemma`):
+  Gemma, Glot500, XLM-V or MiniLM, which the folder's other chats then open with. A model's names compare with the
+  hand's as the scoring matches them: a mistake (a name not labelled by hand, or of another kind) is underlined red and
+  wavy, as a misspelt word; a name it missed is framed, dashed, where it was labelled, and listed under the text; under
+  the mouse, each says which.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. One the player can't
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,

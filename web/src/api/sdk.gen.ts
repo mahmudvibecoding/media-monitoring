@@ -131,7 +131,7 @@ export const youtubeVideoComments = <ThrowOnError extends boolean = false>(optio
  *
  * The monitored channels that have a message saved, a page at a time, the biggest first or the latest to post
  * first. With a search, only the channels whose name or username has it in them, whatever the case of its letters, and
- * apostrophes aside; labelled, only those with a message whose names were labelled by hand.
+ * apostrophes aside; labelled, only those with a name labelled by hand in a message.
  */
 export const telegramChannels = <ThrowOnError extends boolean = false>(options?: Options<TelegramChannelsData, ThrowOnError>): RequestResult<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError> => (options?.client ?? client).get<TelegramChannelsResponses, TelegramChannelsErrors, ThrowOnError>({ url: '/api/telegram/channels', ...options });
 
@@ -156,8 +156,8 @@ export const telegramChannelPhoto = <ThrowOnError extends boolean = false>(optio
  *
  * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
  * the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
- * text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only the labelled ones. How
- * many there are is in the channel's details, so that a page isn't counted again.
+ * text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only those with a name
+ * labelled by hand. How many there are is in the channel's details, so that a page isn't counted again.
  */
 export const telegramChannelMessages = <ThrowOnError extends boolean = false>(options: Options<TelegramChannelMessagesData, ThrowOnError>): RequestResult<TelegramChannelMessagesResponses, TelegramChannelMessagesErrors, ThrowOnError> => (options.client ?? client).get<TelegramChannelMessagesResponses, TelegramChannelMessagesErrors, ThrowOnError>({ url: '/api/telegram/channels/{channel_id}/messages', ...options });
 
