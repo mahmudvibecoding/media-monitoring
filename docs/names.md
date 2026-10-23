@@ -1,8 +1,9 @@
 # Names in the texts
 
-The website marks the names of people, organizations, places and events in Telegram's messages: those labelled by hand in 1,000
-posts that name finders are scored on, which admins correct there, and those models found in the same posts, compared
-with them.
+The website marks the names of people, organizations, places and events in Telegram's messages: those labelled by hand
+in 1,000 posts that name finders are scored on, which admins correct there, and those models found in the same posts,
+compared with them. Name finders are scored on 1,000 YouTube texts too, videos and comments, labelled the same way,
+which the website doesn't show.
 
 ## The kinds
 
@@ -28,6 +29,12 @@ longest name wins (Toshkent shahar hokimligi is one organization, Toshkent xalqa
 role isn't part of one (AQSH davlat kotibi: AQSH, a place). Names in links, @usernames and #hashtags, and in a channel's
 own signature and subscription lines, aren't labelled.
 
+In YouTube texts the same rules hold, and a description's closing lines that ask to subscribe or list the channel's
+pages, phones and links aren't labelled, nor hashtags or @mentions; in comments a name is labelled as written, misspelt
+or in lowercase too (putin, mirziyoev); singers, actors and bloggers are people and bands organizations, titles of
+songs, films and shows aren't names, and TV channels, and YouTube or Telegram channels named as media, are
+organizations.
+
 ## The labelled posts
 
 The posts come from Telegram's big channels: 30,000 subscribers or more, in Uzbek or Russian, that posted after
@@ -46,6 +53,24 @@ the events in a pass of their own), each placed in the text wherever it's writte
 as Claude labelled them (`claude`), to see what was corrected; a message an admin marks checked keeps when
 (`checked_at`), so that what's left to check shows. The chat list's labelled folder has their 534 channels, the posts
 without names too.
+
+## The labelled YouTube texts
+
+Of the 1,291 YouTube channels with 100,000 subscribers or more and 10 videos or more in the last 12 months, 893 were
+kept by reading their names and latest titles: news, TV, sport, bloggers, education, religion, entertainment and music
+made in Uzbekistan; not children's channels, reuploads, other languages, spam or gaming. Their videos of the last 12
+months (42,290; a video is one text: the title, then a blank line and the description) and 8 comments under each of
+their latest 30 videos (112,491) were read by the same three models, and 1,000 texts chosen as the posts were, by where
+the models disagree and by the names they'd add, in proportion to each script and each quarter of lengths: 200 videos
+and 100 Shorts with names, 500 comments with names, and 200 comments at random, most of them with none, to see whether
+name finders make names up. No text twice; at most 2 videos, 1 Short and 3 comments a channel, and 1 comment a video;
+comments of 20 to 600 characters in Uzbek or Russian, without links, phones, betting or calls to subscribe. They come
+from 522 channels.
+
+Claude labelled them by the rules above (3,698 names: 1,597 people, 892 organizations, 1,116 places and 93 events; 189
+texts have none), placed as the posts' names are, and where a comment glues words together (MenGijduvondan), where the
+name is written. They're in `app.youtube_labels` ('claude'), with the names Gemma found in them, told the rules for
+YouTube too ('gemma').
 
 ## Gemma's names
 

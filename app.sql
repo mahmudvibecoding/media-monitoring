@@ -98,6 +98,18 @@ CREATE TABLE IF NOT EXISTS app.telegram_message_labels (
 );
 ALTER TABLE app.telegram_message_labels ADD COLUMN IF NOT EXISTS checked_at timestamptz;
 
+-- Names labelled in YouTube texts, the other half of what name finders are scored on: a video's title and description
+-- (comment_id ''; the text is the title, then, if there's a description, a blank line and the description) or a
+-- comment under a video, a row a text and labeller: Claude's labels ('claude') and the names Gemma 4 26B found in them
+-- ('gemma'); names as in app.telegram_message_labels, in characters of that text.
+CREATE TABLE IF NOT EXISTS app.youtube_labels (
+    video_id    text NOT NULL REFERENCES youtube_videos ON DELETE CASCADE,
+    comment_id  text NOT NULL DEFAULT '',
+    source      text NOT NULL,
+    names       jsonb NOT NULL,
+    PRIMARY KEY (video_id, comment_id, source)
+);
+
 -- What the site's pages look the collected data up by, which the collectors don't: columns and indexes on schema.sql's
 -- tables
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;  -- indexes that find text by any part of it
