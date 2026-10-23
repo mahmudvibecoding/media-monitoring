@@ -5,6 +5,16 @@ export type TelegramSort = NonNullable<TelegramChannelsQuery["sort"]>;
 type TelegramMessagesQuery = NonNullable<TelegramChannelMessagesData["query"]>;
 // The chat list's folders: its two orders, and the channels with messages labelled by hand
 export type TelegramFolder = TelegramSort | "labelled";
+// Whose names a labelled chat marks: those labelled by hand, or a model's, compared with them
+export type Labeller = NonNullable<TelegramMessagesQuery["source"]>;
+export const LABELLERS = ["hand", "gemma", "minilm"] as const satisfies readonly Labeller[];
+
+// The labeller in a chat's address: ?labelled for the names labelled by hand, ?labelled=gemma for a model's; null for
+// a chat with all its messages
+export function labellerOf(value: string | string[] | null | undefined): Labeller | null {
+  if (value === null || value === undefined) return null;
+  return LABELLERS.find((labeller) => labeller === value) ?? "hand";
+}
 
 // The chat list's query: only what isn't the API's default, so that the server and the browser build the same one,
 // and so the same key for TanStack Query's cache. A search looks through all the channels, as Telegram's does, in the
@@ -18,10 +28,11 @@ export function channelsQuery(folder: TelegramFolder, search: string): TelegramC
 }
 
 // A chat's query, the same way: none at all for its newest messages, which its page arrives with
-export function messagesQuery(search: string, labelled: boolean): TelegramMessagesQuery | undefined {
+export function messagesQuery(search: string, labelled: Labeller | null): TelegramMessagesQuery | undefined {
   const query: TelegramMessagesQuery = {};
   if (search) query.search = search;
   if (labelled) query.labelled = true;
+  if (labelled && labelled !== "hand") query.source = labelled;
   return search || labelled ? query : undefined;
 }
 
@@ -34,8 +45,11 @@ export function platformOf(userAgent: string): Platform {
 }
 
 // A chat's path here, and the ID in it (null on the list's own page). Opened from the labelled folder, the chat shows
-// only the messages labelled by hand (?labelled).
-export const chatPath = (id: number, labelled = false) => `/telegram/channels/${id}${labelled ? "?labelled" : ""}`;
+// only the labelled messages, with the names labelled by hand or a model's (see labellerOf).
+export function chatPath(id: number, labelled: Labeller | null = null): string {
+  if (labelled === null) return `/telegram/channels/${id}`;
+  return `/telegram/channels/${id}?labelled${labelled === "hand" ? "" : `=${labelled}`}`;
+}
 export function chatIdOf(path: string): number | null {
   const id = /^\/telegram\/channels\/(\d{1,15})(?:\/|$)/.exec(path)?.[1];
   return id ? Number(id) : null;

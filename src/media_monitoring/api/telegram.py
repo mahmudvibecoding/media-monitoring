@@ -2,8 +2,9 @@
 site's channels page asks for, each with its latest message (GET /api/telegram/channels), a channel's details
 (.../{channel_id}), its photo (.../{channel_id}/photo), and its saved messages, newest first, all of them or those a
 search finds (.../{channel_id}/messages). Both lists can keep to the messages whose names were labelled by hand
-(telegram_message_labels), and the messages come with those names. The column and the indexes the channel list reads
-them by are in app.sql; a channel's messages come by the messages table's key."""
+(telegram_message_labels), and the messages come with those names, or with the names two models found in them,
+compared with the hand's. The column and the indexes the channel list reads them by are in app.sql; a channel's
+messages come by the messages table's key."""
 
 import asyncio
 from datetime import datetime
@@ -42,20 +43,30 @@ class TelegramChannelDetails(TelegramChannel):
     messages: int  # how many of its messages have been saved (those with text)
 
 
+Kind = Literal["person", "organization", "location"]
+
+
 class TelegramName(BaseModel):
-    name: str  # as labelled: its base form (Самарканд where the text has Самарканде)
-    kind: Literal["person", "organization", "location"]
+    name: str  # labelled by hand, its base form (Самарканд where the text has Самарканде); a model's, as written
+    kind: Kind
     # Where it is in the text, in UTF-16 units, as a browser counts a string's characters (end not included); None for
     # a name not written so in it, or overlapping another
     start: int | None
     end: int | None
+    # A model's name, as it compares with the names labelled by hand: one of them (right), one of them of another kind
+    # (kind: labelled_as is the hand's), a part of one or holding one (part: neither right nor wrong), or none of them
+    # (extra); or one of them that the model missed (missed), where the hand placed it. None for the hand's own.
+    verdict: Literal["right", "kind", "part", "extra", "missed"] | None = None
+    labelled_as: Kind | None = None
 
 
 class TelegramMessage(BaseModel):
     id: int  # its number in the channel: t.me/<username>/<id>
     published_at: datetime  # to the second
     text: str  # as plain text, with links kept as addresses
-    names: list[TelegramName] | None  # the names labelled in it by hand, in order; None for a message not labelled
+    # The names labelled in it, by hand or by a model (see the messages' source), in order; None for a message that
+    # wasn't labelled
+    names: list[TelegramName] | None
 
 
 class TelegramMessages(BaseModel):
@@ -227,13 +238,13 @@ async def telegram_channel_photo(request: Request, _: Admin, channel_id: Annotat
 
 
 # Newest first: a channel's messages are numbered as they come out, and the table's key keeps them in that order, each
-# with its names labelled by hand, by the labels' key. A search reads all the channel's messages: 50 ms for the one with
-# the most (7,000).
+# with the names labelled in it by hand or by a model, by the labels' key. A search reads all the channel's messages:
+# 50 ms for the one with the most (7,000).
 MESSAGES = sql.SQL("""
     SELECT m.message_id AS id, m.published_at, m.text, l.names
     FROM telegram_messages AS m
     LEFT JOIN telegram_message_labels AS l
-        ON l.channel_id = m.channel_id AND l.message_id = m.message_id AND l.source = 'hand'
+        ON l.channel_id = m.channel_id AND l.message_id = m.message_id AND l.source = %(source)s
     WHERE m.channel_id = %(channel)s {search} {labelled}
     ORDER BY m.message_id DESC LIMIT %(limit)s OFFSET %(offset)s
 """)
@@ -268,15 +279,28 @@ async def telegram_channel_messages(
     _: Admin,
     channel_id: Annotated[int, Path(ge=1)],
     search: Annotated[str, Query(max_length=SEARCH_MAX, description="Part of a message's text")] = "",
-    labelled: Annotated[bool, Query(description="Only the messages whose names were labelled by hand")] = False,
+    labelled: Annotated[bool, Query(description="Only the messages whose names were labelled")] = False,
+    source: Annotated[
+        Literal["hand", "gemma", "minilm"],
+        Query(
+            description="Whose names come with the messages: labelled by hand, or found by a model, Gemma 4 26B or "
+            "Multilingual-MiniLM-L12-H384 trained on Gemma's names (in the posts labelled by hand)"
+        ),
+    ] = "hand",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} messages to a page")] = 1,
 ) -> TelegramMessages:
     """A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
-    the names labelled in it by hand, if it was labelled; with a search, only those whose text has it in them, whatever
-    the case of its letters, and apostrophes aside; labelled, only the labelled ones. How many there are is in the
-    channel's details, so that a page isn't counted again."""
+    the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
+    text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only the labelled ones. How
+    many there are is in the channel's details, so that a page isn't counted again."""
     search = " ".join(search.split())
-    values = {"channel": channel_id, "pattern": anywhere(search), "limit": PAGE_SIZE, "offset": (page - 1) * PAGE_SIZE}
+    values = {
+        "channel": channel_id,
+        "source": source,
+        "pattern": anywhere(search),
+        "limit": PAGE_SIZE,
+        "offset": (page - 1) * PAGE_SIZE,
+    }
     query = MESSAGES.format(search=FOUND if search else sql.SQL(""), labelled=WITH_NAMES if labelled else sql.SQL(""))
     async with request.state.pool.connection() as conn:
         cursor = conn.cursor(row_factory=dict_row)

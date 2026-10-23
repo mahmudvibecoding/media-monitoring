@@ -291,7 +291,10 @@ couldn't be told (1,867).
 - **`telegram_message_labels`:** the names labelled in messages by hand: the 220 posts from news and big channels
   that name finders are scored on (126 channels; 48 posts without a name), each with its people, organizations and
   places in their base forms, placed in the text where their words are, with any ending (Тошкентда for Тошкент): 762
-  places for 602 names; 4 names have none (written otherwise, or inside a longer name). The website shows them.
+  places for 602 names; 4 names have none (written otherwise, or inside a longer name). Beside them, the names two
+  models found in the same posts, each compared with the hand's as the scoring matches them, leniently: Gemma 4 26B
+  (566 right, 15 of another kind, 98 extra, 25 missed; F1 90%) and Multilingual-MiniLM-L12-H384 trained on Gemma's
+  names (563, 20, 123, 23; F1 89%). The website shows them.
 
 Not collected: messages' photos, videos and other media; views and reactions; where a forwarded message came from;
 replies and edits; and comments, which Telegram doesn't show without an account.

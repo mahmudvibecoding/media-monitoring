@@ -150,9 +150,11 @@ table's key: a few milliseconds, even for the channel with the most; with a sear
 (lowercase, apostrophes aside, as the lists' searches), which reads all the channel's messages: 50 ms for the one with
 the most (7,000). Each message comes with the names labelled in it by hand (`telegram_message_labels`, see
 docs/monitoring.md), if it was labelled: each name with its kind and where it is in the text, counted in UTF-16 units,
-as a browser counts a string's characters (an emoji counts twice), or none for a name that couldn't be placed in it.
-With `labelled`, both lists keep to what was labelled: the 126 channels with a labelled message, each found by its key
-(8 ms for a page, 2 ms to count them), and a channel's labelled messages (under a millisecond).
+as a browser counts a string's characters (an emoji counts twice), or none for a name that couldn't be placed in it;
+with `source`, the names a model found in it instead (`gemma` or `minilm`), each with how it compares with the hand's
+(`verdict`), and the hand's names it missed. With `labelled`, both lists keep to what was labelled: the 126 channels
+with a labelled message, each found by its key (8 ms for a page, 2 ms to count them), and a channel's labelled
+messages (under a millisecond).
 
 ### Runs
 
@@ -244,7 +246,10 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   labelled (Тошкент where the text has Тошкентда). Under the text are the names that couldn't be marked in it (written
   otherwise, or inside another name), or that it has none. A chat opened from the labelled folder (`?labelled` in its
   address) shows only its labelled messages, under a card that says what the colors are, with a link to all its
-  messages.
+  messages, and a switch between the names labelled by hand and those Gemma or MiniLM found (`?labelled=gemma`),
+  which the folder's other chats then open with. A model's names compare with the hand's as the scoring matches them:
+  a mistake (a name not labelled by hand, or of another kind) is underlined red and wavy, as a misspelt word; a name
+  it missed is framed, dashed, where it was labelled, and listed under the text; under the mouse, each says which.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. One the player can't
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,

@@ -160,7 +160,7 @@ function Marked({ text, at, found, names }: { text: string; at: number; found?: 
     const stop = Math.min(name.end, end);
     if (start > from) parts.push(<Found key={from} text={text.slice(from - at, start - at)} found={found} />);
     parts.push(
-      <NameMark key={start} kind={name.kind} name={name.name}>
+      <NameMark key={start} kind={name.kind} name={name.name} verdict={name.verdict} labelledAs={name.labelled_as}>
         <Found text={text.slice(start - at, stop - at)} found={found} />
       </NameMark>,
     );
@@ -172,20 +172,45 @@ function Marked({ text, at, found, names }: { text: string; at: number; found?: 
 }
 
 // The kinds of names labelled in messages, in the order they're listed, each marked on a light shade of its color,
-// underlined with the color itself
+// underlined with the color itself; a name a model missed, framed with the color, dashed
 export const NAME_KINDS = ["person", "organization", "location"] as const satisfies readonly TelegramName["kind"][];
-const KIND_MARKS = {
-  person: "bg-tg-person/14 shadow-[inset_0_-2px_0_var(--color-tg-person)]",
-  organization: "bg-tg-organization/18 shadow-[inset_0_-2px_0_var(--color-tg-organization)]",
-  location: "bg-tg-location/16 shadow-[inset_0_-2px_0_var(--color-tg-location)]",
-} as const;
+const FILLS = { person: "bg-tg-person/14", organization: "bg-tg-organization/18", location: "bg-tg-location/16" };
+const LINES = {
+  person: "shadow-[inset_0_-2px_0_var(--color-tg-person)]",
+  organization: "shadow-[inset_0_-2px_0_var(--color-tg-organization)]",
+  location: "shadow-[inset_0_-2px_0_var(--color-tg-location)]",
+};
+const FRAMES = { person: "border-tg-person", organization: "border-tg-organization", location: "border-tg-location" };
+// A model's mistake (a name not labelled by hand, or of another kind): red and wavy underneath, as a misspelt word
+export const MISTAKE =
+  "underline decoration-tg-wrong decoration-wavy decoration-1 underline-offset-[3px] [text-decoration-skip-ink:none]";
+export const MISSED = "border border-dashed [box-decoration-break:clone]";
 
-// A name labelled by hand, marked by its kind, which, with the name as it was labelled (its base form), shows under the
-// mouse; without a name, the kind's mark alone
-export function NameMark({ kind, name, children }: { kind: TelegramName["kind"]; name?: string; children: ReactNode }) {
+// A name labelled by hand, or by a model, marked by its kind (and a model's by how it compares with the hand's, see
+// TelegramName), which, with the name as labelled (by hand, its base form), shows under the mouse; without a name, the
+// mark alone
+export function NameMark({
+  kind,
+  name,
+  verdict,
+  labelledAs,
+  children,
+}: {
+  kind: TelegramName["kind"];
+  name?: string;
+  verdict?: TelegramName["verdict"];
+  labelledAs?: TelegramName["labelled_as"];
+  children: ReactNode;
+}) {
   const t = useTranslations("telegramChannel");
+  let title = name && `${t(kind)}: ${name}`;
+  if (title && verdict) title += ` — ${t(`verdicts.${verdict}`, { kind: labelledAs ? t(labelledAs) : "" })}`;
+  let look;
+  if (verdict === "missed") look = cn(MISSED, FRAMES[kind]);
+  else if (verdict === "kind" || verdict === "extra") look = cn(FILLS[kind], MISTAKE);
+  else look = cn(FILLS[kind], LINES[kind]);
   return (
-    <mark title={name && `${t(kind)}: ${name}`} className={cn("rounded-[3px] text-inherit", KIND_MARKS[kind])}>
+    <mark title={title} className={cn("rounded-[3px] bg-transparent text-inherit", look)}>
       {children}
     </mark>
   );

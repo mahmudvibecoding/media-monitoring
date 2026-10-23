@@ -500,9 +500,9 @@ export const telegramChannelMessagesQueryKey = (options: Options<TelegramChannel
  * Telegram Channel Messages
  *
  * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
- * the names labelled in it by hand, if it was labelled; with a search, only those whose text has it in them, whatever
- * the case of its letters, and apostrophes aside; labelled, only the labelled ones. How many there are is in the
- * channel's details, so that a page isn't counted again.
+ * the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
+ * text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only the labelled ones. How
+ * many there are is in the channel's details, so that a page isn't counted again.
  */
 export const telegramChannelMessagesOptions = (options: Options<TelegramChannelMessagesData>) => queryOptions<TelegramChannelMessagesResponse, TelegramChannelMessagesError, TelegramChannelMessagesResponse, ReturnType<typeof telegramChannelMessagesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -523,9 +523,9 @@ export const telegramChannelMessagesInfiniteQueryKey = (options: Options<Telegra
  * Telegram Channel Messages
  *
  * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
- * the names labelled in it by hand, if it was labelled; with a search, only those whose text has it in them, whatever
- * the case of its letters, and apostrophes aside; labelled, only the labelled ones. How many there are is in the
- * channel's details, so that a page isn't counted again.
+ * the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
+ * text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only the labelled ones. How
+ * many there are is in the channel's details, so that a page isn't counted again.
  */
 export const telegramChannelMessagesInfiniteOptions = (options: Options<TelegramChannelMessagesData>) => {
     const opts = infiniteQueryOptions<TelegramChannelMessagesResponse, TelegramChannelMessagesError, InfiniteData<TelegramChannelMessagesResponse>, QueryKey<Options<TelegramChannelMessagesData>>, number | Pick<QueryKey<Options<TelegramChannelMessagesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(

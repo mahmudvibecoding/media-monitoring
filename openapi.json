@@ -1359,7 +1359,7 @@
     "/api/telegram/channels/{channel_id}/messages": {
       "get": {
         "summary": "Telegram Channel Messages",
-        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with\nthe names labelled in it by hand, if it was labelled; with a search, only those whose text has it in them, whatever\nthe case of its letters, and apostrophes aside; labelled, only the labelled ones. How many there are is in the\nchannel's details, so that a page isn't counted again.",
+        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with\nthe names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose\ntext has it in them, whatever the case of its letters, and apostrophes aside; labelled, only the labelled ones. How\nmany there are is in the channel's details, so that a page isn't counted again.",
         "operationId": "telegram_channel_messages",
         "parameters": [
           {
@@ -1391,11 +1391,28 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Only the messages whose names were labelled by hand",
+              "description": "Only the messages whose names were labelled",
               "default": false,
               "title": "Labelled"
             },
-            "description": "Only the messages whose names were labelled by hand"
+            "description": "Only the messages whose names were labelled"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "hand",
+                "gemma",
+                "minilm"
+              ],
+              "type": "string",
+              "description": "Whose names come with the messages: labelled by hand, or found by a model, Gemma 4 26B or Multilingual-MiniLM-L12-H384 trained on Gemma's names (in the posts labelled by hand)",
+              "default": "hand",
+              "title": "Source"
+            },
+            "description": "Whose names come with the messages: labelled by hand, or found by a model, Gemma 4 26B or Multilingual-MiniLM-L12-H384 trained on Gemma's names (in the posts labelled by hand)"
           },
           {
             "name": "page",
@@ -4367,6 +4384,40 @@
               }
             ],
             "title": "End"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "right",
+                  "kind",
+                  "part",
+                  "extra",
+                  "missed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
+          "labelled_as": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "person",
+                  "organization",
+                  "location"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Labelled As"
           }
         },
         "type": "object",

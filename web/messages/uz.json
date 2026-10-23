@@ -134,13 +134,28 @@
     "lastPost": "Oxirgi post",
     "savedMessages": "Saqlangan xabarlar",
     "noneLabelled": "Belgilangan xabarlar yoʻq.",
-    "labelledBy": "Qoʻlda belgilangan nomlar:",
     "person": "Shaxs",
     "organization": "Tashkilot",
     "location": "Joy",
     "allMessages": "Barcha xabarlar",
     "notMarked": "Matnda belgilanmagan:",
-    "noNames": "Unda nomlar yoʻq"
+    "noNames": "Unda nomlar yoʻq",
+    "namesBy": "Nomlar:",
+    "labellers": {
+      "hand": "qoʻlda",
+      "gemma": "Gemma",
+      "minilm": "MiniLM"
+    },
+    "mistake": "xato",
+    "notFound": "topilmagan",
+    "missed": "Topilmagan:",
+    "verdicts": {
+      "right": "qoʻlda belgilangandek",
+      "kind": "qoʻlda belgilanganda: {kind}",
+      "part": "qoʻlda belgilangan nomning qismi yoki uni oʻz ichiga oladi: hisobga olinmaydi",
+      "extra": "qoʻlda belgilanmagan",
+      "missed": "topilmagan"
+    }
   },
   "customers": {
     "title": "Foydalanuvchilar",

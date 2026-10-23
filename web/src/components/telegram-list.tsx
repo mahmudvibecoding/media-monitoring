@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { SearchIcon, XIcon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -16,7 +16,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatChatDate, formatCompact, formatCount, formatDateTime, pluralOf } from "@/lib/format";
 import { DIMMED, FIRST_PAGE, nextPage } from "@/lib/pages";
-import { channelsQuery, chatIdOf, chatPath, type TelegramFolder } from "@/lib/telegram";
+import { channelsQuery, chatIdOf, chatPath, type Labeller, labellerOf, type TelegramFolder } from "@/lib/telegram";
 import { useLoadMore } from "@/lib/use-load-more";
 import { useNow } from "@/lib/use-now";
 import { cn } from "@/lib/utils";
@@ -26,15 +26,16 @@ const FOLDERS = ["subscribers", "latest", "labelled"] as const satisfies readonl
 // Telegram's chat list, in its floating panel at the left: Telegram's ☰ (which opens the site's menu) and search field
 // at the top, then the monitored channels as Telegram lists chats, more loading as they're scrolled. Three folders in
 // Telegram's floating tabs: the biggest first, the latest to post first, and the channels with messages labelled by
-// hand (the biggest first), whose chats open on those messages alone. Focusing the search turns ☰ into ← and the
-// folders away, as in Telegram; the list is searched at each key, the last results staying until the new ones come.
-// The chat open beside is the blue row. The list is the layout's, so it stays as chats open and close, scrolled where
-// it was.
+// hand (the biggest first), whose chats open on those messages alone, with the names of whoever the chat open shows
+// (by hand, or a model). Focusing the search turns ☰ into ← and the folders away, as in Telegram; the list is searched
+// at each key, the last results staying until the new ones come. The chat open beside is the blue row. The list is the
+// layout's, so it stays as chats open and close, scrolled where it was.
 export function TelegramList() {
   const t = useTranslations("telegramChannels");
   const nav = useTranslations("nav");
   const locale = useLocale();
   const openId = chatIdOf(usePathname());
+  const labeller = labellerOf(useSearchParams().get("labelled")) ?? "hand";
   // The row clicked last, and the chat open then: it's the blue row at once, as in Telegram, until its chat opens
   const [clicked, setClicked] = useState<{ id: number; on: number | null } | null>(null);
   const shownId = clicked?.on === openId ? clicked.id : openId;
@@ -123,7 +124,7 @@ export function TelegramList() {
               current={channel.id === openId}
               onOpen={() => setClicked({ id: channel.id, on: openId })}
               searched={!!search}
-              labelled={folder === "labelled" && !search}
+              labelled={folder === "labelled" && !search ? labeller : null}
             />
           ))}
         </ul>
@@ -299,7 +300,7 @@ function ChatRow({
   current: boolean;
   onOpen: () => void;
   searched: boolean;
-  labelled: boolean;
+  labelled: Labeller | null;
 }) {
   const t = useTranslations("telegramChannel");
   const locale = useLocale();

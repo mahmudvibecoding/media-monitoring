@@ -735,6 +735,14 @@ export type TelegramName = {
      * End
      */
     end: number | null;
+    /**
+     * Verdict
+     */
+    verdict?: 'right' | 'kind' | 'part' | 'extra' | 'missed' | null;
+    /**
+     * Labelled As
+     */
+    labelled_as?: 'person' | 'organization' | 'location' | null;
 };
 
 /**
@@ -1810,9 +1818,15 @@ export type TelegramChannelMessagesData = {
         /**
          * Labelled
          *
-         * Only the messages whose names were labelled by hand
+         * Only the messages whose names were labelled
          */
         labelled?: boolean;
+        /**
+         * Source
+         *
+         * Whose names come with the messages: labelled by hand, or found by a model, Gemma 4 26B or Multilingual-MiniLM-L12-H384 trained on Gemma's names (in the posts labelled by hand)
+         */
+        source?: 'hand' | 'gemma' | 'minilm';
         /**
          * Page
          *

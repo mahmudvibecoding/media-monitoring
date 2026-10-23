@@ -134,13 +134,28 @@
     "lastPost": "Latest post",
     "savedMessages": "Messages saved",
     "noneLabelled": "No labelled messages.",
-    "labelledBy": "Names labelled by hand:",
     "person": "Person",
     "organization": "Organization",
     "location": "Place",
     "allMessages": "All messages",
     "notMarked": "Not marked in the text:",
-    "noNames": "No names in it"
+    "noNames": "No names in it",
+    "namesBy": "Names:",
+    "labellers": {
+      "hand": "by hand",
+      "gemma": "Gemma",
+      "minilm": "MiniLM"
+    },
+    "mistake": "a mistake",
+    "notFound": "missed",
+    "missed": "Missed:",
+    "verdicts": {
+      "right": "as labelled by hand",
+      "kind": "labelled by hand as: {kind}",
+      "part": "part of a name labelled by hand, or holding one: not counted",
+      "extra": "not labelled by hand",
+      "missed": "missed"
+    }
   },
   "activity": {
     "title": "Activity",

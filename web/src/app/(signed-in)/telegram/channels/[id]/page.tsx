@@ -9,7 +9,7 @@ import { TelegramChat } from "@/components/telegram-chat";
 import { serverClient, signedInUser } from "@/lib/api-server";
 import { FIRST_PAGE } from "@/lib/pages";
 import { getQueryClient } from "@/lib/query-client";
-import { messagesQuery } from "@/lib/telegram";
+import { labellerOf, messagesQuery } from "@/lib/telegram";
 
 // The channel, asked for once per page load though both the tab's title and the page need it: null when there's no
 // such channel (or the address has no number for one), undefined when the API didn't say (the browser then asks
@@ -33,12 +33,12 @@ export async function generateMetadata({ params }: PageProps<"/telegram/channels
 
 // A monitored Telegram channel's chat, for admins, beside the chat list, as in Telegram Web: its details and its newest
 // messages arrive with the page, and the browser takes over from there. With ?labelled (from the chat list's labelled
-// folder), only its messages labelled by hand.
+// folder), only its labelled messages, with the names labelled by hand, or a model's (?labelled=gemma).
 export default async function TelegramChannelPage({ params, searchParams }: PageProps<"/telegram/channels/[id]">) {
   const user = await signedInUser();
   if (user?.role !== "admin") notFound();
   const id = idOf((await params).id);
-  const labelled = (await searchParams).labelled !== undefined;
+  const labelled = labellerOf((await searchParams).labelled);
   const channel = await loadChannel(id);
   if (id === null || channel === null) notFound();
   const queryClient = getQueryClient();

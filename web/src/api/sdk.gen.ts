@@ -155,9 +155,9 @@ export const telegramChannelPhoto = <ThrowOnError extends boolean = false>(optio
  * Telegram Channel Messages
  *
  * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
- * the names labelled in it by hand, if it was labelled; with a search, only those whose text has it in them, whatever
- * the case of its letters, and apostrophes aside; labelled, only the labelled ones. How many there are is in the
- * channel's details, so that a page isn't counted again.
+ * the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
+ * text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only the labelled ones. How
+ * many there are is in the channel's details, so that a page isn't counted again.
  */
 export const telegramChannelMessages = <ThrowOnError extends boolean = false>(options: Options<TelegramChannelMessagesData, ThrowOnError>): RequestResult<TelegramChannelMessagesResponses, TelegramChannelMessagesErrors, ThrowOnError> => (options.client ?? client).get<TelegramChannelMessagesResponses, TelegramChannelMessagesErrors, ThrowOnError>({ url: '/api/telegram/channels/{channel_id}/messages', ...options });
 
