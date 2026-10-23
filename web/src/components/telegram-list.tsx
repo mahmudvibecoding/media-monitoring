@@ -1,12 +1,12 @@
 "use client";
 
-import { keepPreviousData, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { SearchIcon, XIcon } from "lucide-react";
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCheckIcon, ListChecksIcon, SearchIcon, XIcon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { telegramChannelsInfiniteOptions } from "@/api/@tanstack/react-query.gen";
+import { labelledProgressOptions, telegramChannelsInfiniteOptions } from "@/api/@tanstack/react-query.gen";
 import type { TelegramChannel } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { PageLink } from "@/components/page-link";
@@ -115,6 +115,7 @@ export function TelegramList() {
             {t("found", { formatted: formatCount(total, locale) })}
           </h3>
         )}
+        {folder === "labelled" && !search && <Progress />}
         <ul className={cn("transition-opacity", isPlaceholderData && DIMMED)}>
           {channels.map((channel) => (
             <ChatRow
@@ -347,19 +348,72 @@ function ChatRow({
               </time>
             )}
           </span>
-          <span
-            className={cn(
-              "block truncate text-(length:--tg-list-line) leading-6",
-              open ? "text-white" : "text-(color:--tg-list-muted)",
-            )}
-            title={searched && channel.subscribers !== null ? formatCount(channel.subscribers, locale) : undefined}
-          >
-            {line}
+          <span className="flex items-center gap-2">
+            <span
+              className={cn(
+                "block min-w-0 flex-1 truncate text-(length:--tg-list-line) leading-6",
+                open ? "text-white" : "text-(color:--tg-list-muted)",
+              )}
+              title={searched && channel.subscribers !== null ? formatCount(channel.subscribers, locale) : undefined}
+            >
+              {line}
+            </span>
+            {/* In the labelled folder: its messages still to check, as Telegram counts a chat's unread ones; ✓✓ when
+                all are checked */}
+            {channel.unchecked != null &&
+              (channel.unchecked > 0 ? (
+                <span
+                  title={t("toCheck", { count: channel.unchecked })}
+                  className={cn(
+                    "min-w-[22px] shrink-0 rounded-full px-1.5 text-center text-sm leading-[22px] font-medium",
+                    open ? "bg-white text-tg-blue" : "bg-tg-blue text-white",
+                  )}
+                >
+                  {channel.unchecked}
+                </span>
+              ) : (
+                <CheckCheckIcon
+                  aria-label={t("allCheckedHere")}
+                  className={cn("size-5 shrink-0", open ? "text-white" : "text-tg-checked")}
+                />
+              ))}
           </span>
         </span>
         <Ripples />
       </PageLink>
     </li>
+  );
+}
+
+// Above the labelled folder's channels, as Telegram's row of archived chats: how many of the messages labelled by hand
+// are checked, and the way on to the first channel with one still to check, in the folder's order
+function Progress() {
+  const t = useTranslations("telegramChannels");
+  const locale = useLocale();
+  const { data } = useQuery(labelledProgressOptions());
+  if (!data) return null;
+  const counts = { checked: formatCount(data.checked, locale), total: formatCount(data.messages, locale) };
+  const row = "relative flex h-14 items-center gap-3 tg-item px-[9px]";
+  const content = (
+    <>
+      <span className="flex size-[42px] shrink-0 items-center justify-center rounded-full bg-tg-checked text-white">
+        <ListChecksIcon className="size-6" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate leading-6 [font-weight:var(--tg-semibold)]">{t("checked", counts)}</span>
+        <span className="block truncate text-sm leading-5 text-tg-blue">
+          {data.next ? t("continue") : t("allChecked")}
+        </span>
+      </span>
+    </>
+  );
+  return data.next ? (
+    <PageLink href={chatPath(data.next, "hand")} line="telegram" className={cn(row, "mb-1 hover:bg-tg-hover")}>
+      {content}
+      <Ripples />
+    </PageLink>
+  ) : (
+    <div className={cn(row, "mb-1")}>{content}</div>
   );
 }
 

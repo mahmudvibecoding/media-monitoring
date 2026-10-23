@@ -37,7 +37,8 @@ Claude labelled them by the rules above (9,610 names: 2,601 people, 3,569 organi
 the text wherever it's written, as whole words, but not in links, @usernames and #hashtags, nor in the post's signature
 lines when it's in the rest of it; where two overlap, the longer. 18 posts have none. They're in
 `app.telegram_message_labels` twice: as admins correct them on the website (`hand`), and as Claude labelled them
-(`claude`), to see what was corrected. The chat list's labelled folder has the 530 channels with names.
+(`claude`), to see what was corrected; a message an admin marks checked keeps when (`checked_at`), so that
+what's left to check shows. The chat list's labelled folder has the 530 channels with names.
 
 ## The models' names
 

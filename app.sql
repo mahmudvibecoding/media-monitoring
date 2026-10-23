@@ -84,8 +84,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS projects_name ON app.projects (organization_id
 -- was corrected), and the names models found in them ('gemma', 'glot500', 'xlmv', 'minilm'). names is a list of
 -- {"name" (as written), "kind" (person, organization or location), "start", "end"}: where it is in the text, in
 -- characters (end not included), or null for a model's name not written so in it; an empty list for a message with
--- none. A labeller's names are compared with the hand's as they're read (api/telegram.py). Before admins could correct
--- them, the table was public.telegram_message_labels, which schema.sql made.
+-- none. A labeller's names are compared with the hand's as they're read (api/telegram.py). checked_at, on a 'hand' row,
+-- is when an admin marked its names checked, so that what's left to check shows. Before admins could correct them, the
+-- table was public.telegram_message_labels, which schema.sql made.
 ALTER TABLE IF EXISTS public.telegram_message_labels SET SCHEMA app;
 CREATE TABLE IF NOT EXISTS app.telegram_message_labels (
     channel_id  bigint NOT NULL,
@@ -95,6 +96,7 @@ CREATE TABLE IF NOT EXISTS app.telegram_message_labels (
     PRIMARY KEY (channel_id, message_id, source),
     FOREIGN KEY (channel_id, message_id) REFERENCES telegram_messages ON DELETE CASCADE
 );
+ALTER TABLE app.telegram_message_labels ADD COLUMN IF NOT EXISTS checked_at timestamptz;
 
 -- What the site's pages look the collected data up by, which the collectors don't: columns and indexes on schema.sql's
 -- tables

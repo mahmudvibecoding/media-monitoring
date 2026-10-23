@@ -116,7 +116,10 @@
     "none": "Hozircha kanallar yoʻq.",
     "noResults": "Natija yoʻq",
     "noResultsFor": "«{search}» boʻyicha hech narsa topilmadi. Boshqacha qidirib koʻring.",
-    "labelled": "Belgilangan"
+    "labelled": "Belgilangan",
+    "checked": "Tekshirilgan: {total} tadan {checked} ta",
+    "continue": "Tekshirishni davom ettirish",
+    "allChecked": "Hammasi tekshirildi"
   },
   "telegramChannel": {
     "back": "Orqaga",
@@ -162,7 +165,15 @@
     "editHint": "Nomni belgilash uchun matnni ajrating; oʻzgartirish yoki olib tashlash uchun nomni bosing. Ctrl+Z — bekor qilish.",
     "remove": "Olib tashlash",
     "notSaved": "Oʻzgarish saqlanmadi. Qayta urinib koʻring.",
-    "labelAs": "Belgilash"
+    "labelAs": "Belgilash",
+    "check": "Tekshirildi deb belgilash",
+    "uncheck": "Tekshirilgan. Belgini olib tashlash uchun bosing",
+    "checked": "Tekshirilgan",
+    "checkedHere": "Kanalda tekshirilgan: {total} tadan {checked} ta",
+    "checkedAll": "jami: {total} tadan {checked} ta",
+    "nextChannel": "keyingi kanal →",
+    "toCheck": "Tekshirish kerak: {count}",
+    "allCheckedHere": "Hammasi tekshirildi"
   },
   "customers": {
     "title": "Foydalanuvchilar",

@@ -116,6 +116,7 @@
   --color-tg-organization: #ff8a3d;
   --color-tg-location: #3fb950;
   --color-tg-wrong: #e53935; /* under a model's mistake: Telegram's red */
+  --color-tg-checked: #4fae4e; /* a labelled message checked, as Telegram's ticks of a message read */
   --color-tg-tab: rgb(80 162 233 / 0.118); /* under the chosen folder */
   /* The date over a day's messages and the round buttons beside them: a darker green of the wallpaper's */
   --color-tg-on-wallpaper: rgb(106 161 90 / 0.85);

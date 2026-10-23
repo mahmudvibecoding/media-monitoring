@@ -116,7 +116,10 @@
     "none": "No channels yet.",
     "noResults": "No results",
     "noResultsFor": "There were no results for “{search}”. Try a new search.",
-    "labelled": "Labelled"
+    "labelled": "Labelled",
+    "checked": "Checked {checked} of {total}",
+    "continue": "Continue checking",
+    "allChecked": "All checked"
   },
   "telegramChannel": {
     "back": "Back",
@@ -162,7 +165,15 @@
     "editHint": "Select text to label a name; click a name to change or remove it. Ctrl+Z takes it back.",
     "remove": "Remove",
     "notSaved": "The change wasn't saved. Try again.",
-    "labelAs": "Label as"
+    "labelAs": "Label as",
+    "check": "Mark checked",
+    "uncheck": "Checked. Click to unmark",
+    "checked": "Checked",
+    "checkedHere": "Checked here: {checked} of {total}",
+    "checkedAll": "in all: {checked} of {total}",
+    "nextChannel": "next channel →",
+    "toCheck": "{count} to check",
+    "allCheckedHere": "All checked"
   },
   "activity": {
     "title": "Activity",

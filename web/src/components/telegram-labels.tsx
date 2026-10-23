@@ -5,7 +5,11 @@ import { Trash2Icon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { type RefObject, useEffect, useRef, useState } from "react";
 
-import { labelMessageMutation, telegramChannelMessagesInfiniteQueryKey } from "@/api/@tanstack/react-query.gen";
+import {
+  checkMessageMutation,
+  labelMessageMutation,
+  telegramChannelMessagesInfiniteQueryKey,
+} from "@/api/@tanstack/react-query.gen";
 import type { TelegramChannelMessagesData, TelegramMessage, TelegramMessages, TelegramName } from "@/api/types.gen";
 import { useTelegram } from "@/components/telegram-frame";
 import { NAME_KINDS } from "@/components/telegram-ui";
@@ -14,7 +18,8 @@ import { cn } from "@/lib/utils";
 // Correcting the names labelled by hand in a chat's messages, as admins do: a selection of a message's text is
 // labelled a person, an organization or a place from the toolbar that comes up under it (or with 1, 2, 3), and a name
 // clicked gets another kind, or is removed (Delete). Each change is saved at once, and shows before it's saved; Ctrl+Z
-// takes the last ones back, one at a time.
+// takes the last ones back, one at a time. A message whose names are right is marked checked, so that what's left to
+// check shows in the chat list, and where to go on from.
 
 type Kind = TelegramName["kind"];
 type Query = TelegramChannelMessagesData["query"];
@@ -60,6 +65,7 @@ export function useLabelEditing({
   const { toast } = useTelegram();
   const queryClient = useQueryClient();
   const save = useMutation(labelMessageMutation());
+  const mark = useMutation(checkMessageMutation());
   const [picked, setPicked] = useState<Picked | null>(null);
   const toolbar = useRef<HTMLDivElement>(null);
   const undo = useRef<{ message: number; names: TelegramName[] }[]>([]);
@@ -71,17 +77,39 @@ export function useLabelEditing({
       ?.pages.flatMap((page) => page.messages)
       .find((m) => m.id === messageId);
 
-  function show(messageId: number, names: TelegramName[]) {
+  function change(messageId: number, changed: Partial<TelegramMessage>) {
     queryClient.setQueryData<InfiniteData<TelegramMessages>>(key, (data) =>
       data
         ? {
             ...data,
             pages: data.pages.map((page) => ({
               ...page,
-              messages: page.messages.map((m) => (m.id === messageId ? { ...m, names } : m)),
+              messages: page.messages.map((m) => (m.id === messageId ? { ...m, ...changed } : m)),
             })),
           }
         : data,
+    );
+  }
+  const show = (messageId: number, names: TelegramName[]) => change(messageId, { names });
+
+  // Marks a message checked, or not any more: at once, then saved; the chat list's counts and the progress are read
+  // again
+  function check(m: TelegramMessage) {
+    const before = m.checked_at ?? null;
+    change(m.id, { checked_at: before ? null : new Date().toISOString() });
+    mark.mutate(
+      { path: { channel_id: id, message_id: m.id }, body: { checked: !before } },
+      {
+        onSuccess: (saved) => {
+          change(m.id, { checked_at: saved.checked_at });
+          void queryClient.invalidateQueries({ queryKey: [{ _id: "telegramChannels" }] });
+          void queryClient.invalidateQueries({ queryKey: [{ _id: "labelledProgress" }] });
+        },
+        onError: () => {
+          change(m.id, { checked_at: before });
+          toast(t("notSaved"));
+        },
+      },
     );
   }
 
@@ -235,5 +263,5 @@ export function useLabelEditing({
       )}
     </div>
   );
-  return { pick: on ? pick : undefined, toolbar: bar };
+  return { pick: on ? pick : undefined, check: on ? check : undefined, toolbar: bar };
 }

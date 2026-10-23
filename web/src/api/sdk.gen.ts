@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddOrganizationData, AddOrganizationErrors, AddOrganizationResponses, AddPersonData, AddPersonErrors, AddPersonResponses, AddProjectData, AddProjectErrors, AddProjectResponses, ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangeOrganizationData, ChangeOrganizationErrors, ChangeOrganizationResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, ChangePersonData, ChangePersonErrors, ChangePersonResponses, ChangeProjectData, ChangeProjectErrors, ChangeProjectResponses, HealthData, HealthErrors, HealthResponses, LabelMessageData, LabelMessageErrors, LabelMessageResponses, MeData, MeErrors, MeResponses, OrganizationDetailsData, OrganizationDetailsErrors, OrganizationDetailsResponses, OrganizationsData, OrganizationsErrors, OrganizationsResponses, PreviewProjectData, PreviewProjectErrors, PreviewProjectResponses, ProjectDetailsData, ProjectDetailsErrors, ProjectDetailsResponses, ProjectsData, ProjectsErrors, ProjectsResponses, ReadyData, ReadyErrors, ReadyResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelPhotoData, TelegramChannelPhotoErrors, TelegramChannelPhotoResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
+import type { AddOrganizationData, AddOrganizationErrors, AddOrganizationResponses, AddPersonData, AddPersonErrors, AddPersonResponses, AddProjectData, AddProjectErrors, AddProjectResponses, ChangeLocaleData, ChangeLocaleErrors, ChangeLocaleResponses, ChangeOrganizationData, ChangeOrganizationErrors, ChangeOrganizationResponses, ChangePasswordData, ChangePasswordErrors, ChangePasswordResponses, ChangePersonData, ChangePersonErrors, ChangePersonResponses, ChangeProjectData, ChangeProjectErrors, ChangeProjectResponses, CheckMessageData, CheckMessageErrors, CheckMessageResponses, HealthData, HealthErrors, HealthResponses, LabelledProgressData, LabelledProgressErrors, LabelledProgressResponses, LabelMessageData, LabelMessageErrors, LabelMessageResponses, MeData, MeErrors, MeResponses, OrganizationDetailsData, OrganizationDetailsErrors, OrganizationDetailsResponses, OrganizationsData, OrganizationsErrors, OrganizationsResponses, PreviewProjectData, PreviewProjectErrors, PreviewProjectResponses, ProjectDetailsData, ProjectDetailsErrors, ProjectDetailsResponses, ProjectsData, ProjectsErrors, ProjectsResponses, ReadyData, ReadyErrors, ReadyResponses, ResetPasswordData, ResetPasswordErrors, ResetPasswordResponses, RunDetailsData, RunDetailsErrors, RunDetailsResponses, RunsData, RunsErrors, RunsResponses, SignInData, SignInErrors, SignInResponses, SignOutData, SignOutErrors, SignOutResponses, StatusData, StatusErrors, StatusResponses, TelegramChannelData, TelegramChannelErrors, TelegramChannelMessagesData, TelegramChannelMessagesErrors, TelegramChannelMessagesResponses, TelegramChannelPhotoData, TelegramChannelPhotoErrors, TelegramChannelPhotoResponses, TelegramChannelResponses, TelegramChannelsData, TelegramChannelsErrors, TelegramChannelsResponses, YoutubeChannelData, YoutubeChannelErrors, YoutubeChannelResponses, YoutubeChannelsData, YoutubeChannelsErrors, YoutubeChannelsResponses, YoutubeChannelVideosData, YoutubeChannelVideosErrors, YoutubeChannelVideosResponses, YoutubeVideoCommentsData, YoutubeVideoCommentsErrors, YoutubeVideoCommentsResponses, YoutubeVideoData, YoutubeVideoErrors, YoutubeVideoResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -177,6 +177,29 @@ export const labelMessage = <ThrowOnError extends boolean = false>(options: Opti
         ...options.headers
     }
 });
+
+/**
+ * Check Message
+ *
+ * Marks a message's names labelled by hand checked (or not any more), so that what's left to check shows.
+ */
+export const checkMessage = <ThrowOnError extends boolean = false>(options: Options<CheckMessageData, ThrowOnError>): RequestResult<CheckMessageResponses, CheckMessageErrors, ThrowOnError> => (options.client ?? client).put<CheckMessageResponses, CheckMessageErrors, ThrowOnError>({
+    url: '/api/telegram/channels/{channel_id}/messages/{message_id}/checked',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Labelled Progress
+ *
+ * How far the checking of the names labelled by hand has got: the messages with them, how many are checked, and
+ * the next channel with a message still to check (after the one given, in the labelled list's order, round to the
+ * first).
+ */
+export const labelledProgress = <ThrowOnError extends boolean = false>(options?: Options<LabelledProgressData, ThrowOnError>): RequestResult<LabelledProgressResponses, LabelledProgressErrors, ThrowOnError> => (options?.client ?? client).get<LabelledProgressResponses, LabelledProgressErrors, ThrowOnError>({ url: '/api/telegram/labelled', ...options });
 
 /**
  * Runs

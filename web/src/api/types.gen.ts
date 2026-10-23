@@ -16,6 +16,16 @@ export type AddedPerson = {
 };
 
 /**
+ * CheckChange
+ */
+export type CheckChange = {
+    /**
+     * Checked
+     */
+    checked: boolean;
+};
+
+/**
  * Error
  */
 export type Error = {
@@ -631,6 +641,10 @@ export type TelegramChannel = {
      * Photo Url
      */
     photo_url: string | null;
+    /**
+     * Unchecked
+     */
+    unchecked?: number | null;
 };
 
 /**
@@ -666,6 +680,10 @@ export type TelegramChannelDetails = {
      */
     photo_url: string | null;
     /**
+     * Unchecked
+     */
+    unchecked?: number | null;
+    /**
      * Description
      */
     description: string | null;
@@ -691,6 +709,16 @@ export type TelegramChannels = {
      * Page Size
      */
     page_size: number;
+};
+
+/**
+ * TelegramCheck
+ */
+export type TelegramCheck = {
+    /**
+     * Checked At
+     */
+    checked_at: string | null;
 };
 
 /**
@@ -727,6 +755,10 @@ export type TelegramMessage = {
      * Names
      */
     names: Array<TelegramName> | null;
+    /**
+     * Checked At
+     */
+    checked_at?: string | null;
 };
 
 /**
@@ -771,6 +803,24 @@ export type TelegramName = {
      * Labelled As
      */
     labelled_as?: 'person' | 'organization' | 'location' | null;
+};
+
+/**
+ * TelegramProgress
+ */
+export type TelegramProgress = {
+    /**
+     * Messages
+     */
+    messages: number;
+    /**
+     * Checked
+     */
+    checked: number;
+    /**
+     * Next
+     */
+    next: number | null;
 };
 
 /**
@@ -1962,6 +2012,116 @@ export type LabelMessageResponses = {
 };
 
 export type LabelMessageResponse = LabelMessageResponses[keyof LabelMessageResponses];
+
+export type CheckMessageData = {
+    body: CheckChange;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: number;
+        /**
+         * Message Id
+         */
+        message_id: number;
+    };
+    query?: never;
+    url: '/api/telegram/channels/{channel_id}/messages/{message_id}/checked';
+};
+
+export type CheckMessageErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: the message isn't labelled by hand
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a message's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type CheckMessageError = CheckMessageErrors[keyof CheckMessageErrors];
+
+export type CheckMessageResponses = {
+    /**
+     * Successful Response
+     */
+    200: TelegramCheck;
+};
+
+export type CheckMessageResponse = CheckMessageResponses[keyof CheckMessageResponses];
+
+export type LabelledProgressData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * After
+         *
+         * The channel open: the next one is after it, else from the first
+         */
+        after?: number | null;
+    };
+    url: '/api/telegram/labelled';
+};
+
+export type LabelledProgressErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: that isn't a channel's ID
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type LabelledProgressError = LabelledProgressErrors[keyof LabelledProgressErrors];
+
+export type LabelledProgressResponses = {
+    /**
+     * Successful Response
+     */
+    200: TelegramProgress;
+};
+
+export type LabelledProgressResponse = LabelledProgressResponses[keyof LabelledProgressResponses];
 
 export type RunsData = {
     body?: never;

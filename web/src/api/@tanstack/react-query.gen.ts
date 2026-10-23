@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, health, labelMessage, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, HealthData, HealthError, HealthResponse, LabelMessageData, LabelMessageError, LabelMessageResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, checkMessage, health, labelledProgress, labelMessage, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, CheckMessageData, CheckMessageError, CheckMessageResponse, HealthData, HealthError, HealthResponse, LabelledProgressData, LabelledProgressError, LabelledProgressResponse, LabelMessageData, LabelMessageError, LabelMessageResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -573,6 +573,81 @@ export const labelMessageMutation = (options?: Partial<Options<LabelMessageData>
         }
     };
     return mutationOptions;
+};
+
+/**
+ * Check Message
+ *
+ * Marks a message's names labelled by hand checked (or not any more), so that what's left to check shows.
+ */
+export const checkMessageMutation = (options?: Partial<Options<CheckMessageData>>): UseMutationOptions<CheckMessageResponse, CheckMessageError, Options<CheckMessageData>> => {
+    const mutationOptions: UseMutationOptions<CheckMessageResponse, CheckMessageError, Options<CheckMessageData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await checkMessage({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const labelledProgressQueryKey = (options?: Options<LabelledProgressData>) => createQueryKey('labelledProgress', options);
+
+/**
+ * Labelled Progress
+ *
+ * How far the checking of the names labelled by hand has got: the messages with them, how many are checked, and
+ * the next channel with a message still to check (after the one given, in the labelled list's order, round to the
+ * first).
+ */
+export const labelledProgressOptions = (options?: Options<LabelledProgressData>) => queryOptions<LabelledProgressResponse, LabelledProgressError, LabelledProgressResponse, ReturnType<typeof labelledProgressQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await labelledProgress({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: labelledProgressQueryKey(options)
+});
+
+export const labelledProgressInfiniteQueryKey = (options?: Options<LabelledProgressData>): QueryKey<Options<LabelledProgressData>> => createQueryKey('labelledProgress', options, true);
+
+/**
+ * Labelled Progress
+ *
+ * How far the checking of the names labelled by hand has got: the messages with them, how many are checked, and
+ * the next channel with a message still to check (after the one given, in the labelled list's order, round to the
+ * first).
+ */
+export const labelledProgressInfiniteOptions = (options?: Options<LabelledProgressData>) => {
+    const opts = infiniteQueryOptions<LabelledProgressResponse, LabelledProgressError, InfiniteData<LabelledProgressResponse>, QueryKey<Options<LabelledProgressData>>, number | null | Pick<QueryKey<Options<LabelledProgressData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<LabelledProgressData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    after: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await labelledProgress({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: labelledProgressInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
 };
 
 export const runsQueryKey = (options?: Options<RunsData>) => createQueryKey('runs', options);

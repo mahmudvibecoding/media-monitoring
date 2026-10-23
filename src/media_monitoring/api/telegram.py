@@ -33,6 +33,8 @@ class TelegramChannel(BaseModel):
     last_message_at: datetime | None  # when its latest message came out
     last_message: str | None  # its latest saved message's text, the first 200 characters, for a chat list's line
     photo_url: str | None  # its photo, 160 × 160 (see PHOTO); None without one
+    # In the labelled list: how many of its messages with names labelled by hand aren't marked checked yet
+    unchecked: int | None = None
 
 
 class TelegramChannels(BaseModel):
@@ -74,6 +76,7 @@ class TelegramMessage(BaseModel):
     # The names labelled in it, by hand or by a model (see the messages' source), in order; None for a message that
     # wasn't labelled
     names: list[TelegramName] | None
+    checked_at: datetime | None = None  # when an admin marked its names labelled by hand checked
 
 
 class TelegramMessages(BaseModel):
@@ -101,7 +104,7 @@ LAST = """
 CHANNELS = sql.SQL(
     f"""
     SELECT c.channel_id AS id, c.username, c.title, c.subscriber_count AS subscribers, c.last_message_at,
-        last.last_message, {PHOTO} AS photo_url
+        last.last_message, {PHOTO} AS photo_url, {{unchecked}} AS unchecked
     FROM (SELECT channel_id FROM telegram_channels {{where}} ORDER BY {{order}} LIMIT %(limit)s OFFSET %(offset)s) AS page
     JOIN telegram_channels AS c USING (channel_id)
     {SAVED_PHOTO}
@@ -120,6 +123,9 @@ SEARCHED = sql.SQL("WHERE has_messages AND search_text LIKE app.searchable(%(pat
 LABELLED = sql.SQL(
     " AND channel_id IN (SELECT channel_id FROM app.telegram_message_labels WHERE source = 'hand' AND names <> '[]')"
 )
+# In the labelled list, each channel's messages with names labelled by hand that aren't checked yet, by the labels' key
+UNCHECKED = sql.SQL("""(SELECT count(*) FROM app.telegram_message_labels AS l
+    WHERE l.channel_id = c.channel_id AND l.source = 'hand' AND l.names <> '[]' AND l.checked_at IS NULL)""")
 # Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
 ORDERS = {
     "subscribers": sql.SQL("subscriber_count DESC NULLS LAST, channel_id"),
@@ -160,7 +166,8 @@ async def telegram_channels(
     async def channels() -> list[TelegramChannel]:
         async with request.state.pool.connection() as conn:
             cursor = conn.cursor(row_factory=class_row(TelegramChannel))
-            query = CHANNELS.format(where=where, order=ORDERS[sort])
+            unchecked = UNCHECKED if labelled else sql.SQL("NULL")
+            query = CHANNELS.format(where=where, order=ORDERS[sort], unchecked=unchecked)
             return await (await cursor.execute(query, values, prepare=False)).fetchall()
 
     async def total() -> int:
@@ -251,7 +258,7 @@ async def telegram_channel_photo(request: Request, _: Admin, channel_id: Annotat
 # with the labeller's names and the hand's, by the labels' key. A search reads all the channel's messages: 50 ms for
 # the one with the most (7,000).
 MESSAGES = sql.SQL("""
-    SELECT m.message_id AS id, m.published_at, m.text, l.names, hand.names AS hand
+    SELECT m.message_id AS id, m.published_at, m.text, l.names, hand.names AS hand, hand.checked_at
     FROM telegram_messages AS m
     LEFT JOIN app.telegram_message_labels AS l
         ON l.channel_id = m.channel_id AND l.message_id = m.message_id AND l.source = %(source)s
@@ -425,3 +432,99 @@ async def label_message(
         extra={"fields": {"channel": channel_id, "message": message_id, "names": len(names), "user": user.id}},
     )
     return [TelegramName(**name) for name in in_utf16(text, names)]
+
+
+class CheckChange(BaseModel):
+    checked: bool
+
+
+class TelegramCheck(BaseModel):
+    checked_at: datetime | None  # when it was marked checked; None when it isn't
+
+
+CHECK = """
+    UPDATE app.telegram_message_labels SET checked_at = CASE WHEN %(checked)s THEN now() END
+    WHERE channel_id = %(channel)s AND message_id = %(message)s AND source = 'hand'
+    RETURNING checked_at
+"""
+
+
+@router.put(
+    "/api/telegram/channels/{channel_id}/messages/{message_id}/checked",
+    responses=failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins do this; must_change_password: the temporary password isn't changed yet",
+            404: "not_found: the message isn't labelled by hand",
+            422: "invalid_request: that isn't a message's ID",
+        }
+    ),
+)
+async def check_message(
+    request: Request,
+    user: Admin,
+    channel_id: Annotated[int, Path(ge=1)],
+    message_id: Annotated[int, Path(ge=1)],
+    body: CheckChange,
+) -> TelegramCheck:
+    """Marks a message's names labelled by hand checked (or not any more), so that what's left to check shows."""
+    async with request.state.pool.connection() as conn:
+        values = {"checked": body.checked, "channel": channel_id, "message": message_id}
+        row = await (await conn.execute(CHECK, values)).fetchone()
+    if row is None:
+        raise Failure(404, "not_found", "The message isn't labelled by hand")
+    log.info(
+        "message checked",
+        extra={"fields": {"channel": channel_id, "message": message_id, "checked": body.checked, "user": user.id}},
+    )
+    return TelegramCheck(checked_at=row[0])
+
+
+class TelegramProgress(BaseModel):
+    messages: int  # the messages with names labelled by hand
+    checked: int  # of them, those marked checked
+    next: int | None  # the next channel with a message to check, in the labelled list's order; None when all are
+
+
+# Each channel with names labelled by hand, in the labelled list's order (the biggest first), with how many of its
+# messages have them and how many of those are checked: some 500 channels
+PROGRESS = """
+    SELECT l.channel_id, count(*) AS messages, count(l.checked_at) AS checked
+    FROM app.telegram_message_labels AS l JOIN telegram_channels AS c USING (channel_id)
+    WHERE l.source = 'hand' AND l.names <> '[]'
+    GROUP BY l.channel_id, c.subscriber_count
+    ORDER BY c.subscriber_count DESC NULLS LAST, l.channel_id
+"""
+
+
+@router.get(
+    "/api/telegram/labelled",
+    responses=failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            422: "invalid_request: that isn't a channel's ID",
+        }
+    ),
+)
+async def labelled_progress(
+    request: Request,
+    _: Admin,
+    after: Annotated[
+        int | None, Query(ge=1, description="The channel open: the next one is after it, else from the first")
+    ] = None,
+) -> TelegramProgress:
+    """How far the checking of the names labelled by hand has got: the messages with them, how many are checked, and
+    the next channel with a message still to check (after the one given, in the labelled list's order, round to the
+    first)."""
+    async with request.state.pool.connection() as conn:
+        rows = await (await conn.execute(PROGRESS)).fetchall()
+    left = {channel for channel, messages, checked in rows if checked < messages}
+    ids = [channel for channel, _, _ in rows]
+    start = ids.index(after) + 1 if after in ids else 0
+    following = [channel for channel in ids[start:] + ids[:start] if channel in left]
+    return TelegramProgress(
+        messages=sum(row[1] for row in rows),
+        checked=sum(row[2] for row in rows),
+        next=next((channel for channel in following if channel != after), None),
+    )

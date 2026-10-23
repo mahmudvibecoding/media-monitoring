@@ -4,6 +4,8 @@ import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-qu
 import {
   ArrowDownIcon,
   ArrowLeftIcon,
+  CheckCheckIcon,
+  CheckIcon,
   ClockIcon,
   InfoIcon,
   LinkIcon,
@@ -14,7 +16,11 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { Fragment, type MouseEvent, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
-import { telegramChannelMessagesInfiniteOptions, telegramChannelOptions } from "@/api/@tanstack/react-query.gen";
+import {
+  labelledProgressOptions,
+  telegramChannelMessagesInfiniteOptions,
+  telegramChannelOptions,
+} from "@/api/@tanstack/react-query.gen";
 import type { TelegramChannelDetails, TelegramMessage, TelegramName } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { PageLink, PageLoadingLine, useGo } from "@/components/page-link";
@@ -344,6 +350,7 @@ function Messages({
         found={search}
         onHashtag={onHashtag}
         onPick={editing.pick}
+        onCheck={editing.check}
         raw={!!labelled}
       />
     ));
@@ -364,7 +371,7 @@ function Messages({
           {content}
           <div ref={marker} />
           {isFetchingNextPage && <BubblesGhost rows={2} />}
-          {labelled && messages.length > 0 && <Legend id={id} labelled={labelled} />}
+          {labelled && messages.length > 0 && <Legend id={id} labelled={labelled} messages={messages} />}
         </div>
       </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 flex justify-end px-4 max-[600px]:px-2">
@@ -394,6 +401,7 @@ function Day({
   found,
   onHashtag,
   onPick,
+  onCheck,
   raw,
 }: {
   day: ChatDay;
@@ -401,6 +409,7 @@ function Day({
   found: string;
   onHashtag: (tag: string) => void;
   onPick?: Pick;
+  onCheck?: (message: TelegramMessage) => void;
   raw: boolean;
 }) {
   const times = day.messages.map((message) => Date.parse(message.published_at));
@@ -420,6 +429,7 @@ function Day({
           found={found}
           onHashtag={onHashtag}
           onPick={onPick}
+          onCheck={onCheck}
           raw={raw}
           first={index === 0 || times[index]! - times[index - 1]! > GROUP_WITHIN}
           last={index === day.messages.length - 1 || times[index + 1]! - times[index]! > GROUP_WITHIN}
@@ -431,9 +441,14 @@ function Day({
 
 // Above the labelled messages, a card as Telegram's service messages are: whose names are marked (by hand, or a
 // model's, compared with them), which the chat list's labelled folder keeps to as other chats open; what the marks are;
+// with the names labelled by hand, how many of its messages are checked, of all of them, and the next channel to check;
 // and the way to all the chat's messages
-function Legend({ id, labelled }: { id: number; labelled: Labeller }) {
+function Legend({ id, labelled, messages }: { id: number; labelled: Labeller; messages: TelegramMessage[] }) {
   const t = useTranslations("telegramChannel");
+  const locale = useLocale();
+  const progress = useQuery({ ...labelledProgressOptions({ query: { after: id } }), enabled: labelled === "hand" });
+  const named = messages.filter((m) => m.names && m.names.length > 0);
+  const checked = named.filter((m) => m.checked_at).length;
   return (
     <div className="mt-2 mb-1 flex justify-center">
       <div className="max-w-[min(29rem,100%)] space-y-1 rounded-[15px] bg-white px-3 py-1.5 text-center text-sm leading-6 shadow-tg-bubble">
@@ -465,7 +480,33 @@ function Legend({ id, labelled }: { id: number; labelled: Labeller }) {
           ))}
         </p>
         {labelled === "hand" ? (
-          <p className="text-tg-muted">{t("editHint")}</p>
+          <>
+            <p className="text-tg-muted">{t("editHint")}</p>
+            <p>
+              {t("checkedHere", { checked, total: named.length })}
+              {progress.data && (
+                <>
+                  {" · "}
+                  {t("checkedAll", {
+                    checked: formatCount(progress.data.checked, locale),
+                    total: formatCount(progress.data.messages, locale),
+                  })}
+                </>
+              )}
+              {progress.data?.next && (
+                <>
+                  {" · "}
+                  <PageLink
+                    line="telegram"
+                    href={chatPath(progress.data.next, "hand")}
+                    className="text-tg-blue hover:underline"
+                  >
+                    {t("nextChannel")}
+                  </PageLink>
+                </>
+              )}
+            </p>
+          </>
         ) : (
           <p>
             <span className={MISTAKE}>{t("mistake")}</span>{" "}
@@ -495,14 +536,16 @@ function Pill({ children }: { children: ReactNode }) {
 // touch screen), the round button at its right opens the post on Telegram, where Telegram's forwards it. A labelled
 // message has its names marked (by hand, or a model's), and under its text, the names a model missed, those that
 // couldn't be marked in it (written otherwise, or inside another name), or that it has none. With onPick, a selection
-// of its text, made whole words, or a click on a name, is picked to be labelled. Raw, its text is as name finders read
-// it (see TelegramText).
+// of its text, made whole words, or a click on a name, is picked to be labelled; with onCheck, the round button with ✓
+// at its right marks it checked, which its time then shows with ✓✓, as Telegram shows a message read. Raw, its text is
+// as name finders read it (see TelegramText).
 function Bubble({
   message,
   username,
   found,
   onHashtag,
   onPick,
+  onCheck,
   raw,
   first,
   last,
@@ -512,6 +555,7 @@ function Bubble({
   found: string;
   onHashtag: (tag: string) => void;
   onPick?: Pick;
+  onCheck?: (message: TelegramMessage) => void;
   raw: boolean;
   first: boolean;
   last: boolean;
@@ -573,10 +617,28 @@ function Bubble({
             className="relative top-1.5 float-right -mr-1 ml-2 h-[18px] px-1 text-xs leading-[18px] text-tg-meta"
           >
             {formatClock(message.published_at)}
+            {onCheck && message.checked_at && (
+              <CheckCheckIcon className="ml-0.5 inline size-4 align-[-3px] text-tg-checked" aria-label={t("checked")} />
+            )}
           </time>
         </p>
         {last && <Tail />}
       </div>
+      {onCheck && (
+        <button
+          type="button"
+          onClick={() => onCheck(message)}
+          aria-pressed={!!message.checked_at}
+          aria-label={message.checked_at ? t("uncheck") : t("check")}
+          title={message.checked_at ? t("uncheck") : t("check")}
+          className={cn(
+            "ml-3 flex size-9 shrink-0 items-center justify-center self-end rounded-full shadow-tg-bubble transition-colors",
+            message.checked_at ? "bg-tg-checked text-white" : "bg-white text-tg-muted hover:text-tg-checked",
+          )}
+        >
+          <CheckIcon className="size-5" strokeWidth={2.5} />
+        </button>
+      )}
       <a
         href={messageOnTelegram(username, message.id)}
         target="_blank"
