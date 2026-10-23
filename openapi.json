@@ -1359,7 +1359,7 @@
     "/api/telegram/channels/{channel_id}/messages": {
       "get": {
         "summary": "Telegram Channel Messages",
-        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with\nthe names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose\ntext has it in them, whatever the case of its letters, and apostrophes aside; labelled, only those with a name\nlabelled by hand. How many there are is in the channel's details, so that a page isn't counted again.",
+        "description": "A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with\nthe names labelled in it by hand, or another labeller's, compared with the hand's, if it was labelled; with a\nsearch, only those whose text has it in them, whatever the case of its letters, and apostrophes aside; labelled,\nonly those with a name labelled by hand. How many there are is in the channel's details, so that a page isn't\ncounted again.",
         "operationId": "telegram_channel_messages",
         "parameters": [
           {
@@ -1391,11 +1391,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Only the messages with a name labelled by hand",
+              "description": "Only the messages with a name labelled by hand, which the source labelled too",
               "default": false,
               "title": "Labelled"
             },
-            "description": "Only the messages with a name labelled by hand"
+            "description": "Only the messages with a name labelled by hand, which the source labelled too"
           },
           {
             "name": "source",
@@ -1404,17 +1404,18 @@
             "schema": {
               "enum": [
                 "hand",
+                "claude",
                 "gemma",
                 "glot500",
                 "xlmv",
                 "minilm"
               ],
               "type": "string",
-              "description": "Whose names come with the messages: labelled by hand, or found by a model (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384",
+              "description": "Whose names come with the messages: labelled by hand (as admins correct them), Claude's as first made, or a model's (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384",
               "default": "hand",
               "title": "Source"
             },
-            "description": "Whose names come with the messages: labelled by hand, or found by a model (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384"
+            "description": "Whose names come with the messages: labelled by hand (as admins correct them), Claude's as first made, or a model's (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384"
           },
           {
             "name": "page",
@@ -1474,6 +1475,131 @@
           },
           "422": {
             "description": "invalid_request: that isn't a channel's ID, or a parameter is out of its range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telegram/channels/{channel_id}/messages/{message_id}/names": {
+      "put": {
+        "summary": "Label Message",
+        "description": "Sets the names labelled by hand in a message, all of them at once: each its kind and where it is in the text,\nas the messages give them (in UTF-16 units). A message not labelled yet becomes one of the labelled. Gives the names\nback as saved, in order.",
+        "operationId": "label_message",
+        "parameters": [
+          {
+            "name": "channel_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Channel Id"
+            }
+          },
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Message Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NamesChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TelegramName"
+                  },
+                  "title": "Response Label Message"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins do this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "not_found: no such message is saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: that isn't a message's ID; invalid_names: a name is out of the text, splits a character, has no letters, or overlaps another",
             "content": {
               "application/json": {
                 "schema": {
@@ -3299,6 +3425,53 @@
         ],
         "title": "Mention"
       },
+      "NameSpan": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "person",
+              "organization",
+              "location"
+            ],
+            "title": "Kind"
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "start",
+          "end"
+        ],
+        "title": "NameSpan"
+      },
+      "NamesChange": {
+        "properties": {
+          "names": {
+            "items": {
+              "$ref": "#/components/schemas/NameSpan"
+            },
+            "type": "array",
+            "maxItems": 300,
+            "title": "Names"
+          }
+        },
+        "type": "object",
+        "required": [
+          "names"
+        ],
+        "title": "NamesChange"
+      },
       "NewOrganization": {
         "properties": {
           "name": {
@@ -4393,8 +4566,8 @@
                 "type": "string",
                 "enum": [
                   "right",
-                  "kind",
                   "part",
+                  "kind",
                   "extra",
                   "missed"
                 ]

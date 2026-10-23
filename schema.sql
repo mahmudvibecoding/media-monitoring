@@ -122,25 +122,6 @@ CREATE TABLE IF NOT EXISTS telegram_messages (
     PRIMARY KEY (channel_id, message_id)    -- a channel's messages sit together, so they load quickly
 );
 
--- Names labelled in messages, a row a message and labeller: by hand ('hand'), in the 220 posts that name finders are
--- scored on, and the names four of them found in those posts: 'gemma' (Gemma 4 26B, told to copy names as written),
--- and three trained on Gemma's names: 'glot500' (Glot500 base), 'xlmv' (XLM-V base) and 'minilm'
--- (Multilingual-MiniLM-L12-H384). names is a list of {"name", "kind" (person,
--- organization or location), "start", "end"}: where it is in the text, in characters (end not included), or null for
--- a name not written so in it; an empty list for a message labelled as having none. A model's names also say how each
--- compares with the hand's, as the scoring matches them ("verdict": right, kind (another kind: "labelled_as" is the
--- hand's), part (a part of a hand's name, or holding one: neither right nor wrong) or extra), and the hand's names
--- that it missed are among them, where the hand placed them ("verdict": missed). The website lists the channels with
--- messages labelled by hand, and marks the names in them.
-CREATE TABLE IF NOT EXISTS telegram_message_labels (
-    channel_id  bigint NOT NULL,
-    message_id  integer NOT NULL,
-    source      text NOT NULL,
-    names       jsonb NOT NULL,
-    PRIMARY KEY (channel_id, message_id, source),
-    FOREIGN KEY (channel_id, message_id) REFERENCES telegram_messages ON DELETE CASCADE
-);
-
 -- The letters in a text, its links left out: how much a channel has written, which "uv run telegram history" reads
 -- its history back up to
 CREATE OR REPLACE FUNCTION letters(value text) RETURNS integer LANGUAGE sql IMMUTABLE PARALLEL SAFE

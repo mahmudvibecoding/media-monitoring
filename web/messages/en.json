@@ -143,6 +143,7 @@
     "namesBy": "Names:",
     "labellers": {
       "hand": "by hand",
+      "claude": "Claude",
       "gemma": "Gemma",
       "glot500": "Glot500",
       "xlmv": "XLM-V",
@@ -154,10 +155,14 @@
     "verdicts": {
       "right": "as labelled by hand",
       "kind": "labelled by hand as: {kind}",
-      "part": "part of a name labelled by hand, or holding one: not counted",
+      "part": "the hand's name of this kind has other boundaries",
       "extra": "not labelled by hand",
       "missed": "missed"
-    }
+    },
+    "editHint": "Select text to label a name; click a name to change or remove it. Ctrl+Z takes it back.",
+    "remove": "Remove",
+    "notSaved": "The change wasn't saved. Try again.",
+    "labelAs": "Label as"
   },
   "activity": {
     "title": "Activity",

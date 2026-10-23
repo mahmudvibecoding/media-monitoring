@@ -143,6 +143,7 @@
     "namesBy": "Nomlar:",
     "labellers": {
       "hand": "qoʻlda",
+      "claude": "Claude",
       "gemma": "Gemma",
       "glot500": "Glot500",
       "xlmv": "XLM-V",
@@ -154,10 +155,14 @@
     "verdicts": {
       "right": "qoʻlda belgilangandek",
       "kind": "qoʻlda belgilanganda: {kind}",
-      "part": "qoʻlda belgilangan nomning qismi yoki uni oʻz ichiga oladi: hisobga olinmaydi",
+      "part": "qoʻlda belgilangan nomning chegaralari boshqacha",
       "extra": "qoʻlda belgilanmagan",
       "missed": "topilmagan"
-    }
+    },
+    "editHint": "Nomni belgilash uchun matnni ajrating; oʻzgartirish yoki olib tashlash uchun nomni bosing. Ctrl+Z — bekor qilish.",
+    "remove": "Olib tashlash",
+    "notSaved": "Oʻzgarish saqlanmadi. Qayta urinib koʻring.",
+    "labelAs": "Belgilash"
   },
   "customers": {
     "title": "Foydalanuvchilar",

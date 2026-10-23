@@ -79,6 +79,23 @@ CREATE TABLE IF NOT EXISTS app.projects (
 -- One project per name in an organization, whatever the case of its letters
 CREATE UNIQUE INDEX IF NOT EXISTS projects_name ON app.projects (organization_id, lower(name));
 
+-- Names labelled in Telegram messages, a row a message and labeller: the posts name finders are scored on, labelled by
+-- hand ('hand': Claude's labels as admins correct them on the website; 'claude': Claude's as first made, to see what
+-- was corrected), and the names models found in them ('gemma', 'glot500', 'xlmv', 'minilm'). names is a list of
+-- {"name" (as written), "kind" (person, organization or location), "start", "end"}: where it is in the text, in
+-- characters (end not included), or null for a model's name not written so in it; an empty list for a message with
+-- none. A labeller's names are compared with the hand's as they're read (api/telegram.py). Before admins could correct
+-- them, the table was public.telegram_message_labels, which schema.sql made.
+ALTER TABLE IF EXISTS public.telegram_message_labels SET SCHEMA app;
+CREATE TABLE IF NOT EXISTS app.telegram_message_labels (
+    channel_id  bigint NOT NULL,
+    message_id  integer NOT NULL,
+    source      text NOT NULL,
+    names       jsonb NOT NULL,
+    PRIMARY KEY (channel_id, message_id, source),
+    FOREIGN KEY (channel_id, message_id) REFERENCES telegram_messages ON DELETE CASCADE
+);
+
 -- What the site's pages look the collected data up by, which the collectors don't: columns and indexes on schema.sql's
 -- tables
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;  -- indexes that find text by any part of it

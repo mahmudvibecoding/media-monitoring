@@ -12,7 +12,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { Fragment, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
+import { Fragment, type MouseEvent, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
 
 import { telegramChannelMessagesInfiniteOptions, telegramChannelOptions } from "@/api/@tanstack/react-query.gen";
 import type { TelegramChannelDetails, TelegramMessage, TelegramName } from "@/api/types.gen";
@@ -20,6 +20,7 @@ import { ApiError } from "@/components/api-error";
 import { PageLink, PageLoadingLine, useGo } from "@/components/page-link";
 import { useTelegram } from "@/components/telegram-frame";
 import { BubblesGhost, ChatGhost } from "@/components/telegram-ghosts";
+import { type Pick, snapName, useLabelEditing } from "@/components/telegram-labels";
 import {
   ChannelPhoto,
   InfoRow,
@@ -27,6 +28,7 @@ import {
   MISTAKE,
   NAME_KINDS,
   NameMark,
+  placeOf,
   Ripples,
   RoundButton,
   ShareIcon,
@@ -241,7 +243,8 @@ type ChatDay = { key: number; day: string; messages: TelegramMessage[] };
 // messages are under its date, oldest first, which stays at the top as they go by; as in Telegram, it fades once the
 // scrolling stops, and comes back with it. Messages that came out within 10 minutes of each other make a group, whose
 // bubbles join, the last with the tail. Scrolled up, the round button at the bottom right goes back down. Labelled,
-// only the labelled messages, under a card that says whose names are marked, and what the marks are.
+// only the labelled messages, under a card that says whose names are marked, and what the marks are; with the names
+// labelled by hand, admins correct them there (see telegram-labels.tsx).
 function Messages({
   id,
   username,
@@ -260,14 +263,16 @@ function Messages({
   const now = useNow();
   const scroller = useRef<HTMLDivElement>(null);
   const [down, setDown] = useState(false); // whether the button down to the newest shows
+  const query = messagesQuery(search, labelled);
   const { data, error, isFetching, isFetchingNextPage, hasNextPage, fetchNextPage, refetch, isPlaceholderData } =
     useInfiniteQuery({
-      ...telegramChannelMessagesInfiniteOptions({ path: { channel_id: id }, query: messagesQuery(search, labelled) }),
+      ...telegramChannelMessagesInfiniteOptions({ path: { channel_id: id }, query }),
       ...FIRST_PAGE,
       getNextPageParam: nextPage("messages"),
       placeholderData: search ? keepPreviousData : undefined,
     });
   const marker = useLoadMore({ more: !!hasNextPage, loading: isFetchingNextPage, load: fetchNextPage, root: scroller });
+  const editing = useLabelEditing({ id, query, column: scroller, on: labelled === "hand" });
 
   // Another search shows its messages from the newest
   useEffect(() => {
@@ -332,7 +337,15 @@ function Messages({
     );
   } else {
     content = days.map((day) => (
-      <Day key={day.key} day={day} username={username} found={search} onHashtag={onHashtag} />
+      <Day
+        key={day.key}
+        day={day}
+        username={username}
+        found={search}
+        onHashtag={onHashtag}
+        onPick={editing.pick}
+        raw={!!labelled}
+      />
     ));
   }
 
@@ -369,6 +382,7 @@ function Messages({
           <ArrowDownIcon className="size-7" strokeWidth={1.75} />
         </button>
       </div>
+      {editing.toolbar}
     </>
   );
 }
@@ -379,11 +393,15 @@ function Day({
   username,
   found,
   onHashtag,
+  onPick,
+  raw,
 }: {
   day: ChatDay;
   username: string;
   found: string;
   onHashtag: (tag: string) => void;
+  onPick?: Pick;
+  raw: boolean;
 }) {
   const times = day.messages.map((message) => Date.parse(message.published_at));
   return (
@@ -401,6 +419,8 @@ function Day({
           username={username}
           found={found}
           onHashtag={onHashtag}
+          onPick={onPick}
+          raw={raw}
           first={index === 0 || times[index]! - times[index - 1]! > GROUP_WITHIN}
           last={index === day.messages.length - 1 || times[index + 1]! - times[index]! > GROUP_WITHIN}
         />
@@ -444,7 +464,9 @@ function Legend({ id, labelled }: { id: number; labelled: Labeller }) {
             </Fragment>
           ))}
         </p>
-        {labelled !== "hand" && (
+        {labelled === "hand" ? (
+          <p className="text-tg-muted">{t("editHint")}</p>
+        ) : (
           <p>
             <span className={MISTAKE}>{t("mistake")}</span>{" "}
             <span className={cn(MISSED, "rounded-[3px] border-tg-muted px-1")}>{t("notFound")}</span>
@@ -472,12 +494,16 @@ function Pill({ children }: { children: ReactNode }) {
 // line when it fits there, below it when not, as in Telegram (a float after the text). Under the mouse (always, on a
 // touch screen), the round button at its right opens the post on Telegram, where Telegram's forwards it. A labelled
 // message has its names marked (by hand, or a model's), and under its text, the names a model missed, those that
-// couldn't be marked in it (written otherwise, or inside another name), or that it has none.
+// couldn't be marked in it (written otherwise, or inside another name), or that it has none. With onPick, a selection
+// of its text, made whole words, or a click on a name, is picked to be labelled. Raw, its text is as name finders read
+// it (see TelegramText).
 function Bubble({
   message,
   username,
   found,
   onHashtag,
+  onPick,
+  raw,
   first,
   last,
 }: {
@@ -485,11 +511,34 @@ function Bubble({
   username: string;
   found: string;
   onHashtag: (tag: string) => void;
+  onPick?: Pick;
+  raw: boolean;
   first: boolean;
   last: boolean;
 }) {
   const t = useTranslations("telegramChannel");
   const locale = useLocale();
+  const box = useRef<HTMLParagraphElement>(null);
+
+  function selected() {
+    const selection = window.getSelection();
+    if (!onPick || !box.current || !selection || selection.isCollapsed || !selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const from = placeOf(box.current, range.startContainer, range.startOffset);
+    const to = placeOf(box.current, range.endContainer, range.endOffset);
+    if (from === null || to === null) return;
+    const [start, end] = snapName(message.text, Math.min(from, to), Math.max(from, to));
+    if (start < end) onPick(message, start, end, null, range.getBoundingClientRect());
+  }
+
+  function clicked(event: MouseEvent<HTMLParagraphElement>) {
+    if (!onPick || !window.getSelection()?.isCollapsed) return;
+    const mark = (event.target as Element).closest<HTMLElement>("mark[data-name]");
+    const name = mark && message.names?.[Number(mark.dataset.name)];
+    if (!mark || !name || name.start === null || name.end === null) return;
+    event.preventDefault(); // a name in a link is picked, the link not followed
+    onPick(message, name.start, name.end, Number(mark.dataset.name), mark.getBoundingClientRect());
+  }
   return (
     <div className={cn("group/message relative flex", last ? "mb-2.5 max-[600px]:mb-[7px]" : "mb-1.5")}>
       <div
@@ -499,8 +548,24 @@ function Bubble({
           last ? "rounded-bl-none" : "rounded-bl-[6px]",
         )}
       >
-        <p className="text-(length:--tg-message) leading-[1.3125] break-words whitespace-pre-wrap">
-          <TelegramText text={message.text.trimEnd()} found={found} names={message.names} onHashtag={onHashtag} />
+        <p
+          ref={box}
+          onMouseUp={onPick && (() => setTimeout(selected))}
+          onKeyUp={onPick && ((event) => event.shiftKey && selected())}
+          onTouchEnd={onPick && (() => setTimeout(selected, 300))}
+          onClick={onPick && clicked}
+          className={cn(
+            "text-(length:--tg-message) leading-[1.3125] break-words whitespace-pre-wrap",
+            onPick && "[&_mark[data-name]]:cursor-pointer",
+          )}
+        >
+          <TelegramText
+            text={message.text.trimEnd()}
+            found={found}
+            names={message.names}
+            raw={raw}
+            onHashtag={onHashtag}
+          />
           {message.names && <NameNotes names={message.names} />}
           <time
             dateTime={message.published_at}

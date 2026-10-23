@@ -89,27 +89,40 @@ const LINKED = new RegExp(`${TEXT_LINK}|(${URL})|(${DOMAIN})|(${MENTION})|(${HAS
 
 const LINK = "text-tg-blue [overflow-wrap:anywhere] hover:underline";
 
-type Placed = TelegramName & { start: number; end: number };
+type Placed = TelegramName & { start: number; end: number; index: number };
 
-// A message's (or a description's) text with its links, the names labelled in it by hand marked by their kind, and
-// what a search found in it marked as Telegram marks it
+// A message's (or a description's) text with its links, the names labelled in it marked by their kind, and what a search
+// found in it marked as Telegram marks it. With names, each piece of the text says where it starts in it (data-at, in
+// UTF-16 units) and each name's mark which of them it is (data-name), so that what's selected or clicked in it can be
+// told (see placeOf). Raw, the text is shown as it's saved, and as name finders read it: without links, a link hidden
+// behind words with its address after them.
 export function TelegramText({
   text,
   found,
   names,
+  raw = false,
   onHashtag,
 }: {
   text: string;
   found?: string;
   names?: TelegramName[] | null;
+  raw?: boolean;
   onHashtag?: (tag: string) => void;
 }) {
   const placed = (names ?? [])
+    .map((name, index) => ({ ...name, index }))
     .filter((name): name is Placed => name.start !== null && name.end !== null)
     .sort((a, b) => a.start - b.start);
-  const mark = (piece: string, from: number) => (
-    <Marked key={from} text={piece} at={from} found={found} names={placed} />
-  );
+  const located = !!names;
+  const mark = (piece: string, from: number) =>
+    located ? (
+      <span key={from} data-at={from}>
+        <Marked text={piece} at={from} found={found} names={placed} />
+      </span>
+    ) : (
+      <Marked key={from} text={piece} at={from} found={found} names={placed} />
+    );
+  if (raw) return mark(text, 0);
   const parts: ReactNode[] = [];
   let at = 0;
   for (const match of text.matchAll(LINKED)) {
@@ -121,7 +134,7 @@ export function TelegramText({
         <a key={start} href={hidden} target="_blank" rel="noreferrer" className={LINK}>
           {mark(words, start)}
         </a>,
-        after,
+        located && after ? mark(after, start + words.length) : after,
       );
     } else if (url || domain) {
       parts.push(
@@ -160,7 +173,14 @@ function Marked({ text, at, found, names }: { text: string; at: number; found?: 
     const stop = Math.min(name.end, end);
     if (start > from) parts.push(<Found key={from} text={text.slice(from - at, start - at)} found={found} />);
     parts.push(
-      <NameMark key={start} kind={name.kind} name={name.name} verdict={name.verdict} labelledAs={name.labelled_as}>
+      <NameMark
+        key={start}
+        kind={name.kind}
+        name={name.name}
+        verdict={name.verdict}
+        labelledAs={name.labelled_as}
+        index={name.index}
+      >
         <Found text={text.slice(start - at, stop - at)} found={found} />
       </NameMark>,
     );
@@ -186,20 +206,22 @@ export const MISTAKE =
   "underline decoration-tg-wrong decoration-wavy decoration-1 underline-offset-[3px] [text-decoration-skip-ink:none]";
 export const MISSED = "border border-dashed [box-decoration-break:clone]";
 
-// A name labelled by hand, or by a model, marked by its kind (and a model's by how it compares with the hand's, see
-// TelegramName), which, with the name as labelled (by hand, its base form), shows under the mouse; without a name, the
-// mark alone
+// A name labelled by hand, or by another labeller, marked by its kind (and another's by how it compares with the
+// hand's, see TelegramName), which, with the name, shows under the mouse; without a name, the mark alone. In a text,
+// index is which of its names it is.
 export function NameMark({
   kind,
   name,
   verdict,
   labelledAs,
+  index,
   children,
 }: {
   kind: TelegramName["kind"];
   name?: string;
   verdict?: TelegramName["verdict"];
   labelledAs?: TelegramName["labelled_as"];
+  index?: number;
   children: ReactNode;
 }) {
   const t = useTranslations("telegramChannel");
@@ -210,10 +232,22 @@ export function NameMark({
   else if (verdict === "kind" || verdict === "extra") look = cn(FILLS[kind], MISTAKE);
   else look = cn(FILLS[kind], LINES[kind]);
   return (
-    <mark title={title} className={cn("rounded-[3px] bg-transparent text-inherit", look)}>
+    <mark title={title} data-name={index} className={cn("rounded-[3px] bg-transparent text-inherit", look)}>
       {children}
     </mark>
   );
+}
+
+// Where a point of a selection is in the text TelegramText shows, with names, in UTF-16 units: the piece it's in (data-at)
+// and how far into it; null outside the text (in a message's time, say)
+export function placeOf(box: HTMLElement, node: Node, offset: number): number | null {
+  const element = node instanceof Element ? node : node.parentElement;
+  const piece = element?.closest<HTMLElement>("[data-at]");
+  if (!piece || !box.contains(piece)) return null;
+  const range = document.createRange();
+  range.setStart(piece, 0);
+  range.setEnd(node, offset);
+  return Number(piece.dataset.at) + range.toString().length;
 }
 
 // A text with each place a search found in it (its letters' case aside) on Telegram's light blue

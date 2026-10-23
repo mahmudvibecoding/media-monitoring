@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, health, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, HealthData, HealthError, HealthResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, health, labelMessage, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, HealthData, HealthError, HealthResponse, LabelMessageData, LabelMessageError, LabelMessageResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -500,9 +500,10 @@ export const telegramChannelMessagesQueryKey = (options: Options<TelegramChannel
  * Telegram Channel Messages
  *
  * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
- * the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
- * text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only those with a name
- * labelled by hand. How many there are is in the channel's details, so that a page isn't counted again.
+ * the names labelled in it by hand, or another labeller's, compared with the hand's, if it was labelled; with a
+ * search, only those whose text has it in them, whatever the case of its letters, and apostrophes aside; labelled,
+ * only those with a name labelled by hand. How many there are is in the channel's details, so that a page isn't
+ * counted again.
  */
 export const telegramChannelMessagesOptions = (options: Options<TelegramChannelMessagesData>) => queryOptions<TelegramChannelMessagesResponse, TelegramChannelMessagesError, TelegramChannelMessagesResponse, ReturnType<typeof telegramChannelMessagesQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -523,9 +524,10 @@ export const telegramChannelMessagesInfiniteQueryKey = (options: Options<Telegra
  * Telegram Channel Messages
  *
  * A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
- * the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
- * text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only those with a name
- * labelled by hand. How many there are is in the channel's details, so that a page isn't counted again.
+ * the names labelled in it by hand, or another labeller's, compared with the hand's, if it was labelled; with a
+ * search, only those whose text has it in them, whatever the case of its letters, and apostrophes aside; labelled,
+ * only those with a name labelled by hand. How many there are is in the channel's details, so that a page isn't
+ * counted again.
  */
 export const telegramChannelMessagesInfiniteOptions = (options: Options<TelegramChannelMessagesData>) => {
     const opts = infiniteQueryOptions<TelegramChannelMessagesResponse, TelegramChannelMessagesError, InfiniteData<TelegramChannelMessagesResponse>, QueryKey<Options<TelegramChannelMessagesData>>, number | Pick<QueryKey<Options<TelegramChannelMessagesData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
@@ -550,6 +552,27 @@ export const telegramChannelMessagesInfiniteOptions = (options: Options<Telegram
         queryKey: telegramChannelMessagesInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
+};
+
+/**
+ * Label Message
+ *
+ * Sets the names labelled by hand in a message, all of them at once: each its kind and where it is in the text,
+ * as the messages give them (in UTF-16 units). A message not labelled yet becomes one of the labelled. Gives the names
+ * back as saved, in order.
+ */
+export const labelMessageMutation = (options?: Partial<Options<LabelMessageData>>): UseMutationOptions<LabelMessageResponse, LabelMessageError, Options<LabelMessageData>> => {
+    const mutationOptions: UseMutationOptions<LabelMessageResponse, LabelMessageError, Options<LabelMessageData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await labelMessage({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
 };
 
 export const runsQueryKey = (options?: Options<RunsData>) => createQueryKey('runs', options);

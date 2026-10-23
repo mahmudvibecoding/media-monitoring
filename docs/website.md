@@ -148,13 +148,15 @@ channel's details, with how many of its messages have been saved, and `/api/tele
 its messages, newest first, by the messages
 table's key: a few milliseconds, even for the channel with the most; with a search, those whose text has it in them
 (lowercase, apostrophes aside, as the lists' searches), which reads all the channel's messages: 50 ms for the one with
-the most (7,000). Each message comes with the names labelled in it by hand (`telegram_message_labels`, see
-docs/monitoring.md), if it was labelled: each name with its kind and where it is in the text, counted in UTF-16 units,
-as a browser counts a string's characters (an emoji counts twice), or none for a name that couldn't be placed in it;
-with `source`, the names a model found in it instead (`gemma`, `glot500`, `xlmv` or `minilm`), each with how it compares
-with the hand's (`verdict`), and the hand's names it missed. With `labelled`, both lists keep to the messages with a
-name labelled by hand (not those labelled as having none): the 103 channels with one, each found by its key (8 ms for a
-page, 2 ms to count them), and a channel's messages with one (under a millisecond).
+the most (7,000). Each message comes with the names labelled in it, if it was labelled (`app.telegram_message_labels`,
+see docs/names.md): those labelled by hand, as admins correct them, each with its kind and where it is in the text,
+counted in UTF-16 units, as a browser counts a string's characters (an emoji counts twice); with `source`, another
+labeller's instead (Claude's as first labelled, `claude`, or a model's: `gemma`, `glot500`, `xlmv`, `minilm`), each
+compared with the hand's as it's read (`verdict`), with the hand's names that none of its own overlaps, missed. With
+`labelled`, both lists keep to the messages with a name labelled by hand: the 530 channels with one, each found by
+its key (8 ms for a page, 2 ms to count them), and a channel's messages with one (under a millisecond). `PUT
+/api/telegram/channels/{id}/messages/{message_id}/names` sets a message's names labelled by hand, all of them at once,
+as the site saves each change.
 
 ### Runs
 
@@ -241,16 +243,19 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   search (its magnifier, or Ctrl+F) shows only the messages with what's searched in them, marked, and a hashtag searches
   for itself, as in Telegram; Esc closes the search, then the info, then the chat. A click on the channel's link in its
   info copies it, and a message's round button (under the mouse, or always on a touch screen) opens it on Telegram.
-- In a message labelled by hand, the names are marked by their kind, on a light shade of its color and underlined with
-  it: people violet, organizations orange, places green; under the mouse, a name shows its kind and its base form as
-  labelled (Тошкент where the text has Тошкентда). Under the text are the names that couldn't be marked in it (written
-  otherwise, or inside another name), or that it has none. A chat opened from the labelled folder (`?labelled` in its
-  address) shows only its messages with names labelled by hand, under a card that says what the colors are, with a link
-  to all its messages, and a switch between the names labelled by hand and those a model found (`?labelled=gemma`):
-  Gemma, Glot500, XLM-V or MiniLM, which the folder's other chats then open with. A model's names compare with the
-  hand's as the scoring matches them: a mistake (a name not labelled by hand, or of another kind) is underlined red and
-  wavy, as a misspelt word; a name it missed is framed, dashed, where it was labelled, and listed under the text; under
-  the mouse, each says which.
+- In a labelled message, the names are marked by their kind, on a light shade of its color and underlined with it:
+  people violet, organizations orange, places green; under the mouse, a name shows its kind. A chat opened from the
+  labelled folder (`?labelled` in its address) shows only its messages with names labelled by hand, as name finders read
+  them (the text as saved, without links: a link hidden behind words has its address after them), under a card that says
+  what the colors are, with a link to all its messages and a switch between the names labelled by hand and another
+  labeller's (`?labelled=gemma`): Claude's as first labelled, Gemma, Glot500, XLM-V or MiniLM, which the folder's other
+  chats then open with. With the names labelled by hand, admins correct them there: a selection of a message's text,
+  made whole words (a name takes its ending, Toshkentda), gets a kind from the toolbar that comes up under it (or 1, 2,
+  3) and takes the place of the names it overlaps; a click on a name changes its kind or removes it (Delete). Each
+  change shows at once and is saved at once (`src/components/telegram-labels.tsx`), and Ctrl+Z takes the last ones back.
+  Another labeller's names compare with the hand's: a mistake (a name not labelled by hand, or of another kind) is
+  underlined red and wavy, as a misspelt word; a name it missed is framed, dashed, where it was labelled, and listed
+  under the text, with those it gave that aren't written so in it; under the mouse, each says which.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. One the player can't
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,

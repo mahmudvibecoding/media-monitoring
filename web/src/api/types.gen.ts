@@ -139,6 +139,34 @@ export type Mention = {
 };
 
 /**
+ * NameSpan
+ */
+export type NameSpan = {
+    /**
+     * Kind
+     */
+    kind: 'person' | 'organization' | 'location';
+    /**
+     * Start
+     */
+    start: number;
+    /**
+     * End
+     */
+    end: number;
+};
+
+/**
+ * NamesChange
+ */
+export type NamesChange = {
+    /**
+     * Names
+     */
+    names: Array<NameSpan>;
+};
+
+/**
  * NewOrganization
  */
 export type NewOrganization = {
@@ -738,7 +766,7 @@ export type TelegramName = {
     /**
      * Verdict
      */
-    verdict?: 'right' | 'kind' | 'part' | 'extra' | 'missed' | null;
+    verdict?: 'right' | 'part' | 'kind' | 'extra' | 'missed' | null;
     /**
      * Labelled As
      */
@@ -1818,15 +1846,15 @@ export type TelegramChannelMessagesData = {
         /**
          * Labelled
          *
-         * Only the messages with a name labelled by hand
+         * Only the messages with a name labelled by hand, which the source labelled too
          */
         labelled?: boolean;
         /**
          * Source
          *
-         * Whose names come with the messages: labelled by hand, or found by a model (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384
+         * Whose names come with the messages: labelled by hand (as admins correct them), Claude's as first made, or a model's (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384
          */
-        source?: 'hand' | 'gemma' | 'glot500' | 'xlmv' | 'minilm';
+        source?: 'hand' | 'claude' | 'gemma' | 'glot500' | 'xlmv' | 'minilm';
         /**
          * Page
          *
@@ -1874,6 +1902,66 @@ export type TelegramChannelMessagesResponses = {
 };
 
 export type TelegramChannelMessagesResponse = TelegramChannelMessagesResponses[keyof TelegramChannelMessagesResponses];
+
+export type LabelMessageData = {
+    body: NamesChange;
+    path: {
+        /**
+         * Channel Id
+         */
+        channel_id: number;
+        /**
+         * Message Id
+         */
+        message_id: number;
+    };
+    query?: never;
+    url: '/api/telegram/channels/{channel_id}/messages/{message_id}/names';
+};
+
+export type LabelMessageErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins do this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * not_found: no such message is saved
+     */
+    404: Error;
+    /**
+     * invalid_request: that isn't a message's ID; invalid_names: a name is out of the text, splits a character, has no letters, or overlaps another
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type LabelMessageError = LabelMessageErrors[keyof LabelMessageErrors];
+
+export type LabelMessageResponses = {
+    /**
+     * Response Label Message
+     *
+     * Successful Response
+     */
+    200: Array<TelegramName>;
+};
+
+export type LabelMessageResponse = LabelMessageResponses[keyof LabelMessageResponses];
 
 export type RunsData = {
     body?: never;

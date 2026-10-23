@@ -2,23 +2,26 @@
 site's channels page asks for, each with its latest message (GET /api/telegram/channels), a channel's details
 (.../{channel_id}), its photo (.../{channel_id}/photo), and its saved messages, newest first, all of them or those a
 search finds (.../{channel_id}/messages). Both lists can keep to the messages whose names were labelled by hand
-(telegram_message_labels), and the messages come with those names, or with the names a model found in them,
-compared with the hand's. The column and the indexes the channel list reads them by are in app.sql; a channel's
-messages come by the messages table's key."""
+(app.telegram_message_labels), and the messages come with those names, or with the names another labeller found in
+them, compared with the hand's; admins correct the hand's (.../messages/{message_id}/names). The column and the
+indexes the channel list reads them by are in app.sql; a channel's messages come by the messages table's key."""
 
 import asyncio
+import logging
 from datetime import datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Path, Query, Request, Response
 from psycopg import sql
 from psycopg.rows import class_row, dict_row
-from pydantic import BaseModel
+from psycopg.types.json import Jsonb
+from pydantic import BaseModel, Field
 
 from media_monitoring.api.accounts import Admin
 from media_monitoring.api.errors import Failure, failures
 from media_monitoring.api.lists import LAST_PAGE, PAGE_SIZE, SEARCH_MAX, anywhere
 
+log = logging.getLogger("media_monitoring.api")
 router = APIRouter()
 
 
@@ -44,19 +47,23 @@ class TelegramChannelDetails(TelegramChannel):
 
 
 Kind = Literal["person", "organization", "location"]
+# Whose names: labelled by hand (corrected by admins), Claude's as first made, or a model's: Gemma 4 26B, or one trained
+# on its names: Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384
+Labeller = Literal["hand", "claude", "gemma", "glot500", "xlmv", "minilm"]
 
 
 class TelegramName(BaseModel):
-    name: str  # labelled by hand, its base form (Самарканд where the text has Самарканде); a model's, as written
+    name: str  # as written in the text
     kind: Kind
     # Where it is in the text, in UTF-16 units, as a browser counts a string's characters (end not included); None for
-    # a name not written so in it, or overlapping another
+    # a model's name not written so in it
     start: int | None
     end: int | None
-    # A model's name, as it compares with the names labelled by hand: one of them (right), one of them of another kind
-    # (kind: labelled_as is the hand's), a part of one or holding one (part: neither right nor wrong), or none of them
-    # (extra); or one of them that the model missed (missed), where the hand placed it. None for the hand's own.
-    verdict: Literal["right", "kind", "part", "extra", "missed"] | None = None
+    # Another labeller's name, as it compares with the names labelled by hand: one of them (right), overlapping one of
+    # the same kind, but not the same words (part), overlapping only names of another kind (kind: labelled_as is the
+    # hand's), or none (extra); or one of the hand's that no name of the labeller's overlaps (missed). None for the
+    # hand's own.
+    verdict: Literal["right", "part", "kind", "extra", "missed"] | None = None
     labelled_as: Kind | None = None
 
 
@@ -111,7 +118,7 @@ SEARCHED = sql.SQL("WHERE has_messages AND search_text LIKE app.searchable(%(pat
 # Only the channels with a name labelled by hand in a message (not those whose labelled messages have none), a hundred
 # or so, each found by its key
 LABELLED = sql.SQL(
-    " AND channel_id IN (SELECT channel_id FROM telegram_message_labels WHERE source = 'hand' AND names <> '[]')"
+    " AND channel_id IN (SELECT channel_id FROM app.telegram_message_labels WHERE source = 'hand' AND names <> '[]')"
 )
 # Each order ends with the channel's ID, so that channels that tie keep their places from one page to the next
 ORDERS = {
@@ -241,35 +248,60 @@ async def telegram_channel_photo(request: Request, _: Admin, channel_id: Annotat
 
 
 # Newest first: a channel's messages are numbered as they come out, and the table's key keeps them in that order, each
-# with the names labelled in it by hand or by a model, by the labels' key. A search reads all the channel's messages:
-# 50 ms for the one with the most (7,000).
+# with the labeller's names and the hand's, by the labels' key. A search reads all the channel's messages: 50 ms for
+# the one with the most (7,000).
 MESSAGES = sql.SQL("""
-    SELECT m.message_id AS id, m.published_at, m.text, l.names
+    SELECT m.message_id AS id, m.published_at, m.text, l.names, hand.names AS hand
     FROM telegram_messages AS m
-    LEFT JOIN telegram_message_labels AS l
+    LEFT JOIN app.telegram_message_labels AS l
         ON l.channel_id = m.channel_id AND l.message_id = m.message_id AND l.source = %(source)s
+    LEFT JOIN app.telegram_message_labels AS hand
+        ON hand.channel_id = m.channel_id AND hand.message_id = m.message_id AND hand.source = 'hand'
     WHERE m.channel_id = %(channel)s {search} {labelled}
     ORDER BY m.message_id DESC LIMIT %(limit)s OFFSET %(offset)s
 """)
 # Lowercase, apostrophes left out, as the channels' search
 FOUND = sql.SQL("AND app.searchable(m.text) LIKE app.searchable(%(pattern)s)")
-# The messages with a name labelled by hand, whoever's names come with them, so that each shows the same ones
-WITH_NAMES = sql.SQL("""AND EXISTS (
-    SELECT FROM telegram_message_labels AS hand
-    WHERE hand.channel_id = m.channel_id AND hand.message_id = m.message_id AND hand.source = 'hand'
-        AND hand.names <> '[]'
-)""")
+# The messages with a name labelled by hand, which the labeller labelled too, so that each shows the same ones
+WITH_NAMES = sql.SQL("AND hand.names <> '[]' AND l.names IS NOT NULL")
 
 
-def in_utf16(message: dict) -> dict:
-    """A message's names placed in UTF-16 units, as a browser counts a string's characters, from the characters the
-    labels count (an emoji before a name counts twice in the browser)"""
-    text = message["text"]
-    for name in message["names"] or []:
-        for edge in ("start", "end"):
-            if name[edge] is not None:
-                name[edge] = len(text[: name[edge]].encode("utf-16-le")) // 2
-    return message
+def compared(names: list[dict], hand: list[dict]) -> list[dict]:
+    """A labeller's names, each as it compares with the names labelled by hand (see TelegramName.verdict), by where
+    they are, and the hand's that none of its own overlaps, missed, in order"""
+    hand = [h for h in hand if h["start"] is not None]
+
+    def overlap(a: dict, b: dict) -> bool:
+        return a["start"] < b["end"] and b["start"] < a["end"]
+
+    out = []
+    for name in names:
+        if name["start"] is None:
+            out.append(name)
+            continue
+        over = [h for h in hand if overlap(h, name)]
+        if any((h["start"], h["end"], h["kind"]) == (name["start"], name["end"], name["kind"]) for h in over):
+            out.append(name | {"verdict": "right"})
+        elif any(h["kind"] == name["kind"] for h in over):
+            out.append(name | {"verdict": "part"})
+        elif over:
+            out.append(name | {"verdict": "kind", "labelled_as": over[0]["kind"]})
+        else:
+            out.append(name | {"verdict": "extra"})
+    placed = [name for name in names if name["start"] is not None]
+    out += [h | {"verdict": "missed"} for h in hand if not any(overlap(h, name) for name in placed)]
+    return sorted(out, key=lambda name: (name["start"] is None, name["start"] or 0))
+
+
+def in_utf16(text: str, names: list[dict]) -> list[dict]:
+    """Names placed in UTF-16 units, as a browser counts a string's characters, from the characters the labels count
+    (an emoji before a name counts twice in the browser)"""
+    return [
+        name | {edge: len(text[: name[edge]].encode("utf-16-le")) // 2 for edge in ("start", "end")}
+        if name["start"] is not None
+        else name
+        for name in names
+    ]
 
 
 @router.get(
@@ -287,21 +319,24 @@ async def telegram_channel_messages(
     _: Admin,
     channel_id: Annotated[int, Path(ge=1)],
     search: Annotated[str, Query(max_length=SEARCH_MAX, description="Part of a message's text")] = "",
-    labelled: Annotated[bool, Query(description="Only the messages with a name labelled by hand")] = False,
+    labelled: Annotated[
+        bool, Query(description="Only the messages with a name labelled by hand, which the source labelled too")
+    ] = False,
     source: Annotated[
-        Literal["hand", "gemma", "glot500", "xlmv", "minilm"],
+        Labeller,
         Query(
-            description="Whose names come with the messages: labelled by hand, or found by a model (in the posts "
-            "labelled by hand): Gemma 4 26B, or one trained on its names: Glot500 base, XLM-V base, "
-            "Multilingual-MiniLM-L12-H384"
+            description="Whose names come with the messages: labelled by hand (as admins correct them), Claude's as "
+            "first made, or a model's (in the posts labelled by hand): Gemma 4 26B, or one trained on its names: "
+            "Glot500 base, XLM-V base, Multilingual-MiniLM-L12-H384"
         ),
     ] = "hand",
     page: Annotated[int, Query(ge=1, le=LAST_PAGE, description=f"{PAGE_SIZE} messages to a page")] = 1,
 ) -> TelegramMessages:
     """A channel's saved messages, newest first, a page at a time (a channel that isn't monitored has none), each with
-    the names labelled in it by hand, or found in it by a model, if it was labelled; with a search, only those whose
-    text has it in them, whatever the case of its letters, and apostrophes aside; labelled, only those with a name
-    labelled by hand. How many there are is in the channel's details, so that a page isn't counted again."""
+    the names labelled in it by hand, or another labeller's, compared with the hand's, if it was labelled; with a
+    search, only those whose text has it in them, whatever the case of its letters, and apostrophes aside; labelled,
+    only those with a name labelled by hand. How many there are is in the channel's details, so that a page isn't
+    counted again."""
     search = " ".join(search.split())
     values = {
         "channel": channel_id,
@@ -314,4 +349,79 @@ async def telegram_channel_messages(
     async with request.state.pool.connection() as conn:
         cursor = conn.cursor(row_factory=dict_row)
         rows = await (await cursor.execute(query, values, prepare=False if search else None)).fetchall()
-    return TelegramMessages(messages=[TelegramMessage(**in_utf16(row)) for row in rows], page_size=PAGE_SIZE)
+    messages = []
+    for row in rows:
+        names, hand = row.pop("names"), row.pop("hand")
+        if names is not None and source != "hand":
+            names = compared(names, hand or [])
+        messages.append(TelegramMessage(**row, names=None if names is None else in_utf16(row["text"], names)))
+    return TelegramMessages(messages=messages, page_size=PAGE_SIZE)
+
+
+NAMES_MAX = 300  # names in a message
+
+
+class NameSpan(BaseModel):
+    kind: Kind
+    start: int = Field(ge=0)  # where it is in the text, in UTF-16 units, as the messages give names
+    end: int = Field(ge=1)
+
+
+class NamesChange(BaseModel):
+    names: list[NameSpan] = Field(max_length=NAMES_MAX)
+
+
+MESSAGE_TEXT = "SELECT text FROM telegram_messages WHERE channel_id = %s AND message_id = %s"
+SAVE_NAMES = """
+    INSERT INTO app.telegram_message_labels (channel_id, message_id, source, names) VALUES (%s, %s, 'hand', %s)
+    ON CONFLICT (channel_id, message_id, source) DO UPDATE SET names = EXCLUDED.names
+"""
+
+
+@router.put(
+    "/api/telegram/channels/{channel_id}/messages/{message_id}/names",
+    responses=failures(
+        {
+            401: "not_signed_in: no session, or it ended",
+            403: "forbidden: only admins do this; must_change_password: the temporary password isn't changed yet",
+            404: "not_found: no such message is saved",
+            422: "invalid_request: that isn't a message's ID; invalid_names: a name is out of the text, splits a "
+            "character, has no letters, or overlaps another",
+        }
+    ),
+)
+async def label_message(
+    request: Request,
+    user: Admin,
+    channel_id: Annotated[int, Path(ge=1)],
+    message_id: Annotated[int, Path(ge=1)],
+    body: NamesChange,
+) -> list[TelegramName]:
+    """Sets the names labelled by hand in a message, all of them at once: each its kind and where it is in the text,
+    as the messages give them (in UTF-16 units). A message not labelled yet becomes one of the labelled. Gives the names
+    back as saved, in order."""
+    async with request.state.pool.connection() as conn, conn.transaction():
+        row = await (await conn.execute(MESSAGE_TEXT, [channel_id, message_id])).fetchone()
+        if row is None:
+            raise Failure(404, "not_found", "No such message is saved")
+        text = row[0]
+        # Each character's place in UTF-16 units, and the text's end: where a name may start or end
+        index, at = {}, 0
+        for i, character in enumerate(text):
+            index[at] = i
+            at += len(character.encode("utf-16-le")) // 2
+        index[at] = len(text)
+        names = []
+        for span in sorted(body.names, key=lambda span: span.start):
+            start, end = index.get(span.start), index.get(span.end)
+            if start is None or end is None or start >= end or not text[start:end].strip():
+                raise Failure(422, "invalid_names", "A name is out of the text, splits a character, or has no letters")
+            if names and start < names[-1]["end"]:
+                raise Failure(422, "invalid_names", "Two names overlap")
+            names.append({"name": text[start:end], "kind": span.kind, "start": start, "end": end})
+        await conn.execute(SAVE_NAMES, [channel_id, message_id, Jsonb(names)])
+    log.info(
+        "message labelled",
+        extra={"fields": {"channel": channel_id, "message": message_id, "names": len(names), "user": user.id}},
+    )
+    return [TelegramName(**name) for name in in_utf16(text, names)]
