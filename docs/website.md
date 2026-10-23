@@ -252,16 +252,17 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   them), under a card that says what the colors are, with a link to all its messages and a switch between the names
   labelled by hand and another labeller's (`?labelled=gemma`): Claude's as first labelled, or Gemma's, which the
   folder's other chats then open with. With the names labelled by hand, admins correct them there: a selection of a
-  message's text, made whole words (a name takes its ending, Toshkentda), gets a kind from the toolbar that comes up
-  under it (or 1 to 4) and takes the place of the names it overlaps; a click on a name changes its kind or removes it
-  (Delete). Each change shows at once and is saved at once (`src/components/telegram-labels.tsx`), and Ctrl+Z takes the
-  last ones back. The round button with ✓ beside a message marks it checked, which its time then shows with ✓✓, as
-  Telegram shows a message read; the labelled folder counts each channel's messages still to check as Telegram counts a
-  chat's unread ones, under a row with how many are checked of all of them, which opens the first channel with one still
-  to check, and a chat's card says how many of its own are checked, with the way on to the next channel. Another
-  labeller's names compare with the hand's: a mistake (a name not labelled by hand, or of another kind) is underlined
-  red and wavy, as a misspelt word; a name it missed is framed, dashed, where it was labelled, and listed under the
-  text, with those it gave that aren't written so in it; under the mouse, each says which.
+  message's text, made whole words (a name takes its ending, Toshkentda) without quote marks around it ("Сити"нинг:
+  Сити), gets a kind from the toolbar that comes up under it (or 1 to 4) and takes the place of the names it overlaps; a
+  click on a name changes its kind or removes it (Delete). Each change shows at once and is saved at once
+  (`src/components/telegram-labels.tsx`), and Ctrl+Z takes the last ones back. The round button with ✓ beside a message
+  marks it checked, which its time then shows with ✓✓, as Telegram shows a message read; the labelled folder counts each
+  channel's messages still to check as Telegram counts a chat's unread ones, under a row with how many are checked of
+  all of them, which opens the first channel with one still to check, and a chat's card says how many of its own are
+  checked, with the way on to the next channel. Another labeller's names compare with the hand's: a mistake (a name not
+  labelled by hand, or of another kind) is underlined red and wavy, as a misspelt word; a name it missed is framed,
+  dashed, where it was labelled, and listed under the text, with those it gave that aren't written so in it; under the
+  mouse, each says which.
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. One the player can't
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,

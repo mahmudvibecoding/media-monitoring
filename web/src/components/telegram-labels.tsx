@@ -38,16 +38,29 @@ const DOTS = {
 const WORD = /[\p{L}\p{N}\p{M}'ʻʼ‘’`´]/u; // what words are made of: letters, digits, Uzbek's apostrophes
 const EDGE = /[\s.,;:!?()[\]{}'ʻʼ‘’`´—–-]/u; // what's left off a name's ends
 const QUOTES: Record<string, string> = { "«": "»", '"': '"', "“": "”", "„": "“" };
+const OPENING = /["«“„]/u;
+const CLOSING = /["»”“]/u;
+const ONLY_CLOSING = /[»”]/u; // never open a quote, so an ending after one is an ending after a quote
 const TOOLBAR_HEIGHT = 44; // px, about: above the selection when there's no room under it
 const TOOLBAR_HALF = 260; // px, about half its width with its Remove: it's kept that far from the column's sides
 
 // A selection made a name: out to whole words (a name takes its endings: Toshkentda), without spaces and punctuation at
-// its ends, nor quote marks around the whole of it («Artel» → Artel)
+// its ends; a name in quotes is only what's inside them, an ending after the closing quote left out («Artel» → Artel,
+// "Сити"нинг → Сити), while quotes inside a longer name stay («Chorsu» bozori)
 export function snapName(text: string, start: number, end: number): [number, number] {
   while (start > 0 && start < text.length && WORD.test(text[start - 1]!) && WORD.test(text[start]!)) start--;
   while (end > 0 && end < text.length && WORD.test(text[end - 1]!) && WORD.test(text[end]!)) end++;
   while (start < end && EDGE.test(text[start]!)) start++;
   while (end > start && EDGE.test(text[end - 1]!)) end--;
+  let ending = end; // where the last word's letters begin
+  while (ending > start && WORD.test(text[ending - 1]!)) ending--;
+  const quote = text[ending - 1] ?? "";
+  const quoted = ONLY_CLOSING.test(quote) || OPENING.test(text[start]!) || OPENING.test(text[start - 1] ?? "");
+  if (quoted && ending < end && ending - 2 >= start && CLOSING.test(quote) && WORD.test(text[ending - 2]!))
+    end = ending - 1;
+  // A quote mark at an end without its pair in the name is left out
+  if (end - start > 1 && OPENING.test(text[start]!) && !CLOSING.test(text.slice(start + 1, end))) start++;
+  if (end - start > 1 && CLOSING.test(text[end - 1]!) && !OPENING.test(text.slice(start, end - 1))) end--;
   const close = QUOTES[text[start]!];
   if (close && end - start > 2 && text[end - 1] === close) return [start + 1, end - 1];
   return [start, end];

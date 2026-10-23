@@ -21,11 +21,12 @@ with them.
   (forum, saylov).
 
 Laws, titles of works, languages, religions, dates and money aren't names, but a person, organization or place named in
-them is (AQSH dollari: AQSH, a place). A name is whole words, its ending included (Toshkentda, Mirziyoyevning); an
-administrative word after a place's name is part of it (Samarqand viloyati); the longest name wins (Toshkent shahar
-hokimligi is one organization, Toshkent xalqaro investitsiya forumi one event), and a role isn't part of one (AQSH
-davlat kotibi: AQSH, a place). Names in links, @usernames and #hashtags, and in a channel's own signature and
-subscription lines, aren't labelled.
+them is (AQSH dollari: AQSH, a place). A name is whole words, its ending included (Toshkentda, Mirziyoyevning); a name
+in quotes is only what's inside them, without an ending after the closing quote ("Сити"нинг: Сити), but quotes inside a
+longer name stay («Chorsu» bozori); an administrative word after a place's name is part of it (Samarqand viloyati); the
+longest name wins (Toshkent shahar hokimligi is one organization, Toshkent xalqaro investitsiya forumi one event), and a
+role isn't part of one (AQSH davlat kotibi: AQSH, a place). Names in links, @usernames and #hashtags, and in a channel's
+own signature and subscription lines, aren't labelled.
 
 ## The labelled posts
 
