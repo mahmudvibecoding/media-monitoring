@@ -26,6 +26,86 @@ export type CheckChange = {
 };
 
 /**
+ * DisagreementText
+ */
+export type DisagreementText = {
+    /**
+     * Platform
+     */
+    platform: 'telegram' | 'youtube_video' | 'youtube_short' | 'youtube_comment';
+    /**
+     * Channel Id
+     */
+    channel_id: string;
+    /**
+     * Channel Title
+     */
+    channel_title: string | null;
+    /**
+     * Message Id
+     */
+    message_id: number | null;
+    /**
+     * Video Id
+     */
+    video_id: string | null;
+    /**
+     * Comment Id
+     */
+    comment_id: string | null;
+    /**
+     * Video Title
+     */
+    video_title: string | null;
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Names
+     */
+    names: Array<LabelledName>;
+    /**
+     * Differences
+     */
+    differences: Array<'missed' | 'extra' | 'kind' | 'part'>;
+    /**
+     * Checked At
+     */
+    checked_at: string | null;
+};
+
+/**
+ * Disagreements
+ */
+export type Disagreements = {
+    /**
+     * Texts
+     */
+    texts: Array<DisagreementText>;
+    /**
+     * Total
+     */
+    total: number;
+    /**
+     * Page Size
+     */
+    page_size: number;
+    /**
+     * Platforms
+     */
+    platforms: {
+        [key: string]: number;
+    };
+    /**
+     * Differences
+     */
+    differences: {
+        [key: string]: number;
+    };
+};
+
+/**
  * Error
  */
 export type Error = {
@@ -2118,6 +2198,76 @@ export type YoutubeLabelledProgressResponses = {
 };
 
 export type YoutubeLabelledProgressResponse = YoutubeLabelledProgressResponses[keyof YoutubeLabelledProgressResponses];
+
+export type DisagreementsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Source
+         *
+         * Whose names are compared with the hand's
+         */
+        source?: 'claude' | 'gemma';
+        /**
+         * Platform
+         *
+         * Only the texts from here
+         */
+        platform?: 'telegram' | 'youtube_video' | 'youtube_short' | 'youtube_comment' | null;
+        /**
+         * Difference
+         *
+         * Only the texts with this kind of difference
+         */
+        difference?: 'missed' | 'extra' | 'kind' | 'part' | null;
+        /**
+         * Page
+         *
+         * 50 texts to a page
+         */
+        page?: number;
+    };
+    url: '/api/labels/disagreements';
+};
+
+export type DisagreementsErrors = {
+    /**
+     * not_signed_in: no session, or it ended
+     */
+    401: Error;
+    /**
+     * forbidden: only admins see this; must_change_password: the temporary password isn't changed yet
+     */
+    403: Error;
+    /**
+     * invalid_request: a parameter is out of its range
+     */
+    422: Error;
+    /**
+     * Something went wrong on the server
+     */
+    500: Error;
+    /**
+     * The database doesn't answer
+     */
+    503: Error;
+    /**
+     * A query ran past the time limit
+     */
+    504: Error;
+};
+
+export type DisagreementsError = DisagreementsErrors[keyof DisagreementsErrors];
+
+export type DisagreementsResponses = {
+    /**
+     * Successful Response
+     */
+    200: Disagreements;
+};
+
+export type DisagreementsResponse = DisagreementsResponses[keyof DisagreementsResponses];
 
 export type TelegramChannelsData = {
     body?: never;

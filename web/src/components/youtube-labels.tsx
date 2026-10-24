@@ -17,9 +17,11 @@ import {
 import type { LabelledText, LabelledTexts } from "@/api/types.gen";
 import { ApiError } from "@/components/api-error";
 import { type NameStore, type Pick, useNameEditing, usePicking } from "@/components/name-labels";
+import { PageLink } from "@/components/page-link";
 import { MISSED, MISTAKE, NAME_KINDS, NameMark, NameNotes, TelegramText } from "@/components/telegram-ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CoverImage, YouTubeLink } from "@/components/youtube-ui";
+import { addressOf } from "@/lib/address";
 import { formatCount } from "@/lib/format";
 import { type Labeller, LABELLERS } from "@/lib/telegram";
 import { cn } from "@/lib/utils";
@@ -153,6 +155,7 @@ const keyOf = (text: LabelledText) => `${text.video_id}/${text.comment_id ?? ""}
 function Legend({ id, labelled, texts }: { id: string; labelled: Labeller; texts: LabelledText[] }) {
   const t = useTranslations("telegramChannel");
   const youtube = useTranslations("youtubeChannel");
+  const names = useTranslations("names");
   const locale = useLocale();
   const progress = useQuery({
     ...youtubeLabelledProgressOptions({ query: { after: id } }),
@@ -212,10 +215,20 @@ function Legend({ id, labelled, texts }: { id: string; labelled: Labeller; texts
           </p>
         </>
       ) : (
-        <p>
-          <span className={MISTAKE}>{t("mistake")}</span>{" "}
-          <span className={cn(MISSED, "rounded-[3px] border-tg-muted px-1")}>{t("notFound")}</span>
-        </p>
+        <>
+          <p>
+            <span className={MISTAKE}>{t("mistake")}</span>{" "}
+            <span className={cn(MISSED, "rounded-[3px] border-tg-muted px-1")}>{t("notFound")}</span>
+          </p>
+          <p>
+            <PageLink
+              href={`/names${addressOf({ source: labelled === "gemma" ? undefined : labelled })}`}
+              className="text-yt-blue hover:underline"
+            >
+              {names("onlyDisagreements")}
+            </PageLink>
+          </p>
+        </>
       )}
       <YouTubeLink href={`/youtube/channels/${id}`} className="text-yt-blue hover:underline">
         {youtube("allVideos")}

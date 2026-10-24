@@ -341,5 +341,26 @@
     "mismatch": "Parollar mos kelmadi.",
     "submit": "Saqlash",
     "submitting": "Saqlanmoqda…"
+  },
+  "names": {
+    "title": "Farqlar",
+    "intro": "Model nomlari qoʻlda belgilanganlardan farq qiladigan belgilangan matnlar.",
+    "all": "Hammasi",
+    "allDifferences": "Barcha farqlar",
+    "platforms": {
+      "telegram": "Telegram postlari",
+      "youtube_video": "YouTube videolari",
+      "youtube_short": "Shorts",
+      "youtube_comment": "Izohlar"
+    },
+    "differences": {
+      "missed": "Topilmagan",
+      "extra": "Qoʻlda belgilanmagan",
+      "kind": "Turi boshqa",
+      "part": "Chegaralari boshqa"
+    },
+    "count": "{formatted} ta matn",
+    "none": "Bu yerda farqlar yoʻq.",
+    "onlyDisagreements": "Faqat farqlar →"
   }
 }

@@ -500,5 +500,26 @@
     "mismatch": "The passwords don't match.",
     "submit": "Save",
     "submitting": "Saving…"
+  },
+  "names": {
+    "title": "Disagreements",
+    "intro": "Labelled texts where a model's names differ from those labelled by hand.",
+    "all": "All",
+    "allDifferences": "All differences",
+    "platforms": {
+      "telegram": "Telegram posts",
+      "youtube_video": "YouTube videos",
+      "youtube_short": "Shorts",
+      "youtube_comment": "Comments"
+    },
+    "differences": {
+      "missed": "Missed",
+      "extra": "Not labelled by hand",
+      "kind": "Other kind",
+      "part": "Other boundaries"
+    },
+    "count": "{count, plural, one {{formatted} text} other {{formatted} texts}}",
+    "none": "No disagreements here.",
+    "onlyDisagreements": "Only disagreements →"
   }
 }

@@ -3,8 +3,8 @@
 import { type InfiniteData, infiniteQueryOptions, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, checkComment, checkMessage, checkVideo, health, labelComment, labelledProgress, labelMessage, labelVideo, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeLabelledProgress, youtubeLabelledTexts, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
-import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, CheckCommentData, CheckCommentError, CheckCommentResponse, CheckMessageData, CheckMessageError, CheckMessageResponse, CheckVideoData, CheckVideoError, CheckVideoResponse, HealthData, HealthError, HealthResponse, LabelCommentData, LabelCommentError, LabelCommentResponse, LabelledProgressData, LabelledProgressError, LabelledProgressResponse, LabelMessageData, LabelMessageError, LabelMessageResponse, LabelVideoData, LabelVideoError, LabelVideoResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeLabelledProgressData, YoutubeLabelledProgressError, YoutubeLabelledProgressResponse, YoutubeLabelledTextsData, YoutubeLabelledTextsError, YoutubeLabelledTextsResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
+import { addOrganization, addPerson, addProject, changeLocale, changeOrganization, changePassword, changePerson, changeProject, checkComment, checkMessage, checkVideo, disagreements, health, labelComment, labelledProgress, labelMessage, labelVideo, me, type Options, organizationDetails, organizations, previewProject, projectDetails, projects, ready, resetPassword, runDetails, runs, signIn, signOut, status, telegramChannel, telegramChannelMessages, telegramChannelPhoto, telegramChannels, youtubeChannel, youtubeChannels, youtubeChannelVideos, youtubeLabelledProgress, youtubeLabelledTexts, youtubeVideo, youtubeVideoComments } from '../sdk.gen';
+import type { AddOrganizationData, AddOrganizationError, AddOrganizationResponse, AddPersonData, AddPersonError, AddPersonResponse, AddProjectData, AddProjectError, AddProjectResponse, ChangeLocaleData, ChangeLocaleError, ChangeLocaleResponse, ChangeOrganizationData, ChangeOrganizationError, ChangeOrganizationResponse, ChangePasswordData, ChangePasswordError, ChangePasswordResponse, ChangePersonData, ChangePersonError, ChangePersonResponse, ChangeProjectData, ChangeProjectError, ChangeProjectResponse, CheckCommentData, CheckCommentError, CheckCommentResponse, CheckMessageData, CheckMessageError, CheckMessageResponse, CheckVideoData, CheckVideoError, CheckVideoResponse, DisagreementsData, DisagreementsError, DisagreementsResponse, HealthData, HealthError, HealthResponse, LabelCommentData, LabelCommentError, LabelCommentResponse, LabelledProgressData, LabelledProgressError, LabelledProgressResponse, LabelMessageData, LabelMessageError, LabelMessageResponse, LabelVideoData, LabelVideoError, LabelVideoResponse, MeData, MeError, MeResponse, OrganizationDetailsData, OrganizationDetailsError, OrganizationDetailsResponse, OrganizationsData, OrganizationsError, OrganizationsResponse, PreviewProjectData, PreviewProjectError, PreviewProjectResponse, ProjectDetailsData, ProjectDetailsError, ProjectDetailsResponse, ProjectsData, ProjectsError, ProjectsResponse, ReadyData, ReadyError, ReadyResponse, ResetPasswordData, ResetPasswordError, ResetPasswordResponse, RunDetailsData, RunDetailsError, RunDetailsResponse, RunsData, RunsError, RunsResponse, SignInData, SignInError, SignInResponse, SignOutData, SignOutError, SignOutResponse, StatusData, StatusError, StatusResponse, TelegramChannelData, TelegramChannelError, TelegramChannelMessagesData, TelegramChannelMessagesError, TelegramChannelMessagesResponse, TelegramChannelPhotoData, TelegramChannelPhotoError, TelegramChannelResponse, TelegramChannelsData, TelegramChannelsError, TelegramChannelsResponse, YoutubeChannelData, YoutubeChannelError, YoutubeChannelResponse, YoutubeChannelsData, YoutubeChannelsError, YoutubeChannelsResponse, YoutubeChannelVideosData, YoutubeChannelVideosError, YoutubeChannelVideosResponse, YoutubeLabelledProgressData, YoutubeLabelledProgressError, YoutubeLabelledProgressResponse, YoutubeLabelledTextsData, YoutubeLabelledTextsError, YoutubeLabelledTextsResponse, YoutubeVideoCommentsData, YoutubeVideoCommentsError, YoutubeVideoCommentsResponse, YoutubeVideoData, YoutubeVideoError, YoutubeVideoResponse } from '../types.gen';
 
 /**
  * Sign In
@@ -548,6 +548,62 @@ export const youtubeLabelledProgressInfiniteOptions = (options?: Options<Youtube
             return data;
         },
         queryKey: youtubeLabelledProgressInfiniteQueryKey(options)
+    });
+    return opts as Omit<typeof opts, 'initialData'>;
+};
+
+export const disagreementsQueryKey = (options?: Options<DisagreementsData>) => createQueryKey('disagreements', options);
+
+/**
+ * Disagreements
+ *
+ * The labelled texts, Telegram's then YouTube's, the biggest channels first, where the source's names differ from
+ * the hand's: each with the source's names compared with the hand's, and what kinds of difference it has; with how
+ * many texts there are of each platform and each kind of difference.
+ */
+export const disagreementsOptions = (options?: Options<DisagreementsData>) => queryOptions<DisagreementsResponse, DisagreementsError, DisagreementsResponse, ReturnType<typeof disagreementsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await disagreements({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: disagreementsQueryKey(options)
+});
+
+export const disagreementsInfiniteQueryKey = (options?: Options<DisagreementsData>): QueryKey<Options<DisagreementsData>> => createQueryKey('disagreements', options, true);
+
+/**
+ * Disagreements
+ *
+ * The labelled texts, Telegram's then YouTube's, the biggest channels first, where the source's names differ from
+ * the hand's: each with the source's names compared with the hand's, and what kinds of difference it has; with how
+ * many texts there are of each platform and each kind of difference.
+ */
+export const disagreementsInfiniteOptions = (options?: Options<DisagreementsData>) => {
+    const opts = infiniteQueryOptions<DisagreementsResponse, DisagreementsError, InfiniteData<DisagreementsResponse>, QueryKey<Options<DisagreementsData>>, number | Pick<QueryKey<Options<DisagreementsData>>[0], 'body' | 'headers' | 'path' | 'query'>>(
+    // @ts-ignore
+    {
+        queryFn: async ({ pageParam, queryKey, signal }) => {
+            // @ts-ignore
+            const page: Pick<QueryKey<Options<DisagreementsData>>[0], 'body' | 'headers' | 'path' | 'query'> = typeof pageParam === 'object' ? pageParam : {
+                query: {
+                    page: pageParam
+                }
+            };
+            const params = createInfiniteParams(queryKey, page);
+            const { data } = await disagreements({
+                ...options,
+                ...params,
+                signal,
+                throwOnError: true
+            });
+            return data;
+        },
+        queryKey: disagreementsInfiniteQueryKey(options)
     });
     return opts as Omit<typeof opts, 'initialData'>;
 };

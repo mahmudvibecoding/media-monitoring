@@ -24,6 +24,7 @@ from media_monitoring.api import (
     activity,
     errors,
     logs,
+    name_review,
     organizations,
     projects,
     status,
@@ -80,6 +81,7 @@ app.include_router(accounts.router)
 app.include_router(status.router)
 app.include_router(youtube.router)
 app.include_router(youtube_labels.router)
+app.include_router(name_review.router)
 app.include_router(telegram.router)
 app.include_router(activity.router)
 app.include_router(organizations.router)

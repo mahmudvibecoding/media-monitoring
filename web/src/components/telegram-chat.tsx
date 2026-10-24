@@ -41,7 +41,7 @@ import {
   ShareIcon,
   TelegramText,
 } from "@/components/telegram-ui";
-import { SEARCH_MAX, searchOf } from "@/lib/address";
+import { addressOf, SEARCH_MAX, searchOf } from "@/lib/address";
 import { formatClock, formatCompact, formatCount, formatDateTime, formatDay, pluralOf, sameDay } from "@/lib/format";
 import { DIMMED, FIRST_PAGE, nextPage } from "@/lib/pages";
 import { chatPath, type Labeller, LABELLERS, messageOnTelegram, messagesQuery } from "@/lib/telegram";
@@ -446,6 +446,7 @@ function Day({
 // and the way to all the chat's messages
 function Legend({ id, labelled, messages }: { id: number; labelled: Labeller; messages: TelegramMessage[] }) {
   const t = useTranslations("telegramChannel");
+  const names = useTranslations("names");
   const locale = useLocale();
   const progress = useQuery({ ...labelledProgressOptions({ query: { after: id } }), enabled: labelled === "hand" });
   const labelledHere = messages.filter((m) => m.names);
@@ -509,10 +510,20 @@ function Legend({ id, labelled, messages }: { id: number; labelled: Labeller; me
             </p>
           </>
         ) : (
-          <p>
-            <span className={MISTAKE}>{t("mistake")}</span>{" "}
-            <span className={cn(MISSED, "rounded-[3px] border-tg-muted px-1")}>{t("notFound")}</span>
-          </p>
+          <>
+            <p>
+              <span className={MISTAKE}>{t("mistake")}</span>{" "}
+              <span className={cn(MISSED, "rounded-[3px] border-tg-muted px-1")}>{t("notFound")}</span>
+            </p>
+            <p>
+              <PageLink
+                href={`/names${addressOf({ source: labelled === "gemma" ? undefined : labelled, platform: "telegram" })}`}
+                className="text-tg-blue hover:underline"
+              >
+                {names("onlyDisagreements")}
+              </PageLink>
+            </p>
+          </>
         )}
         <PageLink line="telegram" href={chatPath(id)} className="text-tg-blue hover:underline">
           {t("allMessages")}

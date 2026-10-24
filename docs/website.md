@@ -131,7 +131,13 @@ labelled texts, its videos' titles and descriptions and the comments under its v
 names as Telegram's messages come with theirs: those labelled by hand, or another labeller's (`source`), compared with
 the hand's. `PUT /api/youtube/videos/{id}/names` and `.../comments/{comment_id}/names` set a text's names labelled by
 hand, `.../checked` marks them checked, and `/api/youtube/labelled` says how far the checking has got, as Telegram's do;
-the label models and the comparing are `api/labels.py`, which both use.
+the label models and the comparing are `api/labels.py`, which both use. `/api/labels/disagreements` (`api/name_review.py`)
+gives the labelled texts, Telegram's and YouTube's together, where another labeller's names (`source`) differ from the
+hand's, 50 to a page: only those from one platform (`platform`: Telegram's posts, YouTube's videos, Shorts or comments)
+or with one kind of difference (`difference`: a name missed, one not labelled by hand, of another kind, or with other
+boundaries), with how many texts there are of each. The names of all 2,000 texts are read and compared on each request
+(0.13 s to read them on the server), so a correction made by hand shows at once; the texts themselves are read only for
+the page shown.
 
 ### Which channels are listed
 
@@ -280,6 +286,13 @@ Lists leave out the numbers of each proxy list `uv run proxies` read (about 10 K
   many are checked, here and in all, with the way on to the next channel, and the way to the channel's videos. The names
   are corrected and checked there as in the labelled chats (`src/components/youtube-labels.tsx`), with the ✓ beside each
   text; a change that wasn't saved says so in YouTube's dark note at the bottom left.
+- The disagreements page (`/names`), which a labelled chat's or channel's card links to while it shows another
+  labeller's names, lists the labelled texts of all the channels where that labeller's names differ from the hand's,
+  Telegram's then YouTube's, the biggest channels first: chips above choose whose names (Gemma's or Claude's), where the
+  texts are from and the kind of difference, each with how many texts it has, and the address keeps the choice. Each
+  text shows where it's from, its channel (which opens the channel's labelled texts with the same labeller's names), a
+  comment's video, its kinds of difference, ✓✓ when it's checked, and its names marked as in the labelled chats; 50 to a
+  page (`src/components/name-disagreements.tsx`).
 - A video plays in its page, in YouTube's own player (its privacy-enhanced address, youtube-nocookie.com), which starts
   it as the page opens: with sound once one has clicked something on the site, as browsers allow. One the player can't
   play here (removed, private, kept from the country it's watched in, not to be played on other sites), a Short too,

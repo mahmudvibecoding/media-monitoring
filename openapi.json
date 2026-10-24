@@ -1714,6 +1714,165 @@
         }
       }
     },
+    "/api/labels/disagreements": {
+      "get": {
+        "summary": "Disagreements",
+        "description": "The labelled texts, Telegram's then YouTube's, the biggest channels first, where the source's names differ from\nthe hand's: each with the source's names compared with the hand's, and what kinds of difference it has; with how\nmany texts there are of each platform and each kind of difference.",
+        "operationId": "disagreements",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "claude",
+                "gemma"
+              ],
+              "type": "string",
+              "description": "Whose names are compared with the hand's",
+              "default": "gemma",
+              "title": "Source"
+            },
+            "description": "Whose names are compared with the hand's"
+          },
+          {
+            "name": "platform",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "telegram",
+                    "youtube_video",
+                    "youtube_short",
+                    "youtube_comment"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only the texts from here",
+              "title": "Platform"
+            },
+            "description": "Only the texts from here"
+          },
+          {
+            "name": "difference",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "missed",
+                    "extra",
+                    "kind",
+                    "part"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only the texts with this kind of difference",
+              "title": "Difference"
+            },
+            "description": "Only the texts with this kind of difference"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "50 texts to a page",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "50 texts to a page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Disagreements"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "not_signed_in: no session, or it ended",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "forbidden: only admins see this; must_change_password: the temporary password isn't changed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "invalid_request: a parameter is out of its range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database doesn't answer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "A query ran past the time limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/telegram/channels": {
       "get": {
         "summary": "Telegram Channels",
@@ -4122,6 +4281,172 @@
           "checked"
         ],
         "title": "CheckChange"
+      },
+      "DisagreementText": {
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "telegram",
+              "youtube_video",
+              "youtube_short",
+              "youtube_comment"
+            ],
+            "title": "Platform"
+          },
+          "channel_id": {
+            "type": "string",
+            "title": "Channel Id"
+          },
+          "channel_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel Title"
+          },
+          "message_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message Id"
+          },
+          "video_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Id"
+          },
+          "comment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comment Id"
+          },
+          "video_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Video Title"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "names": {
+            "items": {
+              "$ref": "#/components/schemas/LabelledName"
+            },
+            "type": "array",
+            "title": "Names"
+          },
+          "differences": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "missed",
+                "extra",
+                "kind",
+                "part"
+              ]
+            },
+            "type": "array",
+            "title": "Differences"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "platform",
+          "channel_id",
+          "channel_title",
+          "message_id",
+          "video_id",
+          "comment_id",
+          "video_title",
+          "text",
+          "names",
+          "differences",
+          "checked_at"
+        ],
+        "title": "DisagreementText"
+      },
+      "Disagreements": {
+        "properties": {
+          "texts": {
+            "items": {
+              "$ref": "#/components/schemas/DisagreementText"
+            },
+            "type": "array",
+            "title": "Texts"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "platforms": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Platforms"
+          },
+          "differences": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Differences"
+          }
+        },
+        "type": "object",
+        "required": [
+          "texts",
+          "total",
+          "page_size",
+          "platforms",
+          "differences"
+        ],
+        "title": "Disagreements"
       },
       "Error": {
         "properties": {

@@ -81,4 +81,5 @@ title and channel, and its names placed in the text as the hand's are (written o
 apostrophes, spaces, a changed ending). The website compares them with the names labelled by hand as it shows them, by
 where they are: the same words of the same kind are right; overlapping a name of the same kind, but not the same words,
 the boundaries differ; overlapping only a name of another kind, the kind is wrong; overlapping none, it's extra; and a
-name labelled by hand that none of Gemma's overlaps is missed.
+name labelled by hand that none of Gemma's overlaps is missed. The website's disagreements page (`/names`) lists the texts where they
+differ, from all the channels, by where they're from and the kind of difference.

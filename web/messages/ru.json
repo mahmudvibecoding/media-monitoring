@@ -341,5 +341,26 @@
     "mismatch": "Пароли не совпадают.",
     "submit": "Сохранить",
     "submitting": "Сохраняем…"
+  },
+  "names": {
+    "title": "Расхождения",
+    "intro": "Размеченные тексты, где имена модели расходятся с ручной разметкой.",
+    "all": "Все",
+    "allDifferences": "Все расхождения",
+    "platforms": {
+      "telegram": "Посты Telegram",
+      "youtube_video": "Видео YouTube",
+      "youtube_short": "Shorts",
+      "youtube_comment": "Комментарии"
+    },
+    "differences": {
+      "missed": "Пропущено",
+      "extra": "Нет в ручной разметке",
+      "kind": "Другой вид",
+      "part": "Другие границы"
+    },
+    "count": "{count, plural, one {{formatted} текст} few {{formatted} текста} many {{formatted} текстов} other {{formatted} текста}}",
+    "none": "Здесь расхождений нет.",
+    "onlyDisagreements": "Только расхождения →"
   }
 }
