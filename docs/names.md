@@ -75,8 +75,10 @@ the rules for YouTube too (`gemma`).
 
 ## Gemma's names
 
-Beside them, in the same table, the names Gemma 4 26B (INT8, on vLLM) found in the same posts, told the rules above. The
-website compares them with the names labelled by hand as it shows them, by where they are: the same words of the same
-kind are right; overlapping a name of the same kind, but not the same words, the boundaries differ; overlapping only a
-name of another kind, the kind is wrong; overlapping none, it's extra; and a name labelled by hand that none of Gemma's
-overlaps is missed.
+Beside them, in the same tables, the names Gemma 4 31B (Google's 4-bit version, on vLLM) found in the same texts: told
+the rules above, with what models got wrong most spelt out and three worked examples, a comment shown with its video's
+title and channel, and its names placed in the text as the hand's are (written otherwise, loosely: quote marks,
+apostrophes, spaces, a changed ending). The website compares them with the names labelled by hand as it shows them, by
+where they are: the same words of the same kind are right; overlapping a name of the same kind, but not the same words,
+the boundaries differ; overlapping only a name of another kind, the kind is wrong; overlapping none, it's extra; and a
+name labelled by hand that none of Gemma's overlaps is missed.

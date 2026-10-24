@@ -81,7 +81,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS projects_name ON app.projects (organization_id
 
 -- Names labelled in Telegram messages, a row a message and labeller: the posts name finders are scored on, labelled by
 -- hand ('hand': Claude's labels as admins correct them on the website; 'claude': Claude's as first made, to see what
--- was corrected), and the names Gemma 4 26B found in them ('gemma'). names is a list of
+-- was corrected), and the names Gemma 4 31B found in them ('gemma'). names is a list of
 -- {"name" (as written), "kind" (person, organization, location or event), "start", "end"}: where it is in the text, in
 -- characters (end not included), or null for a model's name not written so in it; an empty list for a message with
 -- none. A labeller's names are compared with the hand's as they're read (api/telegram.py). checked_at, on a 'hand' row,
@@ -101,7 +101,7 @@ ALTER TABLE app.telegram_message_labels ADD COLUMN IF NOT EXISTS checked_at time
 -- Names labelled in YouTube texts, the other half of what name finders are scored on: a video's title and description
 -- (comment_id ''; the text is the title, then, if there's a description, a blank line and the description) or a
 -- comment under a video, a row a text and labeller, as in app.telegram_message_labels: by hand ('hand': Claude's
--- labels as admins correct them on the website; 'claude': Claude's as first made), and the names Gemma 4 26B found in
+-- labels as admins correct them on the website; 'claude': Claude's as first made), and the names Gemma 4 31B found in
 -- them ('gemma'); names in characters of that text; checked_at, on a 'hand' row, when an admin marked them checked.
 CREATE TABLE IF NOT EXISTS app.youtube_labels (
     video_id    text NOT NULL REFERENCES youtube_videos ON DELETE CASCADE,
